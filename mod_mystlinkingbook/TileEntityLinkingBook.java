@@ -1,5 +1,5 @@
 
-package MCP.mod_mystlinkingbook;
+package net.minecraft.src;
 
 import net.minecraft.src.NBTTagCompound;
 import net.minecraft.src.TileEntity;

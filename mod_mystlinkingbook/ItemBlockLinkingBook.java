@@ -1,20 +1,9 @@
-
-package MCP.mod_mystlinkingbook;
-
-import net.minecraft.src.Block;
-import net.minecraft.src.EntityPlayer;
-import net.minecraft.src.ItemStack;
-import net.minecraft.src.Material;
-import net.minecraft.src.NBTTagCompound;
-import net.minecraft.src.World;
-import MCP.ApiController;
-import MCP.api.BlockItemBase;
+package net.minecraft.src;
 
 /**
  * Represents Linking Books as {@code Item} (ie. either dropped in the world or in the inventory).<br>
  * <br>
- * The {@code Item}s are actually {@code ItemBlock}. This defines a kind of item, and its associated block (a {@code BlockLinkingBook}).
- * The Linking Books datas are stored in the associated {@code ItemStack}.<br>
+ * The {@code Item}s are actually {@code ItemBlock}. This defines a kind of item, and its associated block (a {@code BlockLinkingBook}). The Linking Books datas are stored in the associated {@code ItemStack}.<br>
  * <br>
  * There is only 1 instance of this class.
  * 
@@ -24,22 +13,21 @@ import MCP.api.BlockItemBase;
  * @see net.minecraft.src.ItemStack
  * @since 0.1a
  */
-public class ItemBlockLinkingBook extends BlockItemBase {
+public class ItemBlockLinkingBook extends ItemBlock {
 	
 	/**
 	 * Reference to the mod instance.
 	 */
-	public mod_mystlinkingbook	mod_mystlinkingbook;
+	public mod_mystlinkingbook mod_mystlinkingbook;
 	
-	public ItemBlockLinkingBook(ApiController ctrl, int textureID, mod_mystlinkingbook mod_mystlinkingbook) {
-		super(ctrl.getBlockItemID(ItemBlockLinkingBook.class), textureID, Material.wood, BlockLinkingBook.class);
+	public ItemBlockLinkingBook(int itemID, mod_mystlinkingbook mod_mystlinkingbook) {
+		super(itemID);
 		
 		this.mod_mystlinkingbook = mod_mystlinkingbook;
-		((BlockLinkingBook) this.block).mod_mystlinkingbook = mod_mystlinkingbook;
 		
-		this.setItemName("itemblocklinkingbook");
-		this.setMaxStackSize(1);
-		this.setMaxDamage(0);
+		setItemName("linkingBookItem");
+		setMaxStackSize(1);
+		setMaxDamage(0);
 	}
 	
 	/**
@@ -49,7 +37,7 @@ public class ItemBlockLinkingBook extends BlockItemBase {
 	 */
 	@Override
 	public void onCreated(ItemStack itemstack, World world, EntityPlayer entityplayer) {
-		itemstack.func_40706_d(new NBTTagCompound());
+		itemstack.setTagCompound(new NBTTagCompound());
 	}
 	
 	/**
@@ -62,38 +50,38 @@ public class ItemBlockLinkingBook extends BlockItemBase {
 	 */
 	@Override
 	public boolean onItemUse(ItemStack itemstack, EntityPlayer entityplayer, World world, int i, int j, int k, int l) {
-		NBTTagCompound nbttagcompound = itemstack.func_40709_o();
+		NBTTagCompound nbttagcompound = itemstack.getTagCompound();
 		// In case onCreated() was not called on this item:
-		if(nbttagcompound == null) {
-			this.onCreated(itemstack, world, entityplayer);
+		if (nbttagcompound == null) {
+			onCreated(itemstack, world, entityplayer);
 		}
-		if(this.mod_mystlinkingbook.linkingBook.isDestinationSet(nbttagcompound)) {
+		if (mod_mystlinkingbook.linkingBook.isDestinationSet(nbttagcompound)) {
 			boolean itemUsed = super.onItemUse(itemstack, entityplayer, world, i, j, k, l);
-			if(itemUsed) {
+			if (itemUsed) {
 				
 				// The following part is taken from ItemBlock.onItemUse(...).
 				// It tells us the position of the new block depending on the side (int l) of the aimed block:
 				int i1 = world.getBlockId(i, j, k);
-				if(i1 == Block.snow.blockID) {
+				if (i1 == Block.snow.blockID) {
 					l = 0;
 				}
-				else if(i1 != Block.vine.blockID) {
-					if(l == 0) {
+				else if (i1 != Block.vine.blockID) {
+					if (l == 0) {
 						j--;
 					}
-					if(l == 1) {
+					else if (l == 1) {
 						j++;
 					}
-					if(l == 2) {
+					else if (l == 2) {
 						k--;
 					}
-					if(l == 3) {
+					else if (l == 3) {
 						k++;
 					}
-					if(l == 4) {
+					else if (l == 4) {
 						i--;
 					}
-					if(l == 5) {
+					else if (l == 5) {
 						i++;
 					}
 				}
@@ -104,9 +92,7 @@ public class ItemBlockLinkingBook extends BlockItemBase {
 			}
 			return itemUsed;
 		}
-		else {
-			return false;
-		}
+		else return false;
 	}
 	
 	/**
@@ -116,12 +102,16 @@ public class ItemBlockLinkingBook extends BlockItemBase {
 	 */
 	@Override
 	public ItemStack onItemRightClick(ItemStack itemstack, World world, EntityPlayer entityplayer) {
-		NBTTagCompound nbttagcompound = itemstack.func_40709_o();
-		if(!this.mod_mystlinkingbook.linkingBook.isDestinationSet(nbttagcompound)) {
-			if(this.mod_mystlinkingbook.linkingBook.setDestination(nbttagcompound, entityplayer)) {
-				entityplayer.swingItem();
-			}
+		NBTTagCompound nbttagcompound = itemstack.getTagCompound();
+		if (!mod_mystlinkingbook.linkingBook.isDestinationSet(nbttagcompound)) if (mod_mystlinkingbook.linkingBook.setDestination(nbttagcompound, entityplayer)) {
+			entityplayer.swingItem();
 		}
 		return itemstack;
+	}
+	
+	@Override
+	public String getItemDisplayName(ItemStack itemstack) {
+		String name = mod_mystlinkingbook.linkingBook.getName(itemstack.getTagCompound());
+		return (StringTranslate.getInstance().translateNamedKey(getLocalItemName(itemstack)) + ": " + name).trim();
 	}
 }

@@ -1,8 +1,4 @@
-
-package MCP.mod_mystlinkingbook;
-
-import net.minecraft.src.EntityPlayer;
-import net.minecraft.src.NBTTagCompound;
+package net.minecraft.src;
 
 /**
  * Contains the methods to interact with the datas of the Linking Books.<br>
@@ -24,9 +20,7 @@ public class LinkingBook {
 	}
 	
 	public boolean setDestination(NBTTagCompound nbttagcompound, EntityPlayer entityplayer) {
-		if(nbttagcompound.getBoolean("dest")) {
-			return false;
-		}
+		if (nbttagcompound.getBoolean("dest")) return false;
 		nbttagcompound.setBoolean("dest", true);
 		nbttagcompound.setDouble("destX", entityplayer.posX);
 		nbttagcompound.setDouble("destY", entityplayer.posY);
@@ -38,18 +32,30 @@ public class LinkingBook {
 	}
 	
 	public boolean teleportToDestination(NBTTagCompound nbttagcompound, EntityPlayer entityplayer) {
-		if(nbttagcompound.getBoolean("dest")) {
+		if (nbttagcompound.getBoolean("dest")) {
 			double destX = nbttagcompound.getDouble("destX");
-			double destY = nbttagcompound.getDouble("destY") - entityplayer.getYOffset();
+			double destY = nbttagcompound.getDouble("destY") - entityplayer.yOffset; // yOffset: prevent the tiny jump when teleporting
 			double destZ = nbttagcompound.getDouble("destZ");
 			float destRotYaw = nbttagcompound.getFloat("destRotYaw");
 			float destRotPitch = nbttagcompound.getFloat("destRotPitch");
 			int destDim = nbttagcompound.getInteger("destDim");
-			if(destDim == entityplayer.dimension) {
+			if (destDim == entityplayer.dimension) {
 				entityplayer.setLocationAndAngles(destX, destY, destZ, destRotYaw, destRotPitch);
 				return true;
 			}
 		}
 		return false;
+	}
+	
+	public String getName(NBTTagCompound nbttagcompound) {
+		if (nbttagcompound == null) return "";
+		else {
+			String name = nbttagcompound.getString("name");
+			return name.isEmpty() ? "Unwritten" : name;
+		}
+	}
+	
+	public void setName(NBTTagCompound nbttagcompound, String name) {
+		nbttagcompound.setString("name", name);
 	}
 }
