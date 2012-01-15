@@ -1,6 +1,5 @@
 package net.minecraft.src;
 
-
 public class mod_mystlinkingbook extends BaseMod {
 	
 	// Contains methods to interact with the datas of the Linking Books:
@@ -14,7 +13,7 @@ public class mod_mystlinkingbook extends BaseMod {
 	
 	@Override
 	public String getVersion() {
-		return "0.1a";
+		return "0.2a";
 	}
 	
 	/**

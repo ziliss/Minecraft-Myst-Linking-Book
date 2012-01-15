@@ -1,8 +1,4 @@
-
 package net.minecraft.src;
-
-import net.minecraft.src.NBTTagCompound;
-import net.minecraft.src.TileEntity;
 
 /**
  * Keeps the datas associated with {@code BlockLinkingBook}s.<br>
@@ -20,7 +16,19 @@ public class TileEntityLinkingBook extends TileEntity {
 	/**
 	 * The datas for this Linking Book Block.
 	 */
-	public NBTTagCompound	nbttagcompound_linkingBook;
+	public NBTTagCompound nbttagcompound_linkingBook;
+	
+	public boolean isPowered;
+	
+	public GuiLinkingBook guiLinkingBook = null;
+	
+	public void setPoweredState(boolean isPowered) {
+		if (isPowered == this.isPowered) return;
+		this.isPowered = isPowered;
+		if (guiLinkingBook != null) {
+			guiLinkingBook.notifyPowerStateChanged(isPowered);
+		}
+	}
 	
 	/**
 	 * Loads the datas from the disk. (Called by Minecraft)
@@ -28,6 +36,7 @@ public class TileEntityLinkingBook extends TileEntity {
 	@Override
 	public void readFromNBT(NBTTagCompound nbttagcompound) {
 		super.readFromNBT(nbttagcompound);
+		isPowered = nbttagcompound.getBoolean("powered");
 		this.nbttagcompound_linkingBook = nbttagcompound.getCompoundTag("tag");
 	}
 	
@@ -37,6 +46,7 @@ public class TileEntityLinkingBook extends TileEntity {
 	@Override
 	public void writeToNBT(NBTTagCompound nbttagcompound) {
 		super.writeToNBT(nbttagcompound);
+		nbttagcompound.setBoolean("powered", isPowered);
 		nbttagcompound.setTag("tag", this.nbttagcompound_linkingBook);
 	}
 	

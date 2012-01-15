@@ -17,15 +17,17 @@ import java.util.Random;
  */
 public class BlockLinkingBook extends BlockContainer {
 	
+	public static Random random = new Random();
+	
 	/**
 	 * Reference to the mod instance.
 	 */
-	public mod_mystlinkingbook mod_mystlinkingbook;
+	public mod_mystlinkingbook mod_MLB;
 	
-	public BlockLinkingBook(int blockID, int textureID, Material material, mod_mystlinkingbook mod_mystlinkingbook) {
+	public BlockLinkingBook(int blockID, int textureID, Material material, mod_mystlinkingbook mod_MLB) {
 		super(blockID, textureID, material);
 		
-		this.mod_mystlinkingbook = mod_mystlinkingbook;
+		this.mod_MLB = mod_MLB;
 		
 		setHardness(1F);
 		setResistance(2.0F);
@@ -49,8 +51,60 @@ public class BlockLinkingBook extends BlockContainer {
 	@Override
 	public boolean blockActivated(World world, int i, int j, int k, EntityPlayer entityplayer) {
 		TileEntityLinkingBook tileEntityLinkingBook = (TileEntityLinkingBook) world.getBlockTileEntity(i, j, k);
-		mod_mystlinkingbook.linkingBook.teleportToDestination(tileEntityLinkingBook.nbttagcompound_linkingBook, entityplayer);
+		NBTTagCompound nbttagcompound_linkingBook = tileEntityLinkingBook.nbttagcompound_linkingBook;
+		
+		ItemStack currentItem = entityplayer.inventory.getCurrentItem();
+		boolean openGui = false;
+		if (currentItem == null) {
+			openGui = true;
+		}
+		else if (currentItem.itemID == Item.paper.shiftedIndex && currentItem.stackSize > 0) {
+			if (mod_MLB.linkingBook.addPages(nbttagcompound_linkingBook, 1) == 0) {
+				currentItem.stackSize--;
+				if (currentItem.stackSize == 0) {
+					entityplayer.inventory.mainInventory[entityplayer.inventory.currentItem] = null;
+				}
+			}
+		}
+		else if (currentItem.itemID == Item.shears.shiftedIndex) {
+			int removed = mod_MLB.linkingBook.removePages(nbttagcompound_linkingBook, Item.paper.maxStackSize);
+			if (removed > 0) {
+				ItemStack itemstack = new ItemStack(Item.paper, removed, Item.paper.getMaxDamage());
+				
+				// The following part is taken from BlockChest.onBlockRemoval(...):
+				EntityItem entityitem = new EntityItem(world, i + 0.5, j + 1, k + 0.5, itemstack);
+				float f3 = 0.05F;
+				entityitem.motionX = (float) random.nextGaussian() * f3;
+				entityitem.motionY = (float) random.nextGaussian() * f3 + 0.2F;
+				entityitem.motionZ = (float) random.nextGaussian() * f3;
+				entityitem.setVelocity(0, 0, 0);
+				world.spawnEntityInWorld(entityitem);
+				// End of the part from BlockChest.onBlockRemoval(...).
+				
+				currentItem.damageItem(1, entityplayer);
+			}
+		}
+		else if (currentItem.itemID == Item.feather.shiftedIndex && currentItem.stackSize > 0) {
+			mod_MLB.linkingBook.setName(nbttagcompound_linkingBook, "");
+			openGui = true;
+		}
+		else {
+			openGui = true;
+		}
+		
+		if (openGui) {
+			ModLoader.OpenGUI(entityplayer, new GuiLinkingBook(entityplayer, tileEntityLinkingBook, mod_MLB));
+		}
 		return true;
+	}
+	
+	@Override
+	public void onNeighborBlockChange(World world, int i, int j, int k, int id) {
+		if (id > 0 && Block.blocksList[id].canProvidePower()) {
+			boolean powered = world.isBlockIndirectlyGettingPowered(i, j, k);
+			TileEntityLinkingBook tileEntityLinkingBook = (TileEntityLinkingBook) world.getBlockTileEntity(i, j, k);
+			tileEntityLinkingBook.setPoweredState(powered);
+		}
 	}
 	
 	/**
@@ -62,8 +116,8 @@ public class BlockLinkingBook extends BlockContainer {
 	public void onBlockRemoval(World world, int i, int j, int k) {
 		// Prepare our ItemStack, giving it a new NBTTagCompound to store the datas:
 		ItemStack itemstack = new ItemStack(blockID, 1, damageDropped(0));
-		TileEntityLinkingBook tileEntityLinkingBook = (TileEntityLinkingBook) world.getBlockTileEntity(i, j, k);
-		itemstack.setTagCompound(tileEntityLinkingBook.nbttagcompound_linkingBook);
+		NBTTagCompound nbttagcompound_linkingBook = ((TileEntityLinkingBook) world.getBlockTileEntity(i, j, k)).nbttagcompound_linkingBook;
+		itemstack.setTagCompound(nbttagcompound_linkingBook);
 		
 		// The following part is taken from Block.dropBlockAsItem_do(...):
 		float f = 0.7F;
@@ -76,7 +130,7 @@ public class BlockLinkingBook extends BlockContainer {
 		// This instruction is from BlockChest.onBlockRemoval(...):
 		entityitem.item.setTagCompound((NBTTagCompound) itemstack.getTagCompound().cloneTag());
 		
-		world.joinEntityInSurroundings(entityitem); // was entityJoinedWorld
+		world.spawnEntityInWorld(entityitem);
 		// End of the part from Block.dropBlockAsItem_do(...).
 		
 		super.onBlockRemoval(world, i, j, k);

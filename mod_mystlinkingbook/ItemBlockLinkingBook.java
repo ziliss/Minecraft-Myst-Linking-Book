@@ -1,5 +1,7 @@
 package net.minecraft.src;
 
+import java.util.List;
+
 /**
  * Represents Linking Books as {@code Item} (ie. either dropped in the world or in the inventory).<br>
  * <br>
@@ -18,12 +20,12 @@ public class ItemBlockLinkingBook extends ItemBlock {
 	/**
 	 * Reference to the mod instance.
 	 */
-	public mod_mystlinkingbook mod_mystlinkingbook;
+	public mod_mystlinkingbook mod_MLB;
 	
-	public ItemBlockLinkingBook(int itemID, mod_mystlinkingbook mod_mystlinkingbook) {
+	public ItemBlockLinkingBook(int itemID, mod_mystlinkingbook mod_MLB) {
 		super(itemID);
 		
-		this.mod_mystlinkingbook = mod_mystlinkingbook;
+		this.mod_MLB = mod_MLB;
 		
 		setItemName("linkingBookItem");
 		setMaxStackSize(1);
@@ -54,8 +56,9 @@ public class ItemBlockLinkingBook extends ItemBlock {
 		// In case onCreated() was not called on this item:
 		if (nbttagcompound == null) {
 			onCreated(itemstack, world, entityplayer);
+			nbttagcompound = itemstack.getTagCompound();
 		}
-		if (mod_mystlinkingbook.linkingBook.isDestinationSet(nbttagcompound)) {
+		if (mod_MLB.linkingBook.isWritten(nbttagcompound)) {
 			boolean itemUsed = super.onItemUse(itemstack, entityplayer, world, i, j, k, l);
 			if (itemUsed) {
 				
@@ -96,22 +99,32 @@ public class ItemBlockLinkingBook extends ItemBlock {
 	}
 	
 	/**
-	 * Records the position of the player as the destination for this Linking Book.
+	 * Opens the linking GUI.
 	 * 
 	 * @see onItemUse
 	 */
 	@Override
 	public ItemStack onItemRightClick(ItemStack itemstack, World world, EntityPlayer entityplayer) {
 		NBTTagCompound nbttagcompound = itemstack.getTagCompound();
-		if (!mod_mystlinkingbook.linkingBook.isDestinationSet(nbttagcompound)) if (mod_mystlinkingbook.linkingBook.setDestination(nbttagcompound, entityplayer)) {
-			entityplayer.swingItem();
+		// In case onCreated() was not called on this item:
+		if (nbttagcompound == null) {
+			onCreated(itemstack, world, entityplayer);
+			nbttagcompound = itemstack.getTagCompound();
+		}
+		if (!mod_MLB.linkingBook.isWritten(nbttagcompound)) {
+			ModLoader.OpenGUI(entityplayer, new GuiWriteLinkingBook(entityplayer, nbttagcompound, mod_MLB));
 		}
 		return itemstack;
 	}
 	
+	/**
+	 * Returns the name of the linking book that is displayed on mouse hover in the inventory.
+	 */
 	@Override
-	public String getItemDisplayName(ItemStack itemstack) {
-		String name = mod_mystlinkingbook.linkingBook.getName(itemstack.getTagCompound());
-		return (StringTranslate.getInstance().translateNamedKey(getLocalItemName(itemstack)) + ": " + name).trim();
+	public void addInformation(ItemStack itemstack, List list) {
+		String name = mod_MLB.linkingBook.getName(itemstack.getTagCompound());
+		if (!name.isEmpty()) {
+			list.add(name);
+		}
 	}
 }
