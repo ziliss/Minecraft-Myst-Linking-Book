@@ -1,7 +1,5 @@
 package net.minecraft.src;
 
-import java.awt.image.BufferedImage;
-
 import org.lwjgl.opengl.GL11;
 
 /**
@@ -24,8 +22,6 @@ public class GuiWriteLinkingBook extends GuiContainer {
 	
 	boolean canWrite;
 	
-	int imgID_GUI = 3235;
-	
 	public GuiWriteLinkingBook(EntityPlayer entityplayer, NBTTagCompound nbttagcompound_linkingBook, mod_mystlinkingbook mod_MLB) {
 		super(new ContainerWriteLinkingBook(entityplayer.inventory, mod_MLB));
 		this.entityplayer = entityplayer;
@@ -37,13 +33,7 @@ public class GuiWriteLinkingBook extends GuiContainer {
 	@Override
 	public void initGui() {
 		super.initGui();
-		try {
-			BufferedImage img = ModLoader.loadImage(mc.renderEngine, "/mystlinkingbook/tempWriteGUI.png");
-			mc.renderEngine.setupTexture(img, imgID_GUI);
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}
+		
 		controlList.clear();
 		nameTextfield = new GuiTextField(this, fontRenderer, guiLeft + 40, guiTop + 6, 120, 14, "");
 		nameTextfield.setMaxStringLength(16);
@@ -123,7 +113,6 @@ public class GuiWriteLinkingBook extends GuiContainer {
 	
 	@Override
 	protected void drawGuiContainerBackgroundLayer(float f, int i, int j) {
-		System.out.println(mc.renderEngine.getTexture("/mystlinkingbook/tempWriteGUI.png"));
 		mc.renderEngine.bindTexture(mc.renderEngine.getTexture("/mystlinkingbook/tempWriteGUI.png"));
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 		int l = (width - xSize) / 2;

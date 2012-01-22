@@ -28,6 +28,9 @@ public class SlotWriteLinkingBook extends Slot {
 	
 	public SlotWriteLinkingBook(IInventory iinventory, int slotIndex, int xDisplayPosition, int yDisplayPosition, Item item, int stackLimit) {
 		super(iinventory, slotIndex, xDisplayPosition, yDisplayPosition);
+		
+		this.item = item;
+		this.stackLimit = stackLimit;
 	}
 	
 	public SlotWriteLinkingBook(IInventory iinventory, int slotIndex, int xDisplayPosition, int yDisplayPosition, Item item, int damage, int stackLimit) {

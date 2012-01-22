@@ -1,5 +1,10 @@
 package net.minecraft.src;
 
+import java.awt.image.BufferedImage;
+import java.io.File;
+
+import net.minecraft.client.Minecraft;
+
 public class mod_mystlinkingbook extends BaseMod {
 	
 	// Contains methods to interact with the datas of the Linking Books:
@@ -13,7 +18,7 @@ public class mod_mystlinkingbook extends BaseMod {
 	
 	@Override
 	public String getVersion() {
-		return "0.2a";
+		return "0.3a";
 	}
 	
 	/**
@@ -23,17 +28,47 @@ public class mod_mystlinkingbook extends BaseMod {
 	 */
 	@Override
 	public void load() {
-		blockLinkingBook.blockIndexInTexture = ModLoader.addOverride("/terrain.png", "/mystlinkingbook/tempBook.png");
+		blockLinkingBook.topTextureIndex = ModLoader.addOverride("/terrain.png", "/mystlinkingbook/blockLinkingBookSide.png");
+		blockLinkingBook.sideTextureIndex = blockLinkingBook.topTextureIndex;
+		blockLinkingBook.bottomTextureIndex = blockLinkingBook.topTextureIndex;
 		// itemBlockLinkingBook.iconIndex = ModLoader.addOverride("/gui/items.png", "/mystlinkingbook/tempBook.png");
+		
+		Minecraft mc = ModLoader.getMinecraftInstance();
+		BufferedImage img;
+		try {
+			img = ModLoader.loadImage(mc.renderEngine, "/mystlinkingbook/tempLinkGUI.png");
+			mc.renderEngine.setupTexture(img, 3233);
+			img = ModLoader.loadImage(mc.renderEngine, "/mystlinkingbook/tempPanel.png");
+			mc.renderEngine.setupTexture(img, 3234);
+			img = ModLoader.loadImage(mc.renderEngine, "/mystlinkingbook/tempWriteGUI.png");
+			mc.renderEngine.setupTexture(img, 3235);
+			img = ModLoader.loadImage(mc.renderEngine, "/mystlinkingbook/tempLookGUI.png");
+			mc.renderEngine.setupTexture(img, 3236);
+			img = ModLoader.loadImage(mc.renderEngine, "/mystlinkingbook/tempLinkingBook3D.png");
+			mc.renderEngine.setupTexture(img, 3237);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
 		
 		ModLoader.AddName(blockLinkingBook, "Linking Book");
 		ModLoader.AddName(itemBlockLinkingBook, "Linking Book");
 		
-		ModLoader.RegisterTileEntity(TileEntityLinkingBook.class, "LinkingBook");
+		ModLoader.RegisterTileEntity(TileEntityLinkingBook.class, "LinkingBook", new RenderLinkingBook());
 		
 		ModLoader.AddRecipe(new ItemStack(itemBlockLinkingBook, 1), new Object[] { "#", "#", Character.valueOf('#'), Item.paper });
+		
+		File resourcesFolder = new File(Minecraft.getMinecraftDir(), "resources/");
+		String[] exts = new String[] { ".wav", ".ogg", ".mus", ".xm", ".s3m" };
+		File linkingsound;
+		for (String ext : exts) {
+			linkingsound = new File(resourcesFolder, "mod/mystlinkingbook/linkingsound" + ext);
+			if (linkingsound.exists()) {
+				mc.sndManager.addSound("mystlinkingbook/linkingsound" + ext, linkingsound);
+				break;
+			}
+		}
 	}
-	
 	// The following commented code is old code that might be useful later.
 	// Keeping it for now.
 	/*

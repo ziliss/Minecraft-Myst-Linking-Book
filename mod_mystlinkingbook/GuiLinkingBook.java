@@ -1,7 +1,5 @@
 package net.minecraft.src;
 
-import java.awt.image.BufferedImage;
-
 import org.lwjgl.opengl.GL11;
 
 /**
@@ -44,9 +42,6 @@ public class GuiLinkingBook extends GuiScreen {
 	
 	public GuiButtonLinkingPanel linkingPanel;
 	
-	int imgID_book = 3233;
-	int imgID_panel = 3234;
-	
 	// TODO: use coordinates relative to those to draw everything if possible:
 	int bookLeft;
 	int bookTop;
@@ -70,16 +65,6 @@ public class GuiLinkingBook extends GuiScreen {
 	
 	@Override
 	public void initGui() {
-		try {
-			BufferedImage img = ModLoader.loadImage(mc.renderEngine, "/mystlinkingbook/tempLinkGUI.png");
-			mc.renderEngine.setupTexture(img, imgID_book);
-			img = ModLoader.loadImage(mc.renderEngine, "/mystlinkingbook/tempPanel.png");
-			mc.renderEngine.setupTexture(img, imgID_panel);
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}
-		
 		controlList.clear();
 		linkingPanel = new GuiButtonLinkingPanel(1, width / 2 + 12, height / 2 - 70, 60, 48, this);
 		controlList.add(linkingPanel);
@@ -164,7 +149,8 @@ public class GuiLinkingBook extends GuiScreen {
 		if (guibutton == linkingPanel && linkingPanel.canLink()) {
 			linkingStartedTime = System.currentTimeMillis();
 			linkingProgress = 0;
-			ModLoader.getMinecraftInstance().sndManager.playSoundFX("random.click", 1.0F, 1.0F);
+			
+			ModLoader.getMinecraftInstance().sndManager.playSoundFX("mystlinkingbook.linkingsound", 1.0F, 1.0F);
 			if (editName) {
 				nameTextfield.setFocused(false);
 			}
