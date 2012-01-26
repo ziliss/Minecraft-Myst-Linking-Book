@@ -10,7 +10,7 @@ public class mod_mystlinkingbook extends BaseMod {
 	// Contains methods to interact with the datas of the Linking Books:
 	public LinkingBook linkingBook = new LinkingBook();
 	
-	public BlockLinkingBook blockLinkingBook = new BlockLinkingBook(233, 233, Material.wood, this);
+	public BlockLinkingBook blockLinkingBook = new BlockLinkingBook(233, 233, this);
 	public ItemBlockLinkingBook itemBlockLinkingBook = new ItemBlockLinkingBook(233 - 256, this);
 	
 	public mod_mystlinkingbook() {
@@ -18,7 +18,7 @@ public class mod_mystlinkingbook extends BaseMod {
 	
 	@Override
 	public String getVersion() {
-		return "0.3a";
+		return "0.4a";
 	}
 	
 	/**
@@ -32,6 +32,31 @@ public class mod_mystlinkingbook extends BaseMod {
 		blockLinkingBook.sideTextureIndex = blockLinkingBook.topTextureIndex;
 		blockLinkingBook.bottomTextureIndex = blockLinkingBook.topTextureIndex;
 		// itemBlockLinkingBook.iconIndex = ModLoader.addOverride("/gui/items.png", "/mystlinkingbook/tempBook.png");
+		
+		// Execute the following private method:
+		// Block.fire.setBurnRate(Block.bookShelf.blockID, 60, 100);
+		int chanceToEncourageFire[];
+		int abilityToCatchFire[];
+		try {
+			chanceToEncourageFire = (int[])ModLoader.getPrivateValue(BlockFire.class, Block.fire, "a");
+			chanceToEncourageFire[blockLinkingBook.blockID] = 60;
+			abilityToCatchFire = (int[])ModLoader.getPrivateValue(BlockFire.class, Block.fire, "b");
+			abilityToCatchFire[blockLinkingBook.blockID] = 100;
+		}
+		catch (NoSuchFieldException e) {
+			try {
+				chanceToEncourageFire = (int[])ModLoader.getPrivateValue(BlockFire.class, Block.fire, "chanceToEncourageFire");
+				chanceToEncourageFire[blockLinkingBook.blockID] = 60;
+				abilityToCatchFire = (int[])ModLoader.getPrivateValue(BlockFire.class, Block.fire, "abilityToCatchFire");
+				abilityToCatchFire[blockLinkingBook.blockID] = 100;
+			}
+			catch (Exception ex) {
+				e.printStackTrace();
+			}
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
 		
 		Minecraft mc = ModLoader.getMinecraftInstance();
 		BufferedImage img;
@@ -59,7 +84,7 @@ public class mod_mystlinkingbook extends BaseMod {
 		ModLoader.AddRecipe(new ItemStack(itemBlockLinkingBook, 1), new Object[] { "#", "#", Character.valueOf('#'), Item.paper });
 		
 		File resourcesFolder = new File(Minecraft.getMinecraftDir(), "resources/");
-		String[] exts = new String[] { ".wav", ".ogg", ".mus", ".xm", ".s3m" };
+		String[] exts = new String[] { ".wav", ".ogg", ".mus" };
 		File linkingsound;
 		for (String ext : exts) {
 			linkingsound = new File(resourcesFolder, "mod/mystlinkingbook/linkingsound" + ext);

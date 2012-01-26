@@ -16,6 +16,7 @@ public class GuiLookOfLinkingBook extends GuiContainer {
 	
 	public ContainerLookOfLinkingBook container;
 	
+	// Not used for now:
 	GuiButton writeButton;
 	
 	public GuiLookOfLinkingBook(EntityPlayer entityplayer, TileEntityLinkingBook tileEntityLinkingBook, mod_mystlinkingbook mod_MLB) {

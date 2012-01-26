@@ -59,8 +59,9 @@ public class ItemBlockLinkingBook extends ItemBlock {
 			nbttagcompound = itemstack.getTagCompound();
 		}
 		if (mod_MLB.linkingBook.isWritten(nbttagcompound)) {
-			boolean itemUsed = super.onItemUse(itemstack, entityplayer, world, i, j, k, l);
-			if (itemUsed) {
+			
+			// Now we try to place the block, then if the block has been placed, set it's tileEntity:
+			if (super.onItemUse(itemstack, entityplayer, world, i, j, k, l)) {
 				
 				// The following part is taken from ItemBlock.onItemUse(...).
 				// It tells us the position of the new block depending on the side (int l) of the aimed block:
@@ -90,12 +91,13 @@ public class ItemBlockLinkingBook extends ItemBlock {
 				}
 				// End of the part from ItemBlock.onItemUse(...).
 				
-				TileEntityLinkingBook tileEntity = (TileEntityLinkingBook) world.getBlockTileEntity(i, j, k);
+				TileEntityLinkingBook tileEntity = (TileEntityLinkingBook)world.getBlockTileEntity(i, j, k);
 				tileEntity.nbttagcompound_linkingBook = nbttagcompound;
+				mod_MLB.blockLinkingBook.onNeighborBlockChange(world, i, j, k, Block.redstoneWire.blockID);
+				return true;
 			}
-			return itemUsed;
 		}
-		else return false;
+		return false;
 	}
 	
 	/**

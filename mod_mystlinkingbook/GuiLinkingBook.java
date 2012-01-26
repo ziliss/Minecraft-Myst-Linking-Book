@@ -54,7 +54,10 @@ public class GuiLinkingBook extends GuiScreen {
 	 */
 	public float linkingProgress = -1;
 	public long linkingStartedTime;
-	public float linkingDuration = 2000f; // 2 seconds. (float is important for division !)
+	public float defaultLinkingDuration = 2000f; // 2 seconds. (float is important for division !)
+	public float linkingDuration;
+	
+	public boolean runGC;
 	
 	public GuiLinkingBook(EntityPlayer entityplayer, TileEntityLinkingBook tileEntityLinkingBook, mod_mystlinkingbook mod_MLB) {
 		this.entityplayer = entityplayer;
@@ -65,6 +68,9 @@ public class GuiLinkingBook extends GuiScreen {
 	
 	@Override
 	public void initGui() {
+		linkingProgress = -1;
+		runGC = false;
+		
 		controlList.clear();
 		linkingPanel = new GuiButtonLinkingPanel(1, width / 2 + 12, height / 2 - 70, 60, 48, this);
 		controlList.add(linkingPanel);
@@ -147,14 +153,24 @@ public class GuiLinkingBook extends GuiScreen {
 	@Override
 	protected void actionPerformed(GuiButton guibutton) {
 		if (guibutton == linkingPanel && linkingPanel.canLink()) {
-			linkingStartedTime = System.currentTimeMillis();
 			linkingProgress = 0;
+			runGC = mod_MLB.linkingBook.doLinkChangesDimension(nbttagcompound_linkingBook, entityplayer);
+			linkingDuration = defaultLinkingDuration;
+			if (runGC) {
+				linkingDuration -= 200;
+			}
 			
-			ModLoader.getMinecraftInstance().sndManager.playSoundFX("mystlinkingbook.linkingsound", 1.0F, 1.0F);
+			linkingPanel.startLinking();
+			
 			if (editName) {
 				nameTextfield.setFocused(false);
+				saveName();
 			}
-			linkingPanel.startLinking();
+			
+			mod_MLB.linkingBook.prepareLinking(nbttagcompound_linkingBook, entityplayer);
+			
+			linkingStartedTime = System.currentTimeMillis();
+			ModLoader.getMinecraftInstance().sndManager.playSoundFX("mystlinkingbook.linkingsound", 1.0F, 1.0F);
 		}
 	}
 	
@@ -190,6 +206,16 @@ public class GuiLinkingBook extends GuiScreen {
 		linkingPanel.notifyPowerStateChanged(isPowered);
 	}
 	
+	public void updateLinkingProgress() {
+		linkingProgress = (System.currentTimeMillis() - linkingStartedTime) / linkingDuration;
+		if (linkingProgress < 0) {
+			linkingProgress = 0;
+		}
+		else if (linkingProgress > 1) {
+			linkingProgress = 1;
+		}
+	}
+	
 	@Override
 	public void drawScreen(int mouseX, int mouseY, float f) {
 		drawDefaultBackground();
@@ -214,15 +240,15 @@ public class GuiLinkingBook extends GuiScreen {
 		super.drawScreen(mouseX, mouseY, f);
 		
 		if (linkingProgress != -1) {
-			linkingProgress = (System.currentTimeMillis() - linkingStartedTime) / linkingDuration;
-			if (linkingProgress < 0) {
-				linkingProgress = 0;
-			}
-			else if (linkingProgress > 1) {
-				linkingProgress = 1;
-			}
+			updateLinkingProgress();
 			drawRect(0, 0, width, height, (int)(linkingProgress * 0xff) * 0x01000000);
 			
+			if (linkingProgress > 0.95 && runGC) {
+				runGC = false;
+				// Shortens the System.gc() run after teleporting to another dimension. See end of: Minecraft.changeWorld()
+				System.gc();
+				updateLinkingProgress();
+			}
 			if (linkingProgress == 1) {
 				mc.displayGuiScreen(null);
 				mod_MLB.linkingBook.link(nbttagcompound_linkingBook, entityplayer);

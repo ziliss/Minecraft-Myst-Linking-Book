@@ -28,8 +28,8 @@ public class BlockLinkingBook extends BlockContainer {
 	 */
 	public mod_mystlinkingbook mod_MLB;
 	
-	public BlockLinkingBook(int blockID, int textureID, Material material, mod_mystlinkingbook mod_MLB) {
-		super(blockID, textureID, material);
+	public BlockLinkingBook(int blockID, int textureID, mod_mystlinkingbook mod_MLB) {
+		super(blockID, textureID, Material.wood);
 		
 		this.mod_MLB = mod_MLB;
 		
@@ -43,7 +43,9 @@ public class BlockLinkingBook extends BlockContainer {
 	
 	/**
 	 * Stores the orientation of the block to the metadatas. Uses the first 2 bits of the metadatas.<br>
-	 * Called when a Linking Book Block is placed in the world.
+	 * Called when a Linking Book Block is placed in the world. The code that places the block in the world is in {@link ItemBlockLinkingBook.onItemUse}.
+	 * 
+	 * @see ItemBlockLinkingBook.onItemUse
 	 */
 	@Override
 	public void onBlockPlacedBy(World world, int i, int j, int k, EntityLiving entityliving) {
@@ -148,15 +150,18 @@ public class BlockLinkingBook extends BlockContainer {
 			mod_MLB.linkingBook.setName(nbttagcompound_linkingBook, "");
 			openGui = GuiLinkingBook.class;
 		}
+		else if (currentItem.itemID == Item.flintAndSteel.shiftedIndex && currentItem.stackSize > 0) return false;
 		else if (currentItem.itemID == Item.painting.shiftedIndex && currentItem.stackSize > 0) {
 			openGui = GuiLookOfLinkingBook.class;
 		}
 		else if (currentItem.itemID == Item.stick.shiftedIndex) { // For debugging only
-			entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.feather, 64, 0));
-			entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.paper, 64, 0));
-			entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.dyePowder, 64, 0)); // Damage must be 0 here
-			entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.redstone, 64, 0));
-			entityplayer.inventory.addItemStackToInventory(new ItemStack(Block.cloth, 64, 0));
+			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.feather, 64, 0));
+			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.paper, 64, 0));
+			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.dyePowder, 64, 0)); // Damage must be 0 here to get the ink sack.
+			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.redstone, 64, 0));
+			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Block.cloth, 64, 0)); // Damage 0 is the white wool.
+			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.flintAndSteel, 1, 0));
+			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Block.obsidian, 64, 0));
 		}
 		else {
 			openGui = GuiLinkingBook.class;

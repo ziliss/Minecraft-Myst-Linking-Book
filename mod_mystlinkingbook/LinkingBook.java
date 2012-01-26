@@ -1,5 +1,7 @@
 package net.minecraft.src;
 
+import net.minecraft.client.Minecraft;
+
 /**
  * Contains the methods to interact with the datas of the Linking Books.<br>
  * <br>
@@ -11,6 +13,8 @@ package net.minecraft.src;
  * @since 0.1a
  */
 public class LinkingBook {
+	
+	public LinkPreloader linkPreloader = new LinkPreloader(ModLoader.getMinecraftInstance());;
 	
 	public LinkingBook() {
 	}
@@ -81,6 +85,28 @@ public class LinkingBook {
 		}
 	}
 	
+	public boolean isUnstable(NBTTagCompound nbttagcompound) {
+		return nbttagcompound.getBoolean("unstable");
+	}
+	
+	public boolean doLinkChangesDimension(NBTTagCompound nbttagcompound, EntityPlayer entityplayer) {
+		return nbttagcompound.getBoolean("dest") && nbttagcompound.getInteger("destDim") != entityplayer.dimension;
+	}
+	
+	public void prepareLinking(NBTTagCompound nbttagcompound, EntityPlayer entityplayer) {
+		if (!nbttagcompound.getBoolean("dest")) return;
+		int destX = (int)nbttagcompound.getDouble("destX");
+		int destY = (int)(nbttagcompound.getDouble("destY") - entityplayer.yOffset); // yOffset: prevent the tiny jump when teleporting
+		int destZ = (int)nbttagcompound.getDouble("destZ");
+		int destDim = nbttagcompound.getInteger("destDim");
+		if (destDim == entityplayer.dimension) {
+			linkPreloader.preloadDestination(destX, destY, destZ);
+		}
+		else {
+			linkPreloader.preloadDestination(destX, destY, destZ, destDim);
+		}
+	}
+	
 	public boolean link(NBTTagCompound nbttagcompound, EntityPlayer entityplayer) {
 		if (nbttagcompound.getBoolean("dest")) {
 			double destX = nbttagcompound.getDouble("destX");
@@ -89,15 +115,173 @@ public class LinkingBook {
 			float destRotYaw = nbttagcompound.getFloat("destRotYaw");
 			float destRotPitch = nbttagcompound.getFloat("destRotPitch");
 			int destDim = nbttagcompound.getInteger("destDim");
+			String bookName = getName(nbttagcompound);
+			
 			if (destDim == entityplayer.dimension) {
-				entityplayer.setLocationAndAngles(destX, destY, destZ, destRotYaw, destRotPitch);
+				teleport(destX, destY, destZ, destRotYaw, destRotPitch, bookName, entityplayer);
+				return true;
+			}
+			else {
+				teleport(destX, destY, destZ, destRotYaw, destRotPitch, destDim, bookName, entityplayer);
 				return true;
 			}
 		}
 		return false;
 	}
 	
-	public boolean isUnstable(NBTTagCompound nbttagcompound) {
-		return nbttagcompound.getBoolean("unstable");
+	public void teleport(double destX, double destY, double destZ, float destRotYaw, float destRotPitch, String bookName, EntityPlayer entityplayer) {
+		entityplayer.setLocationAndAngles(destX, destY, destZ, destRotYaw, destRotPitch);
+	}
+	
+	public void teleport(double destX, double destY, double destZ, float destRotYaw, float destRotPitch, int destDim, String bookName, EntityPlayer entityplayer) {
+		Minecraft mc = ModLoader.getMinecraftInstance();
+		World theWorld = mc.theWorld;
+		EntityPlayerSP thePlayer = mc.thePlayer;
+		
+		// Inspired by Minecraft.usePortal(int i):
+		int curDim = thePlayer.dimension;
+		thePlayer.dimension = destDim;
+		theWorld.setEntityDead(thePlayer);
+		thePlayer.isDead = false;
+		
+		thePlayer.setLocationAndAngles(destX, destY, destZ, destRotYaw, destRotPitch);
+		if (thePlayer.isEntityAlive()) {
+			// Is the following not useful ?
+			// theWorld.updateEntityWithOptionalForce(thePlayer, false);
+		}
+		
+		World newWorld = linkPreloader.getWorld();
+		if (newWorld != null && newWorld.worldProvider.worldType != destDim) {
+			newWorld = null;
+		}
+		if (newWorld == null) {
+			newWorld = new World(theWorld, WorldProvider.getProviderForDimension(destDim));
+		}
+		
+		mc.changeWorld(newWorld, "Linking to " + bookName, thePlayer);
+		
+		thePlayer.worldObj = newWorld;
+		System.out.println("Teleported to " + newWorld.worldProvider.worldType);
+		if (thePlayer.isEntityAlive()) {
+			thePlayer.setLocationAndAngles(destX, destY, destZ, destRotYaw, destRotPitch);
+			newWorld.updateEntityWithOptionalForce(thePlayer, false);
+		}
+	}
+	
+	class LinkPreloader {
+		
+		public PreloadThread preloadThread = null;
+		
+		public Minecraft mc;
+		
+		public class PreloadThread extends Thread {
+			public World curWorld;
+			public int destX;
+			public int destY;
+			public int destZ;
+			public int destDim;
+			public World destWorld;
+			
+			public boolean aborted = false;
+			
+			public PreloadThread(World curWorld, double destX, double destY, double destZ) {
+				this.curWorld = curWorld;
+				this.destX = (int)Math.floor(destX);
+				this.destY = (int)Math.floor(destY);
+				this.destZ = (int)Math.floor(destZ);
+				destWorld = curWorld;
+			}
+			
+			public PreloadThread(World curWorld, double destX, double destY, double destZ, int destDim, World destWorld) {
+				this.curWorld = curWorld;
+				this.destX = (int)Math.floor(destX);
+				this.destY = (int)Math.floor(destY);
+				this.destZ = (int)Math.floor(destZ);
+				this.destDim = destDim;
+				this.destWorld = destWorld;
+			}
+			
+			@Override
+			// Insppired by Minecraft.preloadWorld():
+			public void run() {
+				int c = '\200';
+				
+				if (destWorld == null) {
+					destWorld = new World(curWorld, WorldProvider.getProviderForDimension(destDim));
+				}
+				
+				if (aborted) return;
+				if (destWorld != curWorld) {
+					IChunkProvider ichunkprovider = destWorld.getChunkProvider();
+					if (ichunkprovider instanceof ChunkProviderLoadOrGenerate) {
+						ChunkProviderLoadOrGenerate chunkproviderloadorgenerate = (ChunkProviderLoadOrGenerate)ichunkprovider;
+						chunkproviderloadorgenerate.setCurrentChunkOver(destX >> 4, destZ >> 4);
+					}
+				}
+				for (int k = -c; k <= c; k += 16) {
+					if (aborted) return;
+					for (int l = -c; l <= c; l += 16) {
+						destWorld.getBlockId(destX + k, 64, destZ + l);
+						while (destWorld.updatingLighting()) {
+						}
+					}
+				}
+				
+				if (aborted) return;
+				// mc.statFileWriter.func_27175_b();
+				mc.statFileWriter.syncStats();
+				
+				if (aborted) return;
+				curWorld.quickSaveWorld(0);
+				
+				if (aborted) return;
+				mc.getSaveLoader().flushCache();
+			}
+			
+			public void abort() {
+				aborted = true;
+			}
+		};
+		
+		public LinkPreloader(Minecraft mc) {
+			this.mc = mc;
+		}
+		
+		public void preloadDestination(double destX, double destY, double destZ) {
+			if (preloadThread != null) {
+				preloadThread.abort();
+			}
+			preloadThread = new PreloadThread(mc.theWorld, destX, destY, destZ);
+			preloadThread.setPriority(Thread.MIN_PRIORITY);
+			preloadThread.start();
+		}
+		
+		public void preloadDestination(double destX, double destY, double destZ, int destDim) {
+			World destWorld = null;
+			if (preloadThread != null) {
+				preloadThread.abort();
+				if (preloadThread.destDim == destDim) {
+					destWorld = getWorld();
+				}
+			}
+			preloadThread = new PreloadThread(mc.theWorld, destX, destY, destZ, destDim, destWorld);
+			preloadThread.setPriority(Thread.MIN_PRIORITY);
+			preloadThread.start();
+		}
+		
+		public World getWorld() {
+			if (preloadThread != null) {
+				preloadThread.abort();
+				preloadThread.setPriority(Thread.NORM_PRIORITY + 1);
+				try {
+					preloadThread.join();
+				}
+				catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				return preloadThread.destWorld;
+			}
+			else return null;
+		}
 	}
 }
