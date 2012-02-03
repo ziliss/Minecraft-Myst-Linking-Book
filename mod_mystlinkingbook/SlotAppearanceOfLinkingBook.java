@@ -29,12 +29,12 @@ public class SlotAppearanceOfLinkingBook extends Slot {
 	public boolean isItemValid(ItemStack itemstack) {
 		int itemID = itemstack.getItem().shiftedIndex;
 		if (itemID < 0 || itemID >= Block.blocksList.length) return false;
+		if (itemID == mod_MLB.blockLinkingBook.blockID) return false;
 		switch (itemID) {
 			case 0:
-			case 1:
 				return false;
+			default:
+				return true;
 		}
-		if (itemID == mod_MLB.blockLinkingBook.blockID) return false;
-		return true;
 	}
 }

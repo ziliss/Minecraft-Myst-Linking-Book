@@ -31,6 +31,11 @@ public class GuiButtonLinkingPanel extends GuiButton {
 	public boolean isPowered;
 	
 	/**
+	 * True if the linking book links to another Age.
+	 */
+	public boolean linksToDifferentAge;
+	
+	/**
 	 * True if the linking book is ready to link.
 	 */
 	public boolean canLink;
@@ -48,12 +53,10 @@ public class GuiButtonLinkingPanel extends GuiButton {
 	public GuiButtonLinkingPanel(int id, int xPosition, int yPosition, int width, int height, GuiLinkingBook guiLinkingBook) {
 		super(id, xPosition, yPosition, width, height, "");
 		this.guiLinkingBook = guiLinkingBook;
-		isUnstable = guiLinkingBook.mod_MLB.linkingBook.isUnstable(guiLinkingBook.nbttagcompound_linkingBook);
 	}
 	
 	public void initGui() {
-		isPowered = guiLinkingBook.tileEntityLinkingBook.isPowered;
-		canLink = guiLinkingBook.missingPages == 0 && (isUnstable ? isPowered : true);
+		updateCanLink();
 		prevShowLinkCursor = false;
 	}
 	
@@ -68,7 +71,15 @@ public class GuiButtonLinkingPanel extends GuiButton {
 	}
 	
 	public boolean canLink() {
-		return canLink;
+		return canLink && linksToDifferentAge;
+	}
+	
+	public boolean updateCanLink() {
+		linksToDifferentAge = guiLinkingBook.mod_MLB.linkingBook.doLinkToDifferentAge(guiLinkingBook.tileEntityLinkingBook, guiLinkingBook.entityplayer);
+		isUnstable = guiLinkingBook.mod_MLB.linkingBook.isUnstable(guiLinkingBook.nbttagcompound_linkingBook);
+		isPowered = guiLinkingBook.tileEntityLinkingBook.isPowered;
+		canLink = guiLinkingBook.missingPages == 0 && (isUnstable ? isPowered : true) && !linkingStarted;
+		return canLink();
 	}
 	
 	public void startLinking() {
@@ -81,7 +92,7 @@ public class GuiButtonLinkingPanel extends GuiButton {
 		if (!drawButton) return;
 		
 		boolean isCurrentlyHover = x >= xPosition && y >= yPosition && x < xPosition + width && y < yPosition + height;
-		boolean showLinkCursor = canLink && getHoverState(isCurrentlyHover) == 2;
+		boolean showLinkCursor = canLink && linksToDifferentAge && getHoverState(isCurrentlyHover) == 2;
 		if (prevShowLinkCursor) {
 			if (!showLinkCursor) {
 				minecraft.mcCanvas.setCursor(originalCursor);

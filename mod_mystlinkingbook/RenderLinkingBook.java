@@ -14,20 +14,14 @@ import org.lwjgl.opengl.GL11;
  */
 public class RenderLinkingBook extends TileEntitySpecialRenderer {
 	
-	private ModelLinkingBook field_40450_a;
-	
-	RenderLinkingBook() {
-		field_40450_a = new ModelLinkingBook();
-	}
+	private ModelLinkingBook field_40450_a = new ModelLinkingBook();
 	
 	@Override
 	public void renderTileEntityAt(TileEntity tileentity, double d, double d1, double d2, float f) {
 		TileEntityLinkingBook tileEntityLinkingBook = (TileEntityLinkingBook)tileentity;
 		
 		GL11.glPushMatrix();
-		GL11.glTranslatef((float)d + 0.5F, (float)d1 + 1F, (float)d2 + 0.5F);
-		// GL11.glTranslatef(0.0F, 0.1F + MathHelper.sin(f1 * 0.1F) * 0.01F, 0.0F);
-		GL11.glTranslatef(0.0F, 0.1F, 0.0F);
+		GL11.glTranslatef((float)d + 0.5F, (float)d1 + 1.1F, (float)d2 + 0.5F);
 		
 		float angle = 0;
 		// Inspired by BlockRedstoneRepeater.randomDisplayTick:

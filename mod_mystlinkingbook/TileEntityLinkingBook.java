@@ -30,15 +30,49 @@ public class TileEntityLinkingBook extends TileEntity {
 		}
 	};
 	
+	public boolean isTopBlocked;
+	
 	public boolean isPowered;
 	
 	public GuiLinkingBook guiLinkingBook = null;
 	
-	public void setPoweredState(boolean isPowered) {
-		if (isPowered == this.isPowered) return;
-		this.isPowered = isPowered;
+	public void onNeighborBlockChange(int id) {
+		switch (worldObj.getBlockId(xCoord, yCoord + 1, zCoord)) {
+			case 0: // air
+			case 50: // torch
+			case 51: // fire
+			case 69: // lever
+			case 76: // redstone torch
+			case 77: // button
+				isTopBlocked = false;
+				break;
+			default:
+				isTopBlocked = true;
+				if (guiLinkingBook != null) {
+					ModLoader.getMinecraftInstance().displayGuiScreen(null);
+				}
+		}
+		
+		if (id == 0 || id > 0 && Block.blocksList[id].canProvidePower()) {
+			boolean powered = worldObj.isBlockIndirectlyGettingPowered(xCoord, yCoord, zCoord);
+			if (powered != this.isPowered) {
+				this.isPowered = powered;
+				if (guiLinkingBook != null) {
+					guiLinkingBook.notifyPowerStateChanged(isPowered);
+				}
+			}
+		}
+	}
+	
+	public void notifyNbMissingPagesChanged() {
 		if (guiLinkingBook != null) {
-			guiLinkingBook.notifyPowerStateChanged(isPowered);
+			guiLinkingBook.updateNbMissingPages();
+		}
+	}
+	
+	public void onBlockRemoval() {
+		if (guiLinkingBook != null) {
+			ModLoader.getMinecraftInstance().displayGuiScreen(null);
 		}
 	}
 	
@@ -48,6 +82,7 @@ public class TileEntityLinkingBook extends TileEntity {
 	@Override
 	public void readFromNBT(NBTTagCompound nbttagcompound) {
 		super.readFromNBT(nbttagcompound);
+		isTopBlocked = nbttagcompound.getBoolean("topBlocked");
 		isPowered = nbttagcompound.getBoolean("powered");
 		this.nbttagcompound_linkingBook = nbttagcompound.getCompoundTag("tag");
 		
@@ -61,19 +96,9 @@ public class TileEntityLinkingBook extends TileEntity {
 				
 				// Modify the following private field:
 				// inventoryLinkingBook.inventoryContents[slotNb] = ItemStack.loadItemStackFromNBT(nbttagcompound1);
-				ItemStack[] inventoryContents;
 				try {
-					inventoryContents = (ItemStack[])ModLoader.getPrivateValue(InventoryBasic.class, inventoryLinkingBook, "c");
+					ItemStack[] inventoryContents = (ItemStack[])mod_mystlinkingbook.getPrivateValue(InventoryBasic.class, inventoryLinkingBook, "c", "inventoryContents"); // MCPBot: gcf InventoryBasic.inventoryContents
 					inventoryContents[slotNb] = ItemStack.loadItemStackFromNBT(nbttagcompound1);
-				}
-				catch (NoSuchFieldException e) {
-					try {
-						inventoryContents = (ItemStack[])ModLoader.getPrivateValue(InventoryBasic.class, inventoryLinkingBook, "inventoryContents");
-						inventoryContents[slotNb] = ItemStack.loadItemStackFromNBT(nbttagcompound1);
-					}
-					catch (Exception ex) {
-						e.printStackTrace();
-					}
 				}
 				catch (Exception e) {
 					e.printStackTrace();
@@ -88,6 +113,7 @@ public class TileEntityLinkingBook extends TileEntity {
 	@Override
 	public void writeToNBT(NBTTagCompound nbttagcompound) {
 		super.writeToNBT(nbttagcompound);
+		nbttagcompound.setBoolean("topBlocked", isTopBlocked);
 		nbttagcompound.setBoolean("powered", isPowered);
 		nbttagcompound.setTag("tag", this.nbttagcompound_linkingBook);
 		
@@ -114,8 +140,34 @@ public class TileEntityLinkingBook extends TileEntity {
 	public void updateEntity() {
 		super.updateEntity();
 		field_40060_g = field_40059_f;
-		EntityPlayer entityplayer = worldObj.getClosestPlayer(xCoord + 0.5F, yCoord + 1.5F, zCoord + 0.5F, 1.8D);
-		if (entityplayer != null) {
+		
+		EntityPlayer closestPlayer = null;
+		if (!isTopBlocked) {
+			float dX = 0.5f;
+			float dZ = 0.5f;
+			closestPlayer = worldObj.getClosestPlayer(xCoord + dX, yCoord + 1.8F, zCoord + dZ, 2);
+			if (closestPlayer != null) {
+				// Get the coordinates of the front of the book, depending on orientation:
+				switch (getBlockMetadata() & 3) {
+					case 0:
+						dZ += 0.7f;
+						break;
+					case 1:
+						dX -= 0.7f;
+						break;
+					case 2:
+						dZ -= 0.7f;
+						break;
+					case 3:
+						dX += 0.7f;
+						break;
+				}
+				if (closestPlayer.getDistance(xCoord + dX, yCoord + 1.8F, zCoord + dZ) > 1.1D) {
+					closestPlayer = null;
+				}
+			}
+		}
+		if (closestPlayer != null) {
 			if (field_40059_f < 1.0F) {
 				field_40059_f += 0.1F;
 				if (field_40059_f > 1.0F) {

@@ -39,7 +39,9 @@ public class GuiWriteLinkingBook extends GuiContainer {
 		nameTextfield.setMaxStringLength(16);
 		nameTextfield.setFocused(true);
 		writeButton = new GuiButton(1, guiLeft + 86, guiTop + 46, 40, 20, "Write");
-		controlList.add(writeButton);
+		// Because of a bug in GuiContainer.drawScreen(), the buttons are drawn over the item tooltips.
+		// As a workaround, we will not add the button to the controlList but manage it ourself:
+		// controlList.add(writeButton);
 		
 		updateCanWrite();
 	}
@@ -52,6 +54,22 @@ public class GuiWriteLinkingBook extends GuiContainer {
 	@Override
 	protected void mouseClicked(int i, int j, int k) {
 		nameTextfield.mouseClicked(i, j, k);
+		
+		// Because writeButton is not in the controlList, we need to check it:
+		if (k == 0 && writeButton.mousePressed(mc, i, j)) {
+			
+			// Modify the following private field:
+			// super.selectedButton = writeButton;
+			try {
+				mod_mystlinkingbook.setPrivateValue(GuiScreen.class, this, "a", "selectedButton", writeButton); // MCPBot: gcf GuiScreen.selectedButton
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+			mc.sndManager.playSoundFX("random.click", 1.0F, 1.0F);
+			actionPerformed(writeButton);
+		}
+		
 		super.mouseClicked(i, j, k);
 	}
 	
@@ -118,6 +136,8 @@ public class GuiWriteLinkingBook extends GuiContainer {
 		int l = (width - xSize) / 2;
 		int i1 = (height - ySize) / 2;
 		drawTexturedModalRect(l, i1, 0, 0, xSize, ySize);
+		// Because writeButton is not in the controlList, we need to draw it:
+		writeButton.drawButton(mc, i, j);
 		nameTextfield.drawTextBox();
 	}
 	

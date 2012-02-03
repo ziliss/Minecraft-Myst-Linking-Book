@@ -44,7 +44,7 @@ public class GuiLookOfLinkingBook extends GuiContainer {
 	
 	@Override
 	protected void drawGuiContainerForegroundLayer() {
-		fontRenderer.drawString("Look of Linking Book ", 8, 10, 0x404040);
+		fontRenderer.drawString("Look of the Linking Table ", 8, 10, 0x404040);
 		fontRenderer.drawString("Inventory", 8, ySize - 96 + 2, 0x404040);
 	}
 	

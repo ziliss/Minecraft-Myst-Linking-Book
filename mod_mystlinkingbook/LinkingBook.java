@@ -16,6 +16,8 @@ public class LinkingBook {
 	
 	public LinkPreloader linkPreloader = new LinkPreloader(ModLoader.getMinecraftInstance());;
 	
+	public LinkingBookAgesManager agesManager = new LinkingBookAgesManager();
+	
 	public LinkingBook() {
 	}
 	
@@ -87,6 +89,20 @@ public class LinkingBook {
 	
 	public boolean isUnstable(NBTTagCompound nbttagcompound) {
 		return nbttagcompound.getBoolean("unstable");
+	}
+	
+	public boolean doLinkToDifferentAge(TileEntityLinkingBook tileEntityLinkingBook, EntityPlayer entityplayer) {
+		NBTTagCompound nbttagcompound = tileEntityLinkingBook.nbttagcompound_linkingBook;
+		if (!nbttagcompound.getBoolean("dest")) return false;
+		int destX = (int)nbttagcompound.getDouble("destX");
+		int destY = (int)(nbttagcompound.getDouble("destY") - entityplayer.yOffset); // yOffset: prevent the tiny jump when teleporting
+		int destZ = (int)nbttagcompound.getDouble("destZ");
+		int destDim = nbttagcompound.getInteger("destDim");
+		int bookX = tileEntityLinkingBook.xCoord;
+		int bookY = tileEntityLinkingBook.yCoord;
+		int bookZ = tileEntityLinkingBook.zCoord;
+		int bookDim = tileEntityLinkingBook.worldObj.worldInfo.getDimension();
+		return agesManager.linksToDifferentAge(bookX, bookY, bookZ, bookDim, destX, destY, destZ, destDim);
 	}
 	
 	public boolean doLinkChangesDimension(NBTTagCompound nbttagcompound, EntityPlayer entityplayer) {

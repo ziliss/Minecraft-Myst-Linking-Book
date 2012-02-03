@@ -27,9 +27,6 @@ public class ModelLinkingBook extends ModelBase {
 		field_40325_g = new ModelRenderer(this).setTextureOffset(12, 0).addBox(-2F, -7F, 0.0F, 2, 10, 0);
 		field_40329_c = new ModelRenderer(this).setTextureOffset(0, 10).addBox(0.0F, -6F, -0.99F, 5, 8, 1);
 		field_40326_d = new ModelRenderer(this).setTextureOffset(12, 10).addBox(0.0F, -6F, -0.01F, 5, 8, 1);
-		field_40330_a.setRotationPoint(0.0F, 0.0F, -1F);
-		field_40328_b.setRotationPoint(0.0F, 0.0F, 1.0F);
-		field_40325_g.setRotationPoint(0.0F, 0.0F, -1.0F);
 		
 		field_40330_a.rotateAngleY = PI + halfPI;
 		field_40329_c.rotateAngleY = halfPI;
@@ -56,14 +53,19 @@ public class ModelLinkingBook extends ModelBase {
 		float angleOpen = PI * f3;
 		float halfPI_F3 = halfPI * f3;
 		
+		float openingTranslation = -MathHelper.sin(halfPI_F3) * 3 + 3;
+		
+		field_40330_a.rotationPointZ = -1 + openingTranslation; // gauche/droite
+		
 		field_40328_b.rotateAngleY = -angleOpen + halfPI; // rotation
 		field_40328_b.rotationPointX = MathHelper.cos(halfPI_F3) * 2; // hauteur
-		field_40328_b.rotationPointZ = MathHelper.sin(halfPI_F3) * 2 - 1; // gauche/droite
+		field_40328_b.rotationPointZ = MathHelper.sin(halfPI_F3) * 2 - 1 + openingTranslation; // gauche/droite
 		
-		field_40329_c.rotationPointZ = -MathHelper.cos(halfPI_F3) - 0.001f; // gauche/droite
+		field_40329_c.rotationPointZ = -MathHelper.cos(halfPI_F3) - 0.001f + openingTranslation; // gauche/droite
 		field_40326_d.rotateAngleY = -angleOpen + halfPI; // rotation
 		field_40326_d.rotationPointZ = field_40329_c.rotationPointZ - 0.001f; // gauche/droite
 		
 		field_40325_g.rotateAngleY = PI - (angleOpen - halfPI) / 2 - halfPI / 2; // rotation
+		field_40325_g.rotationPointZ = -1 + openingTranslation; // gauche/droite
 	}
 }

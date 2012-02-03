@@ -75,13 +75,14 @@ public class ContainerWriteLinkingBook extends Container {
 	 */
 	@Override
 	public void onCraftGuiClosed(EntityPlayer entityplayer) {
-		super.onCraftGuiClosed(entityplayer);
 		ItemStack itemstack;
 		for (int i = 0; i < inventoryWriteLinkingBook.getSizeInventory(); i++) {
 			itemstack = inventoryWriteLinkingBook.getStackInSlot(i);
 			if (itemstack != null) {
+				inventoryWriteLinkingBook.setInventorySlotContents(i, null);
 				entityplayer.dropPlayerItem(itemstack);
 			}
 		}
+		super.onCraftGuiClosed(entityplayer);
 	}
 }

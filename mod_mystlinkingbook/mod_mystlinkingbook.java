@@ -1,9 +1,14 @@
 package net.minecraft.src;
 
 import java.awt.image.BufferedImage;
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
 import net.minecraft.client.Minecraft;
+import paulscode.sound.SoundSystem;
 
 public class mod_mystlinkingbook extends BaseMod {
 	
@@ -18,7 +23,7 @@ public class mod_mystlinkingbook extends BaseMod {
 	
 	@Override
 	public String getVersion() {
-		return "0.4a";
+		return "0.5a";
 	}
 	
 	/**
@@ -28,37 +33,25 @@ public class mod_mystlinkingbook extends BaseMod {
 	 */
 	@Override
 	public void load() {
+		Minecraft mc = ModLoader.getMinecraftInstance();
+		
 		blockLinkingBook.topTextureIndex = ModLoader.addOverride("/terrain.png", "/mystlinkingbook/blockLinkingBookSide.png");
 		blockLinkingBook.sideTextureIndex = blockLinkingBook.topTextureIndex;
 		blockLinkingBook.bottomTextureIndex = blockLinkingBook.topTextureIndex;
 		// itemBlockLinkingBook.iconIndex = ModLoader.addOverride("/gui/items.png", "/mystlinkingbook/tempBook.png");
 		
 		// Execute the following private method:
-		// Block.fire.setBurnRate(Block.bookShelf.blockID, 60, 100);
-		int chanceToEncourageFire[];
-		int abilityToCatchFire[];
+		// Block.fire.setBurnRate(Block.bookShelf.blockID, 70, 100);
 		try {
-			chanceToEncourageFire = (int[])ModLoader.getPrivateValue(BlockFire.class, Block.fire, "a");
-			chanceToEncourageFire[blockLinkingBook.blockID] = 60;
-			abilityToCatchFire = (int[])ModLoader.getPrivateValue(BlockFire.class, Block.fire, "b");
+			int[] chanceToEncourageFire = (int[])getPrivateValue(BlockFire.class, Block.fire, "a", "chanceToEncourageFire"); // MCPBot: gcf BlockFire.chanceToEncourageFire
+			int[] abilityToCatchFire = (int[])getPrivateValue(BlockFire.class, Block.fire, "b", "abilityToCatchFire"); // MCPBot: gcf BlockFire.abilityToCatchFire
+			chanceToEncourageFire[blockLinkingBook.blockID] = 70;
 			abilityToCatchFire[blockLinkingBook.blockID] = 100;
-		}
-		catch (NoSuchFieldException e) {
-			try {
-				chanceToEncourageFire = (int[])ModLoader.getPrivateValue(BlockFire.class, Block.fire, "chanceToEncourageFire");
-				chanceToEncourageFire[blockLinkingBook.blockID] = 60;
-				abilityToCatchFire = (int[])ModLoader.getPrivateValue(BlockFire.class, Block.fire, "abilityToCatchFire");
-				abilityToCatchFire[blockLinkingBook.blockID] = 100;
-			}
-			catch (Exception ex) {
-				e.printStackTrace();
-			}
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
 		
-		Minecraft mc = ModLoader.getMinecraftInstance();
 		BufferedImage img;
 		try {
 			img = ModLoader.loadImage(mc.renderEngine, "/mystlinkingbook/tempLinkGUI.png");
@@ -85,142 +78,151 @@ public class mod_mystlinkingbook extends BaseMod {
 		
 		File resourcesFolder = new File(Minecraft.getMinecraftDir(), "resources/");
 		String[] exts = new String[] { ".wav", ".ogg", ".mus" };
-		File linkingsound;
+		File linkingsound = null;
 		for (String ext : exts) {
 			linkingsound = new File(resourcesFolder, "mod/mystlinkingbook/linkingsound" + ext);
 			if (linkingsound.exists()) {
 				mc.sndManager.addSound("mystlinkingbook/linkingsound" + ext, linkingsound);
 				break;
 			}
+			linkingsound = null;
 		}
-	}
-	// The following commented code is old code that might be useful later.
-	// Keeping it for now.
-	/*
-	public int addLinkingBook(LinkingBook linkingBook) {
-		int index = this.nextAvailableIndex;
-		this.linkingBooks.put(index, linkingBook);
-		do {
-			this.nextAvailableIndex++;
-		} while (this.linkingBooks.containsKey(this.nextAvailableIndex));
-		this.datasNeedSaving = true;
-		return index;
-	}
-	
-	public LinkingBook getLinkingBook(int index) {
-		return this.linkingBooks.get(index);
-	}
-	
-	public void removeLinkingBook(int index) {
-		this.linkingBooks.remove(index);
-		this.datasNeedSaving = true;
-	}
-	
-	boolean loadProperties() {
-		File dataFile = new File(this.worldFolder, "mystlinkingbookdata.dat");
-		try {
-			if (dataFile.canRead()) {
-				synchronized (this.datasProps) {
-					this.datasProps.clear();
-					this.datasProps.load(new FileInputStream(dataFile));
-					float readDatasVersion = Float.parseFloat(this.datasProps.getProperty("Datas version"));
-					int readDatasVersion_major = (int) readDatasVersion;
-					if (readDatasVersion_major != this.datasVersion_major) {
-						Mod.log("MystLinkingBook: datas Properties file version is incompatible with current version of MystLinkingBook");
-						return false;
-					}
-					Scanner allIds = new Scanner(this.datasProps.getProperty("allIds", "").replace(',', ' '));
-					while (allIds.hasNextInt()) {
-						int index = allIds.nextInt();
-						String indexString = Integer.toString(index);
-						try {
-							String prop = this.datasProps.getProperty(indexString + ".isDestinationSet");
-							if (prop == null) throw new NullPointerException("MystLinkingBook: Could not load datas for linkingBook " + indexString);
-							else {
-								boolean isDestinationSet = Boolean.parseBoolean(prop);
-								if (isDestinationSet) {
-									double destinationPosX = Double.parseDouble(this.datasProps.getProperty(indexString + ".destinationPosX"));
-									double destinationPosY = Double.parseDouble(this.datasProps.getProperty(indexString + ".destinationPosY"));
-									double destinationPosZ = Double.parseDouble(this.datasProps.getProperty(indexString + ".destinationPosZ"));
-									float destinationRotationYaw = Float.parseFloat(this.datasProps.getProperty(indexString + ".destinationRotationYaw"));
-									float destinationRotationPitch = Float.parseFloat(this.datasProps.getProperty(indexString + ".destinationRotationPitch"));
-									LinkingBook linkingBook = new LinkingBook(destinationPosX, destinationPosY, destinationPosZ, destinationRotationYaw, destinationRotationPitch);
-									this.linkingBooks.put(index, linkingBook);
-								}
-							}
-						}
-						catch (NullPointerException e) {
-							e.printStackTrace();
-						}
-						catch (NumberFormatException e) {
-							Mod.log("MystLinkingBook: Could not load datas for linkingBook " + index);
-							e.printStackTrace();
-						}
-					}
-					return true;
+		if (linkingsound == null) {
+			InputStream integratedLinkingSound = mod_mystlinkingbook.class.getResourceAsStream("/mystlinkingbook/linkingsound.wav");
+			if (integratedLinkingSound != null) {
+				linkingsound = new File(resourcesFolder, "mod/mystlinkingbook/linkingsound.wav");
+				try {
+					downloadRessource(integratedLinkingSound, linkingsound);
+					mc.sndManager.addSound("mystlinkingbook/linkingsound.wav", linkingsound);
+				}
+				catch (Exception e) {
+					e.printStackTrace();
 				}
 			}
-			else if (!dataFile.exists()) {
-				Mod.log("MystLinkingBook: No previous datas Properties file");
-				return true;
-			}
-			else throw new IOException("MystLinkingBook: Unable to handle Properties file!");
 		}
-		catch (FileNotFoundException e) {
+		
+		// Modify the following private field:
+		// mc.saveLoader = new LinkingBookSaveFormat(mc.saveLoader, this);
+		try {
+			ISaveFormat saveLoader = (ISaveFormat)getPrivateValue(Minecraft.class, mc, "ad", "saveLoader"); // MCPBot: gcf Minecraft.saveLoader
+			LinkingBookSaveFormat saveFormat = new LinkingBookSaveFormat(saveLoader, this);
+			setPrivateValue(Minecraft.class, mc, "ad", "saveLoader", saveFormat); // MCPBot: gcf Minecraft.saveLoader
+		}
+		catch (Exception e) {
 			e.printStackTrace();
 		}
-		catch (IOException e) {
-			e.printStackTrace();
-		}
-		return false;
 	}
 	
-	boolean saveDatas() {
-		if (!this.isWorking) return false;
-		if (!this.datasNeedSaving) return true;
-		File dataFile = new File(this.worldFolder, "mystlinkingbookdata.dat");
+	/**
+	 * Called when a new world starts loading.
+	 * 
+	 * @param worldFolderName
+	 *            The name of the world save folder.
+	 * @see LinkingBookSaveFormat#getSaveLoader
+	 */
+	public void onWorldStarting(String worldFolderName) {
+		File worldFolder = new File(Minecraft.getMinecraftDir(), "saves/" + worldFolderName);
+		File worldMLBFolder = new File(worldFolder, "mystlinkingbook");
+		linkingBook.agesManager.setAgesDataFile(new File(worldMLBFolder, "AgesDatas.props"));
+		linkingBook.agesManager.loadAges();
+	}
+	
+	public static final void downloadRessource(InputStream in, File dest) throws Exception {
+		in = new BufferedInputStream(in);
+		dest.getParentFile().mkdirs();
+		FileOutputStream out = null;
 		try {
-			if (!dataFile.exists()) {
-				dataFile.createNewFile();
+			out = new FileOutputStream(dest);
+			byte cache[] = new byte[1024 * 32];
+			for (int i = 0; (i = in.read(cache)) >= 0;) {
+				out.write(cache, 0, i);
 			}
-			if (dataFile.canWrite()) {
-				synchronized (this.datasProps) {
-					// this.props.load(new FileInputStream(dataFile));
-					// Mod.log("Saving Properties.");
-					if (!this.datasNeedSaving) return true;
-					this.datasProps.clear();
-					this.datasProps.setProperty("MystLinkingBook version", this.getModVersion());
-					this.datasProps.setProperty("Datas version", this.datasVersion);
-					StringBuilder allIds = new StringBuilder(this.linkingBooks.size() * 4);
-					for (Integer index : this.linkingBooks.keySet()) {
-						allIds.append(index).append(", ");
-						LinkingBook linkingBook = this.linkingBooks.get(index);
-						String indexString = index.toString();
-						this.datasProps.setProperty(indexString + ".isDestinationSet", Boolean.toString(linkingBook.isDestinationSet));
-						if (linkingBook.isDestinationSet) {
-							this.datasProps.setProperty(indexString + ".destinationPosX", Double.toString(linkingBook.destinationPosX));
-							this.datasProps.setProperty(indexString + ".destinationPosY", Double.toString(linkingBook.destinationPosY));
-							this.datasProps.setProperty(indexString + ".destinationPosZ", Double.toString(linkingBook.destinationPosZ));
-							this.datasProps.setProperty(indexString + ".destinationRotationYaw", Float.toString(linkingBook.destinationRotationYaw));
-							this.datasProps.setProperty(indexString + ".destinationRotationPitch", Float.toString(linkingBook.destinationRotationPitch));
-						}
-					}
-					allIds.delete(allIds.length() - 2, allIds.length());
-					this.datasProps.setProperty("allIds", allIds.toString());
-					this.datasProps.store(new FileOutputStream(dataFile), "MystLinkingBook Datas Properties");
-					this.datasNeedSaving = false;
-					return true;
+			out.flush();
+			System.out.println("Ressource added: " + dest);
+		}
+		catch (Exception e) {
+			throw e;
+		}
+		finally {
+			try {
+				in.close();
+				if (out != null) {
+					out.close();
 				}
 			}
-			else throw new IOException("MystLinkingBook: Unable to handle Properties file!");
+			catch (IOException ignored) {
+			}
 		}
-		catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
-		catch (IOException e) {
-			e.printStackTrace();
-		}
-		return false;
 	}
-	*/
+	
+	/**
+	 * Rewrites the method {@code SoundManager.playSoundFX()} so that it doesn't lower the volume of the sound. <br>
+	 * <br>
+	 * The only difference is that the instruction {@code f *= 0.25F} is not executed.
+	 * 
+	 * @see SoundManager#playSoundFX(String s, float f, float f1)
+	 */
+	public static final void playSoundFX(String s, float f, float f1) {
+		SoundManager sndManager = ModLoader.getMinecraftInstance().sndManager;
+		
+		try {
+			boolean loaded = (Boolean)getPrivateValue(SoundManager.class, sndManager, "g", "loaded"); // MCPBot: gcf SoundManager.loaded
+			GameSettings options = (GameSettings)getPrivateValue(SoundManager.class, sndManager, "f", "options"); // MCPBot: gcf SoundManager.options
+			SoundPool soundPoolSounds = (SoundPool)getPrivateValue(SoundManager.class, sndManager, "b", "soundPoolSounds"); // MCPBot: gcf SoundManager.soundPoolSounds
+			int latestSoundID = (Integer)getPrivateValue(SoundManager.class, sndManager, "e", "latestSoundID"); // MCPBot: gcf SoundManager.latestSoundID
+			SoundSystem sndSystem = (SoundSystem)getPrivateValue(SoundManager.class, sndManager, "a", "sndSystem"); // MCPBot: gcf SoundManager.sndSystem
+			
+			// The following part is taken from SoundManager.playSoundFX(...):
+			if (!loaded || options.soundVolume == 0.0F) return;
+			
+			SoundPoolEntry soundpoolentry = soundPoolSounds.getRandomSoundFromSoundPool(s);
+			if (soundpoolentry != null) {
+				latestSoundID = (latestSoundID + 1) % 256;
+				setPrivateValue(SoundManager.class, sndManager, "e", "latestSoundID", latestSoundID); // MCPBot: gcf SoundManager.latestSoundID
+				String s1 = new StringBuilder("sound_").append(latestSoundID).toString();
+				sndSystem.newSource(false, s1, soundpoolentry.soundUrl, soundpoolentry.soundName, false, 0.0F, 0.0F, 0.0F, 0, 0.0F);
+				if (f > 1.0F) {
+					f = 1.0F;
+				}
+				// f *= 0.25F;
+				sndSystem.setPitch(s1, f1);
+				sndSystem.setVolume(s1, f * options.soundVolume);
+				sndSystem.play(s1);
+			}
+			// End of the part from SoundManager.playSoundFX(...).
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public static final <T, E> T getPrivateValue(Class<? super E> instanceClass, E instance, String fieldObfName, String fieldName) throws Exception {
+		try {
+			return (T)ModLoader.getPrivateValue(instanceClass, instance, fieldObfName);
+		}
+		catch (NoSuchFieldException e) {
+			try {
+				return (T)ModLoader.getPrivateValue(instanceClass, instance, fieldName);
+			}
+			catch (Exception ex) {
+				e.printStackTrace();
+				throw ex;
+			}
+		}
+	}
+	
+	public static final <T, E> void setPrivateValue(Class<? super E> instanceClass, E instance, String fieldObfName, String fieldName, T value) throws Exception {
+		try {
+			ModLoader.setPrivateValue(instanceClass, instance, fieldObfName, value);
+		}
+		catch (NoSuchFieldException e) {
+			try {
+				ModLoader.setPrivateValue(instanceClass, instance, fieldName, value);
+			}
+			catch (Exception ex) {
+				e.printStackTrace();
+				throw ex;
+			}
+		}
+	}
 }

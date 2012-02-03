@@ -84,14 +84,15 @@ public class GuiLinkingBook extends GuiScreen {
 		}
 		savedNameWidth = fontRenderer.getStringWidth(savedName);
 		
-		int nbPages = mod_MLB.linkingBook.getNbPages(nbttagcompound_linkingBook);
-		int maxPages = mod_MLB.linkingBook.getMaxPages(nbttagcompound_linkingBook);
-		missingPages = maxPages - nbPages;
-		missingPagesStr = (missingPages == 0 ? "" : nbPages + "/") + maxPages + " page" + (maxPages > 1 ? "s" : "");
-		missingPagesStrWidth = fontRenderer.getStringWidth(missingPagesStr);
+		updateNbMissingPages();
+		
+		linkingPanel.initGui();
 		
 		tileEntityLinkingBook.guiLinkingBook = this;
-		linkingPanel.initGui();
+	}
+	
+	public boolean checkLinksToDifferentAge() {
+		return mod_MLB.linkingBook.doLinkToDifferentAge(tileEntityLinkingBook, entityplayer);
 	}
 	
 	@Override
@@ -106,21 +107,15 @@ public class GuiLinkingBook extends GuiScreen {
 					// Modify the following private field:
 					// super.selectedButton = guibutton;
 					try {
-						ModLoader.setPrivateValue(GuiScreen.class, this, "a", guibutton);
-					}
-					catch (NoSuchFieldException e) {
-						try {
-							ModLoader.setPrivateValue(GuiScreen.class, this, "selectedButton", guibutton);
-						}
-						catch (Exception ex) {
-							e.printStackTrace();
-						}
+						mod_mystlinkingbook.setPrivateValue(GuiScreen.class, this, "a", "selectedButton", guibutton); // MCPBot: gcf GuiScreen.selectedButton
 					}
 					catch (Exception e) {
 						e.printStackTrace();
 					}
 					
-					// mc.sndManager.playSoundFX("random.click", 1.0F, 1.0F);
+					if (guibutton != linkingPanel) {
+						mc.sndManager.playSoundFX("random.click", 1.0F, 1.0F);
+					}
 					actionPerformed(guibutton);
 				}
 			}
@@ -152,7 +147,7 @@ public class GuiLinkingBook extends GuiScreen {
 	
 	@Override
 	protected void actionPerformed(GuiButton guibutton) {
-		if (guibutton == linkingPanel && linkingPanel.canLink()) {
+		if (guibutton == linkingPanel && linkingPanel.updateCanLink()) {
 			linkingProgress = 0;
 			runGC = mod_MLB.linkingBook.doLinkChangesDimension(nbttagcompound_linkingBook, entityplayer);
 			linkingDuration = defaultLinkingDuration;
@@ -170,7 +165,11 @@ public class GuiLinkingBook extends GuiScreen {
 			mod_MLB.linkingBook.prepareLinking(nbttagcompound_linkingBook, entityplayer);
 			
 			linkingStartedTime = System.currentTimeMillis();
-			ModLoader.getMinecraftInstance().sndManager.playSoundFX("mystlinkingbook.linkingsound", 1.0F, 1.0F);
+			
+			mod_mystlinkingbook.playSoundFX("mystlinkingbook.linkingsound", 1.0F, 1.0F);
+			// ModLoader.getMinecraftInstance().sndManager.playSoundFX("mystlinkingbook.linkingsound", 1.0F, 1.0F);
+			// ModLoader.getMinecraftInstance().sndManager.playSound("mystlinkingbook.linkingsound", (float)entityplayer.posX, (float)entityplayer.posY, (float)entityplayer.posZ, 1.0F, 1.0F);
+			// entityplayer.worldObj.playSoundAtEntity(entityplayer, "mystlinkingbook.linkingsound", 1.0F, 1.0F);
 		}
 	}
 	
@@ -204,6 +203,20 @@ public class GuiLinkingBook extends GuiScreen {
 	
 	public void notifyPowerStateChanged(boolean isPowered) {
 		linkingPanel.notifyPowerStateChanged(isPowered);
+	}
+	
+	public void updateNbMissingPages() {
+		int nbPages = mod_MLB.linkingBook.getNbPages(nbttagcompound_linkingBook);
+		int maxPages = mod_MLB.linkingBook.getMaxPages(nbttagcompound_linkingBook);
+		missingPages = maxPages - nbPages;
+		if (maxPages > 0) {
+			missingPagesStr = (missingPages == 0 ? "" : nbPages + "/") + maxPages + " page" + (maxPages > 1 ? "s" : "");
+		}
+		else {
+			missingPagesStr = "";
+		}
+		missingPagesStrWidth = fontRenderer.getStringWidth(missingPagesStr);
+		linkingPanel.updateCanLink();
 	}
 	
 	public void updateLinkingProgress() {
