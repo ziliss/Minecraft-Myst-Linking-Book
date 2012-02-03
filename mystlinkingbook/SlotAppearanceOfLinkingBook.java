@@ -1,4 +1,9 @@
-package net.minecraft.src;
+package net.minecraft.src.mystlinkingbook;
+
+import net.minecraft.src.Block;
+import net.minecraft.src.IInventory;
+import net.minecraft.src.ItemStack;
+import net.minecraft.src.Slot;
 
 /**
  * Each instance represents a customizable {@code Slot}.<br>
@@ -13,9 +18,9 @@ public class SlotAppearanceOfLinkingBook extends Slot {
 	/**
 	 * Reference to the mod instance.
 	 */
-	public mod_mystlinkingbook mod_MLB;
+	public Mod_MystLinkingBook mod_MLB;
 	
-	public SlotAppearanceOfLinkingBook(IInventory iinventory, int slotIndex, int xDisplayPosition, int yDisplayPosition, mod_mystlinkingbook mod_MLB) {
+	public SlotAppearanceOfLinkingBook(IInventory iinventory, int slotIndex, int xDisplayPosition, int yDisplayPosition, Mod_MystLinkingBook mod_MLB) {
 		super(iinventory, slotIndex, xDisplayPosition, yDisplayPosition);
 		this.mod_MLB = mod_MLB;
 	}

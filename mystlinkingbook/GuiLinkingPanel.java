@@ -1,8 +1,10 @@
-package net.minecraft.src;
+package net.minecraft.src.mystlinkingbook;
 
 import java.awt.Cursor;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.src.GuiButton;
+import net.minecraft.src.ModLoader;
 
 import org.lwjgl.opengl.GL11;
 
@@ -13,7 +15,7 @@ import org.lwjgl.opengl.GL11;
  * @see GuiLinkingBook
  * @since 0.2a
  */
-public class GuiButtonLinkingPanel extends GuiButton {
+public class GuiLinkingPanel extends GuiButton {
 	
 	/**
 	 * The linking book of this linking panel.
@@ -50,7 +52,7 @@ public class GuiButtonLinkingPanel extends GuiButton {
 	Cursor originalCursor;
 	static Cursor linkCursor = new Cursor(Cursor.HAND_CURSOR);
 	
-	public GuiButtonLinkingPanel(int id, int xPosition, int yPosition, int width, int height, GuiLinkingBook guiLinkingBook) {
+	public GuiLinkingPanel(int id, int xPosition, int yPosition, int width, int height, GuiLinkingBook guiLinkingBook) {
 		super(id, xPosition, yPosition, width, height, "");
 		this.guiLinkingBook = guiLinkingBook;
 	}
@@ -107,7 +109,7 @@ public class GuiButtonLinkingPanel extends GuiButton {
 			}
 		}
 		
-		minecraft.renderEngine.bindTexture(minecraft.renderEngine.getTexture("/mystlinkingbook/tempPanel.png"));
+		minecraft.renderEngine.bindTexture(minecraft.renderEngine.getTexture(Mod_MystLinkingBook.resourcesPath + "tempPanel.png"));
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 		drawTexturedModalRect(xPosition, yPosition, 108, 36, width, height);
 		

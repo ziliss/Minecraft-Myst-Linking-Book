@@ -1,4 +1,12 @@
-package net.minecraft.src;
+package net.minecraft.src.mystlinkingbook;
+
+import net.minecraft.src.Container;
+import net.minecraft.src.EntityPlayer;
+import net.minecraft.src.InventoryBasic;
+import net.minecraft.src.InventoryPlayer;
+import net.minecraft.src.Item;
+import net.minecraft.src.ItemStack;
+import net.minecraft.src.Slot;
 
 /**
  * Manages the slots used by a {@code GuiLinkingBook}.
@@ -13,7 +21,7 @@ public class ContainerWriteLinkingBook extends Container {
 	/**
 	 * Reference to the mod instance.
 	 */
-	public mod_mystlinkingbook mod_MLB;
+	public Mod_MystLinkingBook mod_MLB;
 	
 	/**
 	 * The inventory of the player.
@@ -31,14 +39,14 @@ public class ContainerWriteLinkingBook extends Container {
 	public SlotWriteLinkingBook inkSlot;
 	public SlotWriteLinkingBook redstoneSlot;
 	
-	public ContainerWriteLinkingBook(InventoryPlayer inventoryPlayer, mod_mystlinkingbook mod_MLB) {
+	public ContainerWriteLinkingBook(InventoryPlayer inventoryPlayer, Mod_MystLinkingBook mod_MLB) {
 		this.inventoryPlayer = inventoryPlayer;
 		inventoryWriteLinkingBook = new InventoryBasic("WriteLinkingBook", 4);
 		this.mod_MLB = mod_MLB;
 		
 		// Add the slots for items used to write the linking book:
 		addSlot(featherSlot = new SlotWriteLinkingBook(inventoryWriteLinkingBook, 0, 53, 28, Item.feather, 1));
-		addSlot(paperSlot = new SlotWriteLinkingBook(inventoryWriteLinkingBook, 1, 143, 28, Item.paper, Item.paper.maxStackSize));
+		addSlot(paperSlot = new SlotWriteLinkingBook(inventoryWriteLinkingBook, 1, 143, 28, Item.paper, PrivateAccesses.Item_maxStackSize.getFrom(Item.paper)));
 		addSlot(inkSlot = new SlotWriteLinkingBook(inventoryWriteLinkingBook, 2, 53, 53, Item.dyePowder, 0, 1)); // 0 because: Item.dyeColorNames[0] == "black" which is the ink sac.
 		addSlot(redstoneSlot = new SlotWriteLinkingBook(inventoryWriteLinkingBook, 3, 17, 53, Item.redstone, 1));
 		

@@ -1,4 +1,13 @@
-package net.minecraft.src;
+package net.minecraft.src.mystlinkingbook;
+
+import net.minecraft.src.Block;
+import net.minecraft.src.EntityPlayer;
+import net.minecraft.src.InventoryBasic;
+import net.minecraft.src.ItemStack;
+import net.minecraft.src.ModLoader;
+import net.minecraft.src.NBTTagCompound;
+import net.minecraft.src.NBTTagList;
+import net.minecraft.src.TileEntity;
 
 /**
  * Manages the datas associated with {@code BlockLinkingBook}s.<br>
@@ -8,7 +17,7 @@ package net.minecraft.src;
  * 
  * @author ziliss
  * @see BlockLinkingBook
- * @see net.minecraft.src.Block
+ * @see net.minecraft.src.mod_mystlinkingbookpack.Block
  * @see net.minecraft.src.BlockEntity
  * @since 0.1a
  */
@@ -93,16 +102,10 @@ public class TileEntityLinkingBook extends TileEntity {
 			nbttagcompound1 = (NBTTagCompound)nbttaglist.tagAt(i);
 			slotNb = nbttagcompound1.getByte("Slot") & 0xff;
 			if (slotNb >= 0 && slotNb < inventoryLinkingBook.getSizeInventory()) {
-				
 				// Modify the following private field:
 				// inventoryLinkingBook.inventoryContents[slotNb] = ItemStack.loadItemStackFromNBT(nbttagcompound1);
-				try {
-					ItemStack[] inventoryContents = (ItemStack[])mod_mystlinkingbook.getPrivateValue(InventoryBasic.class, inventoryLinkingBook, "c", "inventoryContents"); // MCPBot: gcf InventoryBasic.inventoryContents
-					inventoryContents[slotNb] = ItemStack.loadItemStackFromNBT(nbttagcompound1);
-				}
-				catch (Exception e) {
-					e.printStackTrace();
-				}
+				ItemStack[] inventoryContents = PrivateAccesses.InventoryBasic_inventoryContents.getFrom(inventoryLinkingBook);
+				inventoryContents[slotNb] = ItemStack.loadItemStackFromNBT(nbttagcompound1);
 			}
 		}
 	}

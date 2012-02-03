@@ -1,4 +1,9 @@
-package net.minecraft.src;
+package net.minecraft.src.mystlinkingbook;
+
+import net.minecraft.src.Container;
+import net.minecraft.src.EntityPlayer;
+import net.minecraft.src.InventoryPlayer;
+import net.minecraft.src.Slot;
 
 /**
  * Manages the slots used by a {@code GuiLookOfLinkingBook}.
@@ -23,7 +28,7 @@ public class ContainerLookOfLinkingBook extends Container {
 	// The slots used to keep the items while writing the linking book:
 	public SlotAppearanceOfLinkingBook blockSlot;
 	
-	public ContainerLookOfLinkingBook(InventoryPlayer inventoryPlayer, TileEntityLinkingBook tileEntityLinkingBook, mod_mystlinkingbook mod_MLB) {
+	public ContainerLookOfLinkingBook(InventoryPlayer inventoryPlayer, TileEntityLinkingBook tileEntityLinkingBook, Mod_MystLinkingBook mod_MLB) {
 		this.inventoryPlayer = inventoryPlayer;
 		this.tileEntityLinkingBook = tileEntityLinkingBook;
 		

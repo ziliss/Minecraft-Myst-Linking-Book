@@ -1,4 +1,4 @@
-package net.minecraft.src;
+package net.minecraft.src.mystlinkingbook;
 
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
@@ -8,9 +8,19 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.src.BaseMod;
+import net.minecraft.src.Block;
+import net.minecraft.src.GameSettings;
+import net.minecraft.src.ISaveFormat;
+import net.minecraft.src.Item;
+import net.minecraft.src.ItemStack;
+import net.minecraft.src.ModLoader;
+import net.minecraft.src.SoundManager;
+import net.minecraft.src.SoundPool;
+import net.minecraft.src.SoundPoolEntry;
 import paulscode.sound.SoundSystem;
 
-public class mod_mystlinkingbook extends BaseMod {
+public class Mod_MystLinkingBook extends BaseMod {
 	
 	// Contains methods to interact with the datas of the Linking Books:
 	public LinkingBook linkingBook = new LinkingBook();
@@ -18,12 +28,14 @@ public class mod_mystlinkingbook extends BaseMod {
 	public BlockLinkingBook blockLinkingBook = new BlockLinkingBook(233, 233, this);
 	public ItemBlockLinkingBook itemBlockLinkingBook = new ItemBlockLinkingBook(233 - 256, this);
 	
-	public mod_mystlinkingbook() {
+	public static String resourcesPath = "/mystlinkingbook/resources/";
+	
+	public Mod_MystLinkingBook() {
 	}
 	
 	@Override
 	public String getVersion() {
-		return "0.5a";
+		return "0.6b";
 	}
 	
 	/**
@@ -33,36 +45,31 @@ public class mod_mystlinkingbook extends BaseMod {
 	 */
 	@Override
 	public void load() {
+		if (PrivateAccesses.hasFieldsNotFound) throw new RuntimeException("Some private fields could not be found.");
+		
 		Minecraft mc = ModLoader.getMinecraftInstance();
 		
-		blockLinkingBook.topTextureIndex = ModLoader.addOverride("/terrain.png", "/mystlinkingbook/blockLinkingBookSide.png");
+		blockLinkingBook.topTextureIndex = ModLoader.addOverride("/terrain.png", resourcesPath + "blockLinkingBookSide.png");
 		blockLinkingBook.sideTextureIndex = blockLinkingBook.topTextureIndex;
 		blockLinkingBook.bottomTextureIndex = blockLinkingBook.topTextureIndex;
-		// itemBlockLinkingBook.iconIndex = ModLoader.addOverride("/gui/items.png", "/mystlinkingbook/tempBook.png");
+		// itemBlockLinkingBook.iconIndex = ModLoader.addOverride("/gui/items.png", resourcePath+"tempBook.png");
 		
 		// Execute the following private method:
 		// Block.fire.setBurnRate(Block.bookShelf.blockID, 70, 100);
-		try {
-			int[] chanceToEncourageFire = (int[])getPrivateValue(BlockFire.class, Block.fire, "a", "chanceToEncourageFire"); // MCPBot: gcf BlockFire.chanceToEncourageFire
-			int[] abilityToCatchFire = (int[])getPrivateValue(BlockFire.class, Block.fire, "b", "abilityToCatchFire"); // MCPBot: gcf BlockFire.abilityToCatchFire
-			chanceToEncourageFire[blockLinkingBook.blockID] = 70;
-			abilityToCatchFire[blockLinkingBook.blockID] = 100;
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}
+		PrivateAccesses.BlockFire_chanceToEncourageFire.getFrom(Block.fire)[blockLinkingBook.blockID] = 70;
+		PrivateAccesses.BlockFire_abilityToCatchFire.getFrom(Block.fire)[blockLinkingBook.blockID] = 100;
 		
 		BufferedImage img;
 		try {
-			img = ModLoader.loadImage(mc.renderEngine, "/mystlinkingbook/tempLinkGUI.png");
+			img = ModLoader.loadImage(mc.renderEngine, resourcesPath + "tempLinkGUI.png");
 			mc.renderEngine.setupTexture(img, 3233);
-			img = ModLoader.loadImage(mc.renderEngine, "/mystlinkingbook/tempPanel.png");
+			img = ModLoader.loadImage(mc.renderEngine, resourcesPath + "tempPanel.png");
 			mc.renderEngine.setupTexture(img, 3234);
-			img = ModLoader.loadImage(mc.renderEngine, "/mystlinkingbook/tempWriteGUI.png");
+			img = ModLoader.loadImage(mc.renderEngine, resourcesPath + "tempWriteGUI.png");
 			mc.renderEngine.setupTexture(img, 3235);
-			img = ModLoader.loadImage(mc.renderEngine, "/mystlinkingbook/tempLookGUI.png");
+			img = ModLoader.loadImage(mc.renderEngine, resourcesPath + "tempLookGUI.png");
 			mc.renderEngine.setupTexture(img, 3236);
-			img = ModLoader.loadImage(mc.renderEngine, "/mystlinkingbook/tempLinkingBook3D.png");
+			img = ModLoader.loadImage(mc.renderEngine, resourcesPath + "tempLinkingBook3D.png");
 			mc.renderEngine.setupTexture(img, 3237);
 		}
 		catch (Exception e) {
@@ -88,7 +95,7 @@ public class mod_mystlinkingbook extends BaseMod {
 			linkingsound = null;
 		}
 		if (linkingsound == null) {
-			InputStream integratedLinkingSound = mod_mystlinkingbook.class.getResourceAsStream("/mystlinkingbook/linkingsound.wav");
+			InputStream integratedLinkingSound = Mod_MystLinkingBook.class.getResourceAsStream(resourcesPath + "linkingsound.wav");
 			if (integratedLinkingSound != null) {
 				linkingsound = new File(resourcesFolder, "mod/mystlinkingbook/linkingsound.wav");
 				try {
@@ -103,14 +110,9 @@ public class mod_mystlinkingbook extends BaseMod {
 		
 		// Modify the following private field:
 		// mc.saveLoader = new LinkingBookSaveFormat(mc.saveLoader, this);
-		try {
-			ISaveFormat saveLoader = (ISaveFormat)getPrivateValue(Minecraft.class, mc, "ad", "saveLoader"); // MCPBot: gcf Minecraft.saveLoader
-			LinkingBookSaveFormat saveFormat = new LinkingBookSaveFormat(saveLoader, this);
-			setPrivateValue(Minecraft.class, mc, "ad", "saveLoader", saveFormat); // MCPBot: gcf Minecraft.saveLoader
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}
+		ISaveFormat saveLoader = PrivateAccesses.Minecraft_saveLoader.getFrom(mc);
+		SaveFormat saveFormat = new SaveFormat(saveLoader, this);
+		PrivateAccesses.Minecraft_saveLoader.setTo(mc, saveFormat);
 	}
 	
 	/**
@@ -118,7 +120,7 @@ public class mod_mystlinkingbook extends BaseMod {
 	 * 
 	 * @param worldFolderName
 	 *            The name of the world save folder.
-	 * @see LinkingBookSaveFormat#getSaveLoader
+	 * @see SaveFormat#getSaveLoader
 	 */
 	public void onWorldStarting(String worldFolderName) {
 		File worldFolder = new File(Minecraft.getMinecraftDir(), "saves/" + worldFolderName);
@@ -138,7 +140,7 @@ public class mod_mystlinkingbook extends BaseMod {
 				out.write(cache, 0, i);
 			}
 			out.flush();
-			System.out.println("Ressource added: " + dest);
+			System.out.println("Resource added: " + dest);
 		}
 		catch (Exception e) {
 			throw e;
@@ -165,64 +167,29 @@ public class mod_mystlinkingbook extends BaseMod {
 	public static final void playSoundFX(String s, float f, float f1) {
 		SoundManager sndManager = ModLoader.getMinecraftInstance().sndManager;
 		
-		try {
-			boolean loaded = (Boolean)getPrivateValue(SoundManager.class, sndManager, "g", "loaded"); // MCPBot: gcf SoundManager.loaded
-			GameSettings options = (GameSettings)getPrivateValue(SoundManager.class, sndManager, "f", "options"); // MCPBot: gcf SoundManager.options
-			SoundPool soundPoolSounds = (SoundPool)getPrivateValue(SoundManager.class, sndManager, "b", "soundPoolSounds"); // MCPBot: gcf SoundManager.soundPoolSounds
-			int latestSoundID = (Integer)getPrivateValue(SoundManager.class, sndManager, "e", "latestSoundID"); // MCPBot: gcf SoundManager.latestSoundID
-			SoundSystem sndSystem = (SoundSystem)getPrivateValue(SoundManager.class, sndManager, "a", "sndSystem"); // MCPBot: gcf SoundManager.sndSystem
-			
-			// The following part is taken from SoundManager.playSoundFX(...):
-			if (!loaded || options.soundVolume == 0.0F) return;
-			
-			SoundPoolEntry soundpoolentry = soundPoolSounds.getRandomSoundFromSoundPool(s);
-			if (soundpoolentry != null) {
-				latestSoundID = (latestSoundID + 1) % 256;
-				setPrivateValue(SoundManager.class, sndManager, "e", "latestSoundID", latestSoundID); // MCPBot: gcf SoundManager.latestSoundID
-				String s1 = new StringBuilder("sound_").append(latestSoundID).toString();
-				sndSystem.newSource(false, s1, soundpoolentry.soundUrl, soundpoolentry.soundName, false, 0.0F, 0.0F, 0.0F, 0, 0.0F);
-				if (f > 1.0F) {
-					f = 1.0F;
-				}
-				// f *= 0.25F;
-				sndSystem.setPitch(s1, f1);
-				sndSystem.setVolume(s1, f * options.soundVolume);
-				sndSystem.play(s1);
+		boolean loaded = PrivateAccesses.SoundManager_loaded.getFrom(sndManager);
+		GameSettings options = PrivateAccesses.SoundManager_options.getFrom(sndManager);
+		SoundPool soundPoolSounds = PrivateAccesses.SoundManager_soundPoolSounds.getFrom(sndManager);
+		int latestSoundID = PrivateAccesses.SoundManager_latestSoundID.getFrom(sndManager);
+		SoundSystem sndSystem = PrivateAccesses.SoundManager_sndSystem.getFrom(sndManager);
+		
+		// The following part is taken from SoundManager.playSoundFX(...):
+		if (!loaded || options.soundVolume == 0.0F) return;
+		
+		SoundPoolEntry soundpoolentry = soundPoolSounds.getRandomSoundFromSoundPool(s);
+		if (soundpoolentry != null) {
+			latestSoundID = (latestSoundID + 1) % 256;
+			PrivateAccesses.SoundManager_latestSoundID.setTo(sndManager, latestSoundID);
+			String s1 = new StringBuilder("sound_").append(latestSoundID).toString();
+			sndSystem.newSource(false, s1, soundpoolentry.soundUrl, soundpoolentry.soundName, false, 0.0F, 0.0F, 0.0F, 0, 0.0F);
+			if (f > 1.0F) {
+				f = 1.0F;
 			}
-			// End of the part from SoundManager.playSoundFX(...).
+			// Removing this instruction: f *= 0.25F;
+			sndSystem.setPitch(s1, f1);
+			sndSystem.setVolume(s1, f * options.soundVolume);
+			sndSystem.play(s1);
 		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-	
-	public static final <T, E> T getPrivateValue(Class<? super E> instanceClass, E instance, String fieldObfName, String fieldName) throws Exception {
-		try {
-			return (T)ModLoader.getPrivateValue(instanceClass, instance, fieldObfName);
-		}
-		catch (NoSuchFieldException e) {
-			try {
-				return (T)ModLoader.getPrivateValue(instanceClass, instance, fieldName);
-			}
-			catch (Exception ex) {
-				e.printStackTrace();
-				throw ex;
-			}
-		}
-	}
-	
-	public static final <T, E> void setPrivateValue(Class<? super E> instanceClass, E instance, String fieldObfName, String fieldName, T value) throws Exception {
-		try {
-			ModLoader.setPrivateValue(instanceClass, instance, fieldObfName, value);
-		}
-		catch (NoSuchFieldException e) {
-			try {
-				ModLoader.setPrivateValue(instanceClass, instance, fieldName, value);
-			}
-			catch (Exception ex) {
-				e.printStackTrace();
-				throw ex;
-			}
-		}
+		// End of the part from SoundManager.playSoundFX(...).
 	}
 }

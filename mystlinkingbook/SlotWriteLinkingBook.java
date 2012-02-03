@@ -1,4 +1,9 @@
-package net.minecraft.src;
+package net.minecraft.src.mystlinkingbook;
+
+import net.minecraft.src.IInventory;
+import net.minecraft.src.Item;
+import net.minecraft.src.ItemStack;
+import net.minecraft.src.Slot;
 
 /**
  * Each instance represents a customizable {@code Slot}.<br>

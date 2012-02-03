@@ -1,4 +1,11 @@
-package net.minecraft.src;
+package net.minecraft.src.mystlinkingbook;
+
+import net.minecraft.src.EntityPlayer;
+import net.minecraft.src.GuiButton;
+import net.minecraft.src.GuiContainer;
+import net.minecraft.src.GuiTextField;
+import net.minecraft.src.NBTTagCompound;
+import net.minecraft.src.Slot;
 
 import org.lwjgl.opengl.GL11;
 
@@ -11,7 +18,7 @@ import org.lwjgl.opengl.GL11;
  */
 public class GuiWriteLinkingBook extends GuiContainer {
 	
-	public mod_mystlinkingbook mod_MLB;
+	public Mod_MystLinkingBook mod_MLB;
 	public EntityPlayer entityplayer;
 	public NBTTagCompound nbttagcompound_linkingBook;
 	
@@ -22,7 +29,7 @@ public class GuiWriteLinkingBook extends GuiContainer {
 	
 	boolean canWrite;
 	
-	public GuiWriteLinkingBook(EntityPlayer entityplayer, NBTTagCompound nbttagcompound_linkingBook, mod_mystlinkingbook mod_MLB) {
+	public GuiWriteLinkingBook(EntityPlayer entityplayer, NBTTagCompound nbttagcompound_linkingBook, Mod_MystLinkingBook mod_MLB) {
 		super(new ContainerWriteLinkingBook(entityplayer.inventory, mod_MLB));
 		this.entityplayer = entityplayer;
 		this.nbttagcompound_linkingBook = nbttagcompound_linkingBook;
@@ -58,14 +65,8 @@ public class GuiWriteLinkingBook extends GuiContainer {
 		// Because writeButton is not in the controlList, we need to check it:
 		if (k == 0 && writeButton.mousePressed(mc, i, j)) {
 			
-			// Modify the following private field:
-			// super.selectedButton = writeButton;
-			try {
-				mod_mystlinkingbook.setPrivateValue(GuiScreen.class, this, "a", "selectedButton", writeButton); // MCPBot: gcf GuiScreen.selectedButton
-			}
-			catch (Exception e) {
-				e.printStackTrace();
-			}
+			PrivateAccesses.GuiScreen_selectedButton.setTo(this, writeButton);
+			
 			mc.sndManager.playSoundFX("random.click", 1.0F, 1.0F);
 			actionPerformed(writeButton);
 		}
@@ -131,7 +132,7 @@ public class GuiWriteLinkingBook extends GuiContainer {
 	
 	@Override
 	protected void drawGuiContainerBackgroundLayer(float f, int i, int j) {
-		mc.renderEngine.bindTexture(mc.renderEngine.getTexture("/mystlinkingbook/tempWriteGUI.png"));
+		mc.renderEngine.bindTexture(mc.renderEngine.getTexture(Mod_MystLinkingBook.resourcesPath + "tempWriteGUI.png"));
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 		int l = (width - xSize) / 2;
 		int i1 = (height - ySize) / 2;

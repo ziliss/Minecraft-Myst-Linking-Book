@@ -1,6 +1,21 @@
-package net.minecraft.src;
+package net.minecraft.src.mystlinkingbook;
 
 import java.util.Random;
+
+import net.minecraft.src.Block;
+import net.minecraft.src.BlockContainer;
+import net.minecraft.src.EntityItem;
+import net.minecraft.src.EntityLiving;
+import net.minecraft.src.EntityPlayer;
+import net.minecraft.src.IBlockAccess;
+import net.minecraft.src.Item;
+import net.minecraft.src.ItemStack;
+import net.minecraft.src.Material;
+import net.minecraft.src.MathHelper;
+import net.minecraft.src.ModLoader;
+import net.minecraft.src.NBTTagCompound;
+import net.minecraft.src.TileEntity;
+import net.minecraft.src.World;
 
 /**
  * Represents Linking Books that are placed in the world as {@code Block}.<br>
@@ -26,9 +41,9 @@ public class BlockLinkingBook extends BlockContainer {
 	/**
 	 * Reference to the mod instance.
 	 */
-	public mod_mystlinkingbook mod_MLB;
+	public Mod_MystLinkingBook mod_MLB;
 	
-	public BlockLinkingBook(int blockID, int textureID, mod_mystlinkingbook mod_MLB) {
+	public BlockLinkingBook(int blockID, int textureID, Mod_MystLinkingBook mod_MLB) {
 		super(blockID, textureID, Material.wood);
 		
 		this.mod_MLB = mod_MLB;
@@ -148,7 +163,7 @@ public class BlockLinkingBook extends BlockContainer {
 			}
 		}
 		else if (currentItem.itemID == Item.shears.shiftedIndex) {
-			int removed = mod_MLB.linkingBook.removePages(nbttagcompound_linkingBook, Item.paper.maxStackSize);
+			int removed = mod_MLB.linkingBook.removePages(nbttagcompound_linkingBook, PrivateAccesses.Item_maxStackSize.getFrom(Item.paper));
 			if (removed > 0) {
 				ItemStack itemstack = new ItemStack(Item.paper, removed, Item.paper.getMaxDamage());
 				

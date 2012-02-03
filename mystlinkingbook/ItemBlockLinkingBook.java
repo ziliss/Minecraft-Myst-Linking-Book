@@ -1,6 +1,14 @@
-package net.minecraft.src;
+package net.minecraft.src.mystlinkingbook;
 
 import java.util.List;
+
+import net.minecraft.src.Block;
+import net.minecraft.src.EntityPlayer;
+import net.minecraft.src.ItemBlock;
+import net.minecraft.src.ItemStack;
+import net.minecraft.src.ModLoader;
+import net.minecraft.src.NBTTagCompound;
+import net.minecraft.src.World;
 
 /**
  * Represents Linking Books as {@code Item} (ie. either dropped in the world or in the inventory).<br>
@@ -20,9 +28,9 @@ public class ItemBlockLinkingBook extends ItemBlock {
 	/**
 	 * Reference to the mod instance.
 	 */
-	public mod_mystlinkingbook mod_MLB;
+	public Mod_MystLinkingBook mod_MLB;
 	
-	public ItemBlockLinkingBook(int itemID, mod_mystlinkingbook mod_MLB) {
+	public ItemBlockLinkingBook(int itemID, Mod_MystLinkingBook mod_MLB) {
 		super(itemID);
 		
 		this.mod_MLB = mod_MLB;

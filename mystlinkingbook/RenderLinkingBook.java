@@ -1,6 +1,9 @@
-package net.minecraft.src;
+package net.minecraft.src.mystlinkingbook;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.src.ModLoader;
+import net.minecraft.src.TileEntity;
+import net.minecraft.src.TileEntitySpecialRenderer;
 
 import org.lwjgl.opengl.GL11;
 
@@ -41,7 +44,7 @@ public class RenderLinkingBook extends TileEntitySpecialRenderer {
 		GL11.glRotatef(80F, 0.0F, 0.0F, 1.0F);
 		// bindTextureByName("/item/book.png");
 		Minecraft mc = ModLoader.getMinecraftInstance();
-		mc.renderEngine.bindTexture(mc.renderEngine.getTexture("/mystlinkingbook/tempLinkingBook3D.png"));
+		mc.renderEngine.bindTexture(mc.renderEngine.getTexture(Mod_MystLinkingBook.resourcesPath + "tempLinkingBook3D.png"));
 		float f6 = tileEntityLinkingBook.field_40060_g + (tileEntityLinkingBook.field_40059_f - tileEntityLinkingBook.field_40060_g) * f;
 		field_40450_a.render(null, -1, -1, -1, f6, 0.0F, 0.0625F);
 		GL11.glPopMatrix();

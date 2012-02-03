@@ -1,4 +1,4 @@
-package net.minecraft.src;
+package net.minecraft.src.mystlinkingbook;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -18,11 +18,11 @@ import java.util.regex.Pattern;
  * Manages the Ages of the currently loaded world.
  * 
  * @author ziliss
- * @see LinkingBookDimensionAgeAreas
- * @see LinkingBookAgeArea
+ * @see DimensionAgeAreas
+ * @see AgeArea
  * @since 0.5a
  */
-public class LinkingBookAgesManager {
+public class AgesManager {
 	
 	/* Example of format for the agesDataFile:
 	 * 
@@ -42,11 +42,11 @@ public class LinkingBookAgesManager {
 	
 	public File agesDataFile = null;
 	
-	public HashMap<Integer, LinkingBookDimensionAgeAreas> dimList = new HashMap<Integer, LinkingBookDimensionAgeAreas>();
+	public HashMap<Integer, DimensionAgeAreas> dimList = new HashMap<Integer, DimensionAgeAreas>();
 	
-	public LinkingBookDimensionAgeAreas theNether = null;
-	public LinkingBookDimensionAgeAreas overworld = null;
-	public LinkingBookDimensionAgeAreas theEnd = null;
+	public DimensionAgeAreas theNether = null;
+	public DimensionAgeAreas overworld = null;
+	public DimensionAgeAreas theEnd = null;
 	
 	public boolean unsavedModifications = false;
 	
@@ -54,7 +54,7 @@ public class LinkingBookAgesManager {
 	
 	public Pattern agePattern = Pattern.compile("AGE(-?\\d+)\\.", Pattern.CASE_INSENSITIVE);
 	
-	public LinkingBookAgesManager() {
+	public AgesManager() {
 		
 	}
 	
@@ -62,7 +62,7 @@ public class LinkingBookAgesManager {
 		this.agesDataFile = agesDataFile;
 	}
 	
-	public LinkingBookDimensionAgeAreas getDimensionAgeAreas(int dim) {
+	public DimensionAgeAreas getDimensionAgeAreas(int dim) {
 		// For faster access:
 		switch (dim) {
 			case -1:
@@ -79,24 +79,24 @@ public class LinkingBookAgesManager {
 	public boolean linksToDifferentAge(int x1, int y1, int z1, int dim1, int x2, int y2, int z2, int dim2) {
 		if ("demo".equals("demo")) return true;
 		if (dim1 != dim2) return true;
-		LinkingBookDimensionAgeAreas dimAgeAreas = getDimensionAgeAreas(dim1);
+		DimensionAgeAreas dimAgeAreas = getDimensionAgeAreas(dim1);
 		if (dimAgeAreas == null || dimAgeAreas.readyAgeAreas.isEmpty()) return false;
-		for (LinkingBookAgeArea ageArea : dimAgeAreas.readyAgeAreas.values()) {
+		for (AgeArea ageArea : dimAgeAreas.readyAgeAreas.values()) {
 			if (ageArea.isInAge(x1, y1, z1) && ageArea.isInAge(x2, y2, z2)) return false;
 		}
 		return dimAgeAreas.allowOutOfAgeAreasDimLinking == null ? allowOutOfAgeAreasDimLinking : dimAgeAreas.allowOutOfAgeAreasDimLinking;
 	}
 	
-	public LinkingBookAgeArea getFirstReadyAgeContaining(int x, int y, int z, int dim) {
-		LinkingBookDimensionAgeAreas dimAgeAreas = getDimensionAgeAreas(dim);
+	public AgeArea getFirstReadyAgeContaining(int x, int y, int z, int dim) {
+		DimensionAgeAreas dimAgeAreas = getDimensionAgeAreas(dim);
 		if (dimAgeAreas == null) return null;
 		else return dimAgeAreas.getFirstReadyAgeAreaContaining(x, y, z);
 	}
 	
-	public LinkingBookDimensionAgeAreas getOrCreateDimensionAgeAreas(int dim) {
-		LinkingBookDimensionAgeAreas dimAgeAreas = getDimensionAgeAreas(dim);
+	public DimensionAgeAreas getOrCreateDimensionAgeAreas(int dim) {
+		DimensionAgeAreas dimAgeAreas = getDimensionAgeAreas(dim);
 		if (dimAgeAreas == null) {
-			dimAgeAreas = new LinkingBookDimensionAgeAreas(dim);
+			dimAgeAreas = new DimensionAgeAreas(dim);
 			switch (dim) {
 				case -1:
 					theNether = dimAgeAreas;
@@ -131,7 +131,7 @@ public class LinkingBookAgesManager {
 	}
 	
 	public void updatedDimension(int dim) {
-		LinkingBookDimensionAgeAreas dimAgeAreas = getDimensionAgeAreas(dim);
+		DimensionAgeAreas dimAgeAreas = getDimensionAgeAreas(dim);
 		String key = "dim" + dim + ".allowOutOfAgeAreasDimLinking";
 		String value = dimAgeAreas.allowOutOfAgeAreasDimLinking == null ? null : Boolean.toString(dimAgeAreas.allowOutOfAgeAreasDimLinking);
 		if (!props.getProperty(key).equals(value)) {
@@ -145,7 +145,7 @@ public class LinkingBookAgesManager {
 		}
 	}
 	
-	public void updatedAgeArea(LinkingBookAgeArea ageArea) {
+	public void updatedAgeArea(AgeArea ageArea) {
 		getDimensionAgeAreas(ageArea.dimension).updatedAgeArea(ageArea);
 		String baseKey = "dim" + ageArea.dimension + ".age" + ageArea.id + '.';
 		
@@ -222,14 +222,14 @@ public class LinkingBookAgesManager {
 					result = sc.match();
 					int dim = Integer.parseInt(result.group(1));
 					
-					LinkingBookDimensionAgeAreas dimAgeAreas = getOrCreateDimensionAgeAreas(dim);
+					DimensionAgeAreas dimAgeAreas = getOrCreateDimensionAgeAreas(dim);
 					
 					if (sc.findInLine(agePattern) != null) {
 						result = sc.match();
 						int ageAreaID = Integer.parseInt(result.group(1));
 						key = sc.next();
 						
-						LinkingBookAgeArea ageArea = dimAgeAreas.getOrCreateAgeArea(ageAreaID);
+						AgeArea ageArea = dimAgeAreas.getOrCreateAgeArea(ageAreaID);
 						
 						if (key.equalsIgnoreCase("name")) {
 							ageArea.name = value;
@@ -281,7 +281,7 @@ public class LinkingBookAgesManager {
 		if (theEnd != null) {
 			theEnd.updatedAllAgeArea();
 		}
-		for (LinkingBookDimensionAgeAreas dimensionAges : dimList.values()) {
+		for (DimensionAgeAreas dimensionAges : dimList.values()) {
 			dimensionAges.updatedAllAgeArea();
 		}
 	}

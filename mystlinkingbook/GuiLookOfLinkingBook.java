@@ -1,4 +1,8 @@
-package net.minecraft.src;
+package net.minecraft.src.mystlinkingbook;
+
+import net.minecraft.src.EntityPlayer;
+import net.minecraft.src.GuiButton;
+import net.minecraft.src.GuiContainer;
 
 import org.lwjgl.opengl.GL11;
 
@@ -11,7 +15,7 @@ import org.lwjgl.opengl.GL11;
  */
 public class GuiLookOfLinkingBook extends GuiContainer {
 	
-	public mod_mystlinkingbook mod_MLB;
+	public Mod_MystLinkingBook mod_MLB;
 	public EntityPlayer entityplayer;
 	
 	public ContainerLookOfLinkingBook container;
@@ -19,7 +23,7 @@ public class GuiLookOfLinkingBook extends GuiContainer {
 	// Not used for now:
 	GuiButton writeButton;
 	
-	public GuiLookOfLinkingBook(EntityPlayer entityplayer, TileEntityLinkingBook tileEntityLinkingBook, mod_mystlinkingbook mod_MLB) {
+	public GuiLookOfLinkingBook(EntityPlayer entityplayer, TileEntityLinkingBook tileEntityLinkingBook, Mod_MystLinkingBook mod_MLB) {
 		super(new ContainerLookOfLinkingBook(entityplayer.inventory, tileEntityLinkingBook, mod_MLB));
 		this.entityplayer = entityplayer;
 		this.mod_MLB = mod_MLB;
@@ -50,7 +54,7 @@ public class GuiLookOfLinkingBook extends GuiContainer {
 	
 	@Override
 	protected void drawGuiContainerBackgroundLayer(float f, int i, int j) {
-		mc.renderEngine.bindTexture(mc.renderEngine.getTexture("/mystlinkingbook/tempLookGUI.png"));
+		mc.renderEngine.bindTexture(mc.renderEngine.getTexture(Mod_MystLinkingBook.resourcesPath + "tempLookGUI.png"));
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 		int l = (width - xSize) / 2;
 		int i1 = (height - ySize) / 2;

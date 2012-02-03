@@ -1,6 +1,11 @@
-package net.minecraft.src;
+package net.minecraft.src.mystlinkingbook;
 
 import java.util.List;
+
+import net.minecraft.src.IProgressUpdate;
+import net.minecraft.src.ISaveFormat;
+import net.minecraft.src.ISaveHandler;
+import net.minecraft.src.WorldInfo;
 
 /**
  * Replaces the original {@code saveLoader} in Minecraft, adding useful hooks.<br>
@@ -11,12 +16,12 @@ import java.util.List;
  * @see net.minecraft.client.Minecraft#saveLoader
  * @since 0.5a
  */
-public class LinkingBookSaveFormat implements ISaveFormat {
+public class SaveFormat implements ISaveFormat {
 	
 	/**
 	 * Reference to the mod instance.
 	 */
-	public mod_mystlinkingbook mod_MLB;
+	public Mod_MystLinkingBook mod_MLB;
 	
 	/**
 	 * Reference to the original saveLoader in Minecraft.
@@ -25,7 +30,7 @@ public class LinkingBookSaveFormat implements ISaveFormat {
 	 */
 	public ISaveFormat originalSaveLoader;
 	
-	public LinkingBookSaveFormat(ISaveFormat originalSaveLoader, mod_mystlinkingbook mod_MLB) {
+	public SaveFormat(ISaveFormat originalSaveLoader, Mod_MystLinkingBook mod_MLB) {
 		this.originalSaveLoader = originalSaveLoader;
 		this.mod_MLB = mod_MLB;
 	}
@@ -40,7 +45,7 @@ public class LinkingBookSaveFormat implements ISaveFormat {
 	 * 
 	 * @param s
 	 *            The name of the world save folder.
-	 * @see mod_mystlinkingbook#onWorldStarting
+	 * @see Mod_MystLinkingBook#onWorldStarting
 	 */
 	@Override
 	public ISaveHandler getSaveLoader(String s, boolean flag) {

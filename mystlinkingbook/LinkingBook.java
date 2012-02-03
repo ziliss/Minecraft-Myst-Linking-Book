@@ -1,6 +1,14 @@
-package net.minecraft.src;
+package net.minecraft.src.mystlinkingbook;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.src.ChunkProviderLoadOrGenerate;
+import net.minecraft.src.EntityPlayer;
+import net.minecraft.src.EntityPlayerSP;
+import net.minecraft.src.IChunkProvider;
+import net.minecraft.src.ModLoader;
+import net.minecraft.src.NBTTagCompound;
+import net.minecraft.src.World;
+import net.minecraft.src.WorldProvider;
 
 /**
  * Contains the methods to interact with the datas of the Linking Books.<br>
@@ -16,7 +24,7 @@ public class LinkingBook {
 	
 	public LinkPreloader linkPreloader = new LinkPreloader(ModLoader.getMinecraftInstance());;
 	
-	public LinkingBookAgesManager agesManager = new LinkingBookAgesManager();
+	public AgesManager agesManager = new AgesManager();
 	
 	public LinkingBook() {
 	}
@@ -101,7 +109,7 @@ public class LinkingBook {
 		int bookX = tileEntityLinkingBook.xCoord;
 		int bookY = tileEntityLinkingBook.yCoord;
 		int bookZ = tileEntityLinkingBook.zCoord;
-		int bookDim = tileEntityLinkingBook.worldObj.worldInfo.getDimension();
+		int bookDim = PrivateAccesses.World_worldInfo.getFrom(tileEntityLinkingBook.worldObj).getDimension();
 		return agesManager.linksToDifferentAge(bookX, bookY, bookZ, bookDim, destX, destY, destZ, destDim);
 	}
 	

@@ -1,4 +1,4 @@
-package net.minecraft.src;
+package net.minecraft.src.mystlinkingbook;
 
 import java.util.Scanner;
 import java.util.regex.MatchResult;
@@ -8,12 +8,12 @@ import java.util.regex.Pattern;
  * Represents and stores the informations about an Age area in a dimension.<br>
  * <br>
  * This class should only be instantiated by {@code LinkingBookDimensionAge}s.<br>
- * When an Age area is modified, don't forget to call the method {@link LinkingBookAgesManager#updatedAgeArea}
+ * When an Age area is modified, don't forget to call the method {@link AgesManager#updatedAgeArea}
  * 
  * @author ziliss
  * @since 0.5a
  */
-public class LinkingBookAgeArea {
+public class AgeArea {
 	
 	public int dimension;
 	
@@ -41,13 +41,13 @@ public class LinkingBookAgeArea {
 	 */
 	public static final Pattern posPattern = Pattern.compile("(-?\\d+)\\s+(-?\\d+)\\s+(-?\\d+)", Pattern.CASE_INSENSITIVE);
 	
-	public LinkingBookAgeArea(int dimension, int id) {
+	public AgeArea(int dimension, int id) {
 		this.dimension = dimension;
 		this.id = id;
 		this.name = "";
 	}
 	
-	public LinkingBookAgeArea(int dimension, int id, String name, int pos1X, int pos1Y, int pos1Z, int pos2X, int pos2Y, int pos2Z) {
+	public AgeArea(int dimension, int id, String name, int pos1X, int pos1Y, int pos1Z, int pos2X, int pos2Y, int pos2Z) {
 		this.dimension = dimension;
 		this.id = id;
 		this.name = name;

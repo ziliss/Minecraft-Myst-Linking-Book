@@ -1,4 +1,10 @@
-package net.minecraft.src;
+package net.minecraft.src.mystlinkingbook;
+
+import net.minecraft.src.EntityPlayer;
+import net.minecraft.src.GuiButton;
+import net.minecraft.src.GuiScreen;
+import net.minecraft.src.GuiTextField;
+import net.minecraft.src.NBTTagCompound;
 
 import org.lwjgl.opengl.GL11;
 
@@ -14,7 +20,7 @@ public class GuiLinkingBook extends GuiScreen {
 	/**
 	 * Reference to the mod instance.
 	 */
-	public mod_mystlinkingbook mod_MLB;
+	public Mod_MystLinkingBook mod_MLB;
 	
 	/**
 	 * The player opening the GUI.
@@ -40,7 +46,7 @@ public class GuiLinkingBook extends GuiScreen {
 	String missingPagesStr = null;
 	int missingPagesStrWidth;
 	
-	public GuiButtonLinkingPanel linkingPanel;
+	public GuiLinkingPanel linkingPanel;
 	
 	// TODO: use coordinates relative to those to draw everything if possible:
 	int bookLeft;
@@ -59,7 +65,7 @@ public class GuiLinkingBook extends GuiScreen {
 	
 	public boolean runGC;
 	
-	public GuiLinkingBook(EntityPlayer entityplayer, TileEntityLinkingBook tileEntityLinkingBook, mod_mystlinkingbook mod_MLB) {
+	public GuiLinkingBook(EntityPlayer entityplayer, TileEntityLinkingBook tileEntityLinkingBook, Mod_MystLinkingBook mod_MLB) {
 		this.entityplayer = entityplayer;
 		this.mod_MLB = mod_MLB;
 		this.tileEntityLinkingBook = tileEntityLinkingBook;
@@ -72,7 +78,7 @@ public class GuiLinkingBook extends GuiScreen {
 		runGC = false;
 		
 		controlList.clear();
-		linkingPanel = new GuiButtonLinkingPanel(1, width / 2 + 12, height / 2 - 70, 60, 48, this);
+		linkingPanel = new GuiLinkingPanel(1, width / 2 + 12, height / 2 - 70, 60, 48, this);
 		controlList.add(linkingPanel);
 		
 		savedName = mod_MLB.linkingBook.getName(nbttagcompound_linkingBook);
@@ -104,14 +110,7 @@ public class GuiLinkingBook extends GuiScreen {
 				GuiButton guibutton = (GuiButton)controlList.get(l);
 				if (guibutton.mousePressed(mc, i, j)) {
 					
-					// Modify the following private field:
-					// super.selectedButton = guibutton;
-					try {
-						mod_mystlinkingbook.setPrivateValue(GuiScreen.class, this, "a", "selectedButton", guibutton); // MCPBot: gcf GuiScreen.selectedButton
-					}
-					catch (Exception e) {
-						e.printStackTrace();
-					}
+					PrivateAccesses.GuiScreen_selectedButton.setTo(this, guibutton);
 					
 					if (guibutton != linkingPanel) {
 						mc.sndManager.playSoundFX("random.click", 1.0F, 1.0F);
@@ -166,7 +165,7 @@ public class GuiLinkingBook extends GuiScreen {
 			
 			linkingStartedTime = System.currentTimeMillis();
 			
-			mod_mystlinkingbook.playSoundFX("mystlinkingbook.linkingsound", 1.0F, 1.0F);
+			Mod_MystLinkingBook.playSoundFX("mystlinkingbook.linkingsound", 1.0F, 1.0F);
 			// ModLoader.getMinecraftInstance().sndManager.playSoundFX("mystlinkingbook.linkingsound", 1.0F, 1.0F);
 			// ModLoader.getMinecraftInstance().sndManager.playSound("mystlinkingbook.linkingsound", (float)entityplayer.posX, (float)entityplayer.posY, (float)entityplayer.posZ, 1.0F, 1.0F);
 			// entityplayer.worldObj.playSoundAtEntity(entityplayer, "mystlinkingbook.linkingsound", 1.0F, 1.0F);
@@ -235,7 +234,7 @@ public class GuiLinkingBook extends GuiScreen {
 		int bookWidth = 192;
 		int bookHeight = 192;
 		
-		mc.renderEngine.bindTexture(mc.renderEngine.getTexture("/mystlinkingbook/tempLinkGUI.png"));
+		mc.renderEngine.bindTexture(mc.renderEngine.getTexture(Mod_MystLinkingBook.resourcesPath + "tempLinkGUI.png"));
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 		drawTexturedModalRect((width - bookWidth) / 2, (height - bookHeight) / 2, 0, 0, 192, 192);
 		

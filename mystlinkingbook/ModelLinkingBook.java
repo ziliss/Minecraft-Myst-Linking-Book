@@ -1,4 +1,10 @@
-package net.minecraft.src;
+package net.minecraft.src.mystlinkingbook;
+
+import net.minecraft.src.Entity;
+import net.minecraft.src.MathHelper;
+import net.minecraft.src.ModelBase;
+import net.minecraft.src.ModelBook;
+import net.minecraft.src.ModelRenderer;
 
 /**
  * 3D model of the linking book.<br>
