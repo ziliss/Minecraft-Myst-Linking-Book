@@ -38,10 +38,11 @@ public class ContainerWriteLinkingBook extends Container {
 	public SlotWriteLinkingBook paperSlot;
 	public SlotWriteLinkingBook inkSlot;
 	public SlotWriteLinkingBook redstoneSlot;
+	public SlotWriteLinkingBook colorSlot;
 	
 	public ContainerWriteLinkingBook(InventoryPlayer inventoryPlayer, Mod_MystLinkingBook mod_MLB) {
 		this.inventoryPlayer = inventoryPlayer;
-		inventoryWriteLinkingBook = new InventoryBasic("WriteLinkingBook", 4);
+		inventoryWriteLinkingBook = new InventoryBasic("WriteLinkingBook", 5);
 		this.mod_MLB = mod_MLB;
 		
 		// Add the slots for items used to write the linking book:
@@ -49,6 +50,7 @@ public class ContainerWriteLinkingBook extends Container {
 		addSlot(paperSlot = new SlotWriteLinkingBook(inventoryWriteLinkingBook, 1, 143, 28, Item.paper, PrivateAccesses.Item_maxStackSize.getFrom(Item.paper)));
 		addSlot(inkSlot = new SlotWriteLinkingBook(inventoryWriteLinkingBook, 2, 53, 53, Item.dyePowder, 0, 1)); // 0 because: Item.dyeColorNames[0] == "black" which is the ink sac.
 		addSlot(redstoneSlot = new SlotWriteLinkingBook(inventoryWriteLinkingBook, 3, 17, 53, Item.redstone, 1));
+		addSlot(colorSlot = new SlotWriteLinkingBook(inventoryWriteLinkingBook, 4, 143, 53, Item.dyePowder, 1));
 		
 		// Add the slots of the player inventory:
 		for (int j = 0; j < 3; j++) {

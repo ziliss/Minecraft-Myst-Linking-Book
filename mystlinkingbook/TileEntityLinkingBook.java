@@ -1,5 +1,7 @@
 package net.minecraft.src.mystlinkingbook;
 
+import java.awt.Color;
+
 import net.minecraft.src.Block;
 import net.minecraft.src.EntityPlayer;
 import net.minecraft.src.InventoryBasic;
@@ -43,6 +45,10 @@ public class TileEntityLinkingBook extends TileEntity {
 	
 	public boolean isPowered;
 	
+	public Color color;
+	
+	public boolean stayOpen;
+	
 	public GuiLinkingBook guiLinkingBook = null;
 	
 	public void onNeighborBlockChange(int id) {
@@ -50,6 +56,7 @@ public class TileEntityLinkingBook extends TileEntity {
 			case 0: // air
 			case 50: // torch
 			case 51: // fire
+			case 68: // wall sign
 			case 69: // lever
 			case 76: // redstone torch
 			case 77: // button
@@ -79,10 +86,27 @@ public class TileEntityLinkingBook extends TileEntity {
 		}
 	}
 	
-	public void onBlockRemoval() {
+	public void notifyColorChanged() {
+		color = ItemPage.colorTable[nbttagcompound_linkingBook.getInteger("color")];
+		if (guiLinkingBook != null) {
+			guiLinkingBook.notifyColorChanged();
+		}
+	}
+	
+	public void setStayOpen(boolean stayOpen) {
+		this.stayOpen = stayOpen;
+	}
+	
+	public boolean getStayOpen() {
+		return stayOpen;
+	}
+	
+	@Override
+	public void invalidate() {
 		if (guiLinkingBook != null) {
 			ModLoader.getMinecraftInstance().displayGuiScreen(null);
 		}
+		super.invalidate();
 	}
 	
 	/**
@@ -93,7 +117,9 @@ public class TileEntityLinkingBook extends TileEntity {
 		super.readFromNBT(nbttagcompound);
 		isTopBlocked = nbttagcompound.getBoolean("topBlocked");
 		isPowered = nbttagcompound.getBoolean("powered");
-		this.nbttagcompound_linkingBook = nbttagcompound.getCompoundTag("tag");
+		stayOpen = nbttagcompound.getBoolean("stayOpen");
+		nbttagcompound_linkingBook = nbttagcompound.getCompoundTag("tag");
+		notifyColorChanged();
 		
 		int slotNb;
 		NBTTagCompound nbttagcompound1;
@@ -118,6 +144,7 @@ public class TileEntityLinkingBook extends TileEntity {
 		super.writeToNBT(nbttagcompound);
 		nbttagcompound.setBoolean("topBlocked", isTopBlocked);
 		nbttagcompound.setBoolean("powered", isPowered);
+		nbttagcompound.setBoolean("stayOpen", stayOpen);
 		nbttagcompound.setTag("tag", this.nbttagcompound_linkingBook);
 		
 		ItemStack itemstack;
@@ -148,29 +175,24 @@ public class TileEntityLinkingBook extends TileEntity {
 		if (!isTopBlocked) {
 			float dX = 0.5f;
 			float dZ = 0.5f;
-			closestPlayer = worldObj.getClosestPlayer(xCoord + dX, yCoord + 1.8F, zCoord + dZ, 2);
-			if (closestPlayer != null) {
-				// Get the coordinates of the front of the book, depending on orientation:
-				switch (getBlockMetadata() & 3) {
-					case 0:
-						dZ += 0.7f;
-						break;
-					case 1:
-						dX -= 0.7f;
-						break;
-					case 2:
-						dZ -= 0.7f;
-						break;
-					case 3:
-						dX += 0.7f;
-						break;
-				}
-				if (closestPlayer.getDistance(xCoord + dX, yCoord + 1.8F, zCoord + dZ) > 1.1D) {
-					closestPlayer = null;
-				}
+			// Get the coordinates of the front of the book, depending on orientation:
+			switch (getBlockMetadata() & 3) {
+				case 0:
+					dZ += 0.7f;
+					break;
+				case 1:
+					dX -= 0.7f;
+					break;
+				case 2:
+					dZ -= 0.7f;
+					break;
+				case 3:
+					dX += 0.7f;
+					break;
 			}
+			closestPlayer = worldObj.getClosestPlayer(xCoord + dX, yCoord + 1.8F, zCoord + dZ, 1.1D);
 		}
-		if (closestPlayer != null) {
+		if (closestPlayer != null || stayOpen) {
 			if (field_40059_f < 1.0F) {
 				field_40059_f += 0.1F;
 				if (field_40059_f > 1.0F) {
@@ -186,5 +208,26 @@ public class TileEntityLinkingBook extends TileEntity {
 				}
 			}
 		}
+	}
+	
+	public boolean isInRange(EntityPlayer entityPlayer) {
+		float dX = 0.5f;
+		float dZ = 0.5f;
+		// Get the coordinates of the front of the book, depending on orientation:
+		switch (getBlockMetadata() & 3) {
+			case 0:
+				dZ += 0.7f;
+				break;
+			case 1:
+				dX -= 0.7f;
+				break;
+			case 2:
+				dZ -= 0.7f;
+				break;
+			case 3:
+				dX += 0.7f;
+				break;
+		}
+		return entityPlayer.getDistance(xCoord + dX, yCoord + 1.8F, zCoord + dZ) <= 1.1D;
 	}
 }

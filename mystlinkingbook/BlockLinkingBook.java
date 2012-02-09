@@ -43,6 +43,8 @@ public class BlockLinkingBook extends BlockContainer {
 	 */
 	public Mod_MystLinkingBook mod_MLB;
 	
+	public int renderType;
+	
 	public BlockLinkingBook(int blockID, int textureID, Mod_MystLinkingBook mod_MLB) {
 		super(blockID, textureID, Material.wood);
 		
@@ -56,6 +58,11 @@ public class BlockLinkingBook extends BlockContainer {
 		setRequiresSelfNotify();
 	}
 	
+	@Override
+	public int getRenderType() {
+		return renderType;
+	}
+	
 	/**
 	 * Stores the orientation of the block to the metadatas. Uses the first 2 bits of the metadatas.<br>
 	 * Called when a Linking Book Block is placed in the world. The code that places the block in the world is in {@link ItemBlockLinkingBook.onItemUse}.
@@ -65,8 +72,8 @@ public class BlockLinkingBook extends BlockContainer {
 	@Override
 	public void onBlockPlacedBy(World world, int i, int j, int k, EntityLiving entityliving) {
 		// Inspired by BlockRedstoneRepeater.onBlockPlacedBy:
-		int l = ((MathHelper.floor_double(entityliving.rotationYaw * 4F / 360F + 0.5D) & 3) + 2) % 4;
-		world.setBlockMetadataWithNotify(i, j, k, l);
+		int orientation = ((MathHelper.floor_double(entityliving.rotationYaw * 4F / 360F + 0.5D) & 3) + 2) % 4;
+		world.setBlockMetadataWithNotify(i, j, k, orientation);
 	}
 	
 	/**
@@ -148,12 +155,16 @@ public class BlockLinkingBook extends BlockContainer {
 		NBTTagCompound nbttagcompound_linkingBook = tileEntityLinkingBook.nbttagcompound_linkingBook;
 		
 		ItemStack currentItem = entityplayer.inventory.getCurrentItem();
+		boolean canUseBook = tileEntityLinkingBook.field_40059_f >= 1f && tileEntityLinkingBook.isInRange(entityplayer);
+		if (!canUseBook) return false;
+		
 		Class openGui = null;
+		
 		if (currentItem == null) {
 			openGui = GuiLinkingBook.class;
 		}
-		else if (currentItem.itemID == Item.paper.shiftedIndex) {
-			if (currentItem.stackSize >= 1) {
+		else if (currentItem.itemID == mod_MLB.itemPage.shiftedIndex) {
+			if (currentItem.stackSize >= 1 && currentItem.getItemDamage() == mod_MLB.linkingBook.getPagesColor(nbttagcompound_linkingBook)) {
 				if (mod_MLB.linkingBook.addPages(nbttagcompound_linkingBook, 1) == 0) {
 					currentItem.stackSize--;
 					if (currentItem.stackSize == 0) {
@@ -165,7 +176,7 @@ public class BlockLinkingBook extends BlockContainer {
 		else if (currentItem.itemID == Item.shears.shiftedIndex) {
 			int removed = mod_MLB.linkingBook.removePages(nbttagcompound_linkingBook, PrivateAccesses.Item_maxStackSize.getFrom(Item.paper));
 			if (removed > 0) {
-				ItemStack itemstack = new ItemStack(Item.paper, removed, Item.paper.getMaxDamage());
+				ItemStack itemstack = new ItemStack(mod_MLB.itemPage, removed, mod_MLB.linkingBook.getPagesColor(nbttagcompound_linkingBook));
 				
 				// The following part is taken from BlockChest.onBlockRemoval(...):
 				EntityItem entityitem = new EntityItem(world, i + 0.5, j + 1, k + 0.5, itemstack);
@@ -182,32 +193,43 @@ public class BlockLinkingBook extends BlockContainer {
 		}
 		else if (currentItem.itemID == Item.feather.shiftedIndex) {
 			mod_MLB.linkingBook.setName(nbttagcompound_linkingBook, "");
+			currentItem.stackSize--;
+			if (currentItem.stackSize == 0) {
+				entityplayer.inventory.mainInventory[entityplayer.inventory.currentItem] = null;
+			}
 			openGui = GuiLinkingBook.class;
 		}
 		else if (currentItem.itemID == Item.flintAndSteel.shiftedIndex) return false;
 		else if (currentItem.itemID == Item.painting.shiftedIndex) {
 			openGui = GuiLookOfLinkingBook.class;
 		}
+		else if (currentItem.itemID == Item.dyePowder.shiftedIndex) {
+			mod_MLB.linkingBook.setPagesColorFromDye(nbttagcompound_linkingBook, currentItem.getItemDamage());
+			tileEntityLinkingBook.notifyColorChanged();
+		}
 		else if (currentItem.itemID == Item.stick.shiftedIndex) { // For debugging only
+			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.pickaxeDiamond, 1, 0));
+			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Block.wood, 64, 0));
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.feather, 64, 0));
-			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.paper, 64, 0));
+			entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.paper, 64, 0));
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.dyePowder, 64, 0)); // Damage must be 0 here to get the ink sack.
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.redstone, 64, 0));
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Block.cloth, 64, 0)); // Damage 0 is the white wool.
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.flintAndSteel, 1, 0));
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Block.obsidian, 64, 0));
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Block.grass, 64, 0));
+			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Block.snow, 64, 0));
+			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.dyePowder, 64, 14));
+			for (int d = 0; d < 0; d++) {
+				entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.dyePowder, 64, d));
+			}
 		}
 		else {
 			openGui = GuiLinkingBook.class;
 		}
 		
 		if (openGui == GuiLinkingBook.class) {
-			
-			if (tileEntityLinkingBook.field_40059_f < 1f) return false;
-			else {
-				ModLoader.OpenGUI(entityplayer, new GuiLinkingBook(entityplayer, tileEntityLinkingBook, mod_MLB));
-			}
+			ModLoader.OpenGUI(entityplayer, new GuiLinkingBook(entityplayer, tileEntityLinkingBook, mod_MLB));
 		}
 		else if (openGui == GuiLookOfLinkingBook.class) {
 			ModLoader.OpenGUI(entityplayer, new GuiLookOfLinkingBook(entityplayer, tileEntityLinkingBook, mod_MLB));
@@ -229,7 +251,7 @@ public class BlockLinkingBook extends BlockContainer {
 	public void onBlockRemoval(World world, int i, int j, int k) {
 		TileEntityLinkingBook tileEntityLinkingBook = (TileEntityLinkingBook)world.getBlockTileEntity(i, j, k);
 		
-		tileEntityLinkingBook.onBlockRemoval();
+		int color = mod_MLB.linkingBook.getPagesColor(tileEntityLinkingBook.nbttagcompound_linkingBook);
 		
 		// Drop nothing if it was burnt:
 		if (isNeighborFire(world, i, j, k)) {
@@ -238,7 +260,8 @@ public class BlockLinkingBook extends BlockContainer {
 		}
 		
 		// Prepare our ItemStack, giving it a new NBTTagCompound to store the datas:
-		ItemStack itemstack = new ItemStack(blockID, 1, damageDropped(0));
+		int written = (true ? 1 : 0) << 4;
+		ItemStack itemstack = new ItemStack(blockID, 1, color | written);
 		itemstack.setTagCompound(tileEntityLinkingBook.nbttagcompound_linkingBook);
 		dropItemStack(world, i, j, k, itemstack);
 		

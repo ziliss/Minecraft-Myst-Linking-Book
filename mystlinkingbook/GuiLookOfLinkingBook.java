@@ -17,15 +17,19 @@ public class GuiLookOfLinkingBook extends GuiContainer {
 	
 	public Mod_MystLinkingBook mod_MLB;
 	public EntityPlayer entityplayer;
+	public TileEntityLinkingBook tileEntityLinkingBook;
 	
 	public ContainerLookOfLinkingBook container;
 	
 	// Not used for now:
-	GuiButton writeButton;
+	GuiButton stayOpenButton;
+	String openButton_text = "Book Stays Open: ";
+	boolean stayOpen;
 	
 	public GuiLookOfLinkingBook(EntityPlayer entityplayer, TileEntityLinkingBook tileEntityLinkingBook, Mod_MystLinkingBook mod_MLB) {
 		super(new ContainerLookOfLinkingBook(entityplayer.inventory, tileEntityLinkingBook, mod_MLB));
 		this.entityplayer = entityplayer;
+		this.tileEntityLinkingBook = tileEntityLinkingBook;
 		this.mod_MLB = mod_MLB;
 		container = (ContainerLookOfLinkingBook)inventorySlots;
 	}
@@ -35,10 +39,24 @@ public class GuiLookOfLinkingBook extends GuiContainer {
 		super.initGui();
 		
 		controlList.clear();
-		writeButton = new GuiButton(1, guiLeft + 86, guiTop + 46, 40, 20, "Nothing");
-		controlList.add(writeButton);
-		writeButton.enabled = false;
-		writeButton.drawButton = false;
+		stayOpenButton = new GuiButton(1, guiLeft + 25, guiTop + 20, 120, 20, openButton_text);
+		controlList.add(stayOpenButton);
+		updateStayOpenButton();
+	}
+	
+	public void updateStayOpenButton() {
+		stayOpen = tileEntityLinkingBook.getStayOpen();
+		stayOpenButton.displayString = openButton_text + (stayOpen ? "YES" : "NO");
+	}
+	
+	@Override
+	protected void actionPerformed(GuiButton guibutton) {
+		if (guibutton == stayOpenButton) {
+			if (tileEntityLinkingBook.getStayOpen() == stayOpen) {
+				tileEntityLinkingBook.setStayOpen(!stayOpen);
+				updateStayOpenButton();
+			}
+		}
 	}
 	
 	@Override
@@ -48,7 +66,7 @@ public class GuiLookOfLinkingBook extends GuiContainer {
 	
 	@Override
 	protected void drawGuiContainerForegroundLayer() {
-		fontRenderer.drawString("Look of the Linking Table ", 8, 10, 0x404040);
+		fontRenderer.drawString("Look of the linking table ", 8, 10, 0x404040);
 		fontRenderer.drawString("Inventory", 8, ySize - 96 + 2, 0x404040);
 	}
 	

@@ -1,5 +1,7 @@
 package net.minecraft.src.mystlinkingbook;
 
+import java.awt.Color;
+
 import net.minecraft.src.EntityPlayer;
 import net.minecraft.src.GuiButton;
 import net.minecraft.src.GuiScreen;
@@ -48,11 +50,17 @@ public class GuiLinkingBook extends GuiScreen {
 	
 	public GuiLinkingPanel linkingPanel;
 	
-	// TODO: use coordinates relative to those to draw everything if possible:
+	// Using coordinates relative to those to draw everything:
 	int bookLeft;
 	int bookTop;
-	int bookWidth;
-	int bookHeight;
+	int bookWidth = 252;
+	int bookHeight = 180;
+	
+	public Color pagesColor;
+	int pagesLeft = 5;
+	int pagesTop = 5;
+	int pagesWidth = 242;
+	int pagesHeight = 170;
 	
 	/**
 	 * -1 means not started, a value between 0 and 1 represents the current progress of the linking.<br>
@@ -77,12 +85,15 @@ public class GuiLinkingBook extends GuiScreen {
 		linkingProgress = -1;
 		runGC = false;
 		
+		bookLeft = (width - bookWidth) / 2;
+		bookTop = (height - bookHeight) / 2;
+		
 		controlList.clear();
-		linkingPanel = new GuiLinkingPanel(1, width / 2 + 12, height / 2 - 70, 60, 48, this);
+		linkingPanel = new GuiLinkingPanel(1, bookLeft + 149, bookTop + 21, 80, 60, this);
 		controlList.add(linkingPanel);
 		
 		savedName = mod_MLB.linkingBook.getName(nbttagcompound_linkingBook);
-		nameTextfield = new GuiTextField(this, fontRenderer, width / 2 - 82, height / 2 - 62, 68, 14, savedName);
+		nameTextfield = new GuiTextField(this, fontRenderer, bookLeft + 12, bookTop + 26, 105, 14, savedName);
 		nameTextfield.setMaxStringLength(16);
 		if (savedName.isEmpty()) {
 			editName = true;
@@ -91,6 +102,8 @@ public class GuiLinkingBook extends GuiScreen {
 		savedNameWidth = fontRenderer.getStringWidth(savedName);
 		
 		updateNbMissingPages();
+		
+		notifyColorChanged();
 		
 		linkingPanel.initGui();
 		
@@ -228,26 +241,32 @@ public class GuiLinkingBook extends GuiScreen {
 		}
 	}
 	
+	public void notifyColorChanged() {
+		pagesColor = ItemPage.brighterColorTable[nbttagcompound_linkingBook.getInteger("color")];
+	}
+	
 	@Override
 	public void drawScreen(int mouseX, int mouseY, float f) {
 		drawDefaultBackground();
-		int bookWidth = 192;
-		int bookHeight = 192;
 		
-		mc.renderEngine.bindTexture(mc.renderEngine.getTexture(Mod_MystLinkingBook.resourcesPath + "tempLinkGUI.png"));
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-		drawTexturedModalRect((width - bookWidth) / 2, (height - bookHeight) / 2, 0, 0, 192, 192);
+		mc.renderEngine.bindTexture(mc.renderEngine.getTexture(Mod_MystLinkingBook.resourcesPath + "tempLinkGUI-BW.png"));
+		drawTexturedModalRect(bookLeft, bookTop, 0, 0, bookWidth, bookHeight);
+		
+		GL11.glColor3ub((byte)pagesColor.getRed(), (byte)pagesColor.getGreen(), (byte)pagesColor.getBlue());
+		drawTexturedModalRect(bookLeft + pagesLeft, bookTop + pagesTop, pagesLeft, pagesTop, pagesWidth, pagesHeight);
+		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 		
 		if (editName) {
-			fontRenderer.drawString("Name:", width / 2 - 82, height / 2 - 75, 0x000000);
+			// fontRenderer.drawString("Name:", bookLeft + 15, bookTop + 25, 0x000000);
 			nameTextfield.drawTextBox();
 		}
 		else {
-			fontRenderer.drawString(savedName, width / 2 - 47 - savedNameWidth / 2, height / 2 - 62, 0x000000);
+			fontRenderer.drawString(savedName, bookLeft + 64 - savedNameWidth / 2, bookTop + 29, 0x000000);
 			// drawString(fontRenderer, "Text", width / 2 - 82, height / 2 - 75, 0x000000);
 		}
 		
-		fontRenderer.drawString(missingPagesStr, width / 2 - 47 - missingPagesStrWidth / 2, height / 2 + 62, 0x000000);
+		fontRenderer.drawString(missingPagesStr, bookLeft + 64 - missingPagesStrWidth / 2, bookTop + 150, 0x000000);
 		
 		super.drawScreen(mouseX, mouseY, f);
 		

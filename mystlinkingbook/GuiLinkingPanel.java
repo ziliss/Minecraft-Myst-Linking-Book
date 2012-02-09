@@ -6,8 +6,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.src.GuiButton;
 import net.minecraft.src.ModLoader;
 
-import org.lwjgl.opengl.GL11;
-
 /**
  * Represents and manages the state of a linking panel.
  * 
@@ -109,9 +107,11 @@ public class GuiLinkingPanel extends GuiButton {
 			}
 		}
 		
-		minecraft.renderEngine.bindTexture(minecraft.renderEngine.getTexture(Mod_MystLinkingBook.resourcesPath + "tempPanel.png"));
+		drawRect(xPosition, yPosition, xPosition + width, yPosition + height, 0xff000000);
+		
+		/*minecraft.renderEngine.bindTexture(minecraft.renderEngine.getTexture(Mod_MystLinkingBook.resourcesPath + "tempPanel.png"));
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-		drawTexturedModalRect(xPosition, yPosition, 108, 36, width, height);
+		drawTexturedModalRect(xPosition, yPosition, 108, 36, width, height);*/
 		
 		// drawRect(xPosition, yPosition, width, height, 0x88ff0000);
 	}

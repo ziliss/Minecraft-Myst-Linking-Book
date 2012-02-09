@@ -11,8 +11,6 @@ import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Scanner;
-import java.util.regex.MatchResult;
-import java.util.regex.Pattern;
 
 /**
  * Manages the Ages of the currently loaded world.
@@ -36,11 +34,11 @@ public class AgesManager {
 	 * dim1.age1.disabled=true
 	 */
 	
+	public File worldFolder;
+	
 	public Properties props = new Properties();
-	
-	public boolean allowOutOfAgeAreasDimLinking = true;
-	
 	public File agesDataFile = null;
+	public boolean unsavedModifications = false;
 	
 	public HashMap<Integer, DimensionAgeAreas> dimList = new HashMap<Integer, DimensionAgeAreas>();
 	
@@ -48,55 +46,33 @@ public class AgesManager {
 	public DimensionAgeAreas overworld = null;
 	public DimensionAgeAreas theEnd = null;
 	
-	public boolean unsavedModifications = false;
-	
-	public Pattern dimPattern = Pattern.compile("^DIM(-?\\d+)\\.", Pattern.CASE_INSENSITIVE);
-	
-	public Pattern agePattern = Pattern.compile("AGE(-?\\d+)\\.", Pattern.CASE_INSENSITIVE);
+	public boolean allowOutOfAgeAreasDimLinking = true;
 	
 	public AgesManager() {
-		
 	}
 	
-	public void setAgesDataFile(File agesDataFile) {
-		this.agesDataFile = agesDataFile;
+	public void changeWorld(File worldFolder) {
+		this.worldFolder = worldFolder;
+		// TODO: change the name of the file ?
+		this.agesDataFile = new File(worldFolder, "mystlinkingbook/agesDatas.props");
+		loadAges();
 	}
 	
-	public DimensionAgeAreas getDimensionAgeAreas(int dim) {
+	DimensionAgeAreas getDimensionAgeAreas(int dim) {
+		DimensionAgeAreas dimAgeAreas;
 		// For faster access:
 		switch (dim) {
 			case -1:
-				return theNether;
+				dimAgeAreas = theNether;
 			case 0:
-				return overworld;
+				dimAgeAreas = overworld;
 			case 1:
-				return theEnd;
+				dimAgeAreas = theEnd;
 			default:
-				return dimList.get(dim);
+				dimAgeAreas = dimList.get(dim);
 		}
-	}
-	
-	public boolean linksToDifferentAge(int x1, int y1, int z1, int dim1, int x2, int y2, int z2, int dim2) {
-		if ("demo".equals("demo")) return true;
-		if (dim1 != dim2) return true;
-		DimensionAgeAreas dimAgeAreas = getDimensionAgeAreas(dim1);
-		if (dimAgeAreas == null || dimAgeAreas.readyAgeAreas.isEmpty()) return false;
-		for (AgeArea ageArea : dimAgeAreas.readyAgeAreas.values()) {
-			if (ageArea.isInAge(x1, y1, z1) && ageArea.isInAge(x2, y2, z2)) return false;
-		}
-		return dimAgeAreas.allowOutOfAgeAreasDimLinking == null ? allowOutOfAgeAreasDimLinking : dimAgeAreas.allowOutOfAgeAreasDimLinking;
-	}
-	
-	public AgeArea getFirstReadyAgeContaining(int x, int y, int z, int dim) {
-		DimensionAgeAreas dimAgeAreas = getDimensionAgeAreas(dim);
-		if (dimAgeAreas == null) return null;
-		else return dimAgeAreas.getFirstReadyAgeAreaContaining(x, y, z);
-	}
-	
-	public DimensionAgeAreas getOrCreateDimensionAgeAreas(int dim) {
-		DimensionAgeAreas dimAgeAreas = getDimensionAgeAreas(dim);
 		if (dimAgeAreas == null) {
-			dimAgeAreas = new DimensionAgeAreas(dim);
+			dimAgeAreas = new DimensionAgeAreas(dim, worldFolder);
 			switch (dim) {
 				case -1:
 					theNether = dimAgeAreas;
@@ -116,6 +92,24 @@ public class AgesManager {
 		return dimAgeAreas;
 	}
 	
+	public boolean linksToDifferentAge(int x1, int y1, int z1, int dim1, int x2, int y2, int z2, int dim2) {
+		// TODO: remove this to activate Age area:
+		if ("demo".equals("demo")) return true;
+		if (dim1 != dim2) return true;
+		DimensionAgeAreas dimAgeAreas = getDimensionAgeAreas(dim1);
+		if (dimAgeAreas == null || dimAgeAreas.readyAgeAreas.isEmpty()) return false;
+		for (AgeArea ageArea : dimAgeAreas.readyAgeAreas.values()) {
+			if (ageArea.isInAge(x1, y1, z1) && ageArea.isInAge(x2, y2, z2)) return false;
+		}
+		return dimAgeAreas.allowOutOfAgeAreasDimLinking == null ? allowOutOfAgeAreasDimLinking : dimAgeAreas.allowOutOfAgeAreasDimLinking;
+	}
+	
+	public AgeArea getFirstReadyAgeContaining(int x, int y, int z, int dim) {
+		DimensionAgeAreas dimAgeAreas = getDimensionAgeAreas(dim);
+		if (dimAgeAreas == null) return null;
+		else return dimAgeAreas.getFirstReadyAgeAreaContaining(x, y, z);
+	}
+	
 	public void updated() {
 		String key = "allowOutOfAgeAreasDimLinking";
 		String value = allowOutOfAgeAreasDimLinking ? Boolean.TRUE.toString() : null;
@@ -131,47 +125,11 @@ public class AgesManager {
 	}
 	
 	public void updatedDimension(int dim) {
-		DimensionAgeAreas dimAgeAreas = getDimensionAgeAreas(dim);
-		String key = "dim" + dim + ".allowOutOfAgeAreasDimLinking";
-		String value = dimAgeAreas.allowOutOfAgeAreasDimLinking == null ? null : Boolean.toString(dimAgeAreas.allowOutOfAgeAreasDimLinking);
-		if (!props.getProperty(key).equals(value)) {
-			if (value == null) {
-				props.remove(key);
-			}
-			else {
-				props.setProperty(key, value);
-			}
-			unsavedModifications = true;
-		}
+		getDimensionAgeAreas(dim).updatedDimension();
 	}
 	
 	public void updatedAgeArea(AgeArea ageArea) {
 		getDimensionAgeAreas(ageArea.dimension).updatedAgeArea(ageArea);
-		String baseKey = "dim" + ageArea.dimension + ".age" + ageArea.id + '.';
-		
-		//@formatter:off
-		String[][] entries = new String[][] {
-			new String[] { baseKey + "name", ageArea.name },
-			new String[] { baseKey + "pos1", ageArea.pos1Set ? ageArea.pos1X + " " + ageArea.pos1Y + " " + ageArea.pos1Z : null },
-			new String[] { baseKey + "pos2", ageArea.pos2Set ? ageArea.pos2X + " " + ageArea.pos2Y + " " + ageArea.pos2Z : null },
-			new String[] { baseKey + "disabled", ageArea.disabled ? Boolean.TRUE.toString() : null }
-		};
-		//@formatter:on
-		
-		String key, value;
-		for (String[] entry : entries) {
-			key = entry[0];
-			value = entry[1];
-			if (!props.getProperty(key).equals(value)) {
-				if (value == null) {
-					props.remove(key);
-				}
-				else {
-					props.setProperty(key, value);
-				}
-				unsavedModifications = true;
-			}
-		}
 	}
 	
 	public void loadAges() {
@@ -217,72 +175,15 @@ public class AgesManager {
 				value = (String)entry.getValue();
 				
 				sc = new Scanner(key);
-				MatchResult result;
-				if (sc.findInLine(dimPattern) != null) {
-					result = sc.match();
-					int dim = Integer.parseInt(result.group(1));
-					
-					DimensionAgeAreas dimAgeAreas = getOrCreateDimensionAgeAreas(dim);
-					
-					if (sc.findInLine(agePattern) != null) {
-						result = sc.match();
-						int ageAreaID = Integer.parseInt(result.group(1));
-						key = sc.next();
-						
-						AgeArea ageArea = dimAgeAreas.getOrCreateAgeArea(ageAreaID);
-						
-						if (key.equalsIgnoreCase("name")) {
-							ageArea.name = value;
-						}
-						else if (key.equalsIgnoreCase("pos1")) {
-							ageArea.setPos1(value);
-						}
-						else if (key.equalsIgnoreCase("pos2")) {
-							ageArea.setPos2(value);
-						}
-						else if (key.equalsIgnoreCase("disabled")) {
-							ageArea.disabled = Boolean.parseBoolean(value);
-						}
-					}
-					else {
-						key = sc.next();
-						if (key.equalsIgnoreCase("allowOutOfAgeAreasDimLinking")) {
-							if (value.equalsIgnoreCase("true")) {
-								dimAgeAreas.allowOutOfAgeAreasDimLinking = true;
-							}
-							else if (value.equalsIgnoreCase("false")) {
-								dimAgeAreas.allowOutOfAgeAreasDimLinking = false;
-							}
-							else {
-								dimAgeAreas.allowOutOfAgeAreasDimLinking = null;
-							}
-							
-						}
-					}
-				}
-				else {
-					key = sc.next();
-					if (key.equalsIgnoreCase("allowOutOfAgeAreasDimLinking")) {
-						allowOutOfAgeAreasDimLinking = Boolean.parseBoolean(value);
-					}
+				
+				key = sc.next();
+				if (key.equalsIgnoreCase("allowOutOfAgeAreasDimLinking")) {
+					allowOutOfAgeAreasDimLinking = Boolean.parseBoolean(value);
 				}
 			}
 			catch (Exception e) {
 				e.printStackTrace();
 			}
-		}
-		
-		if (theNether != null) {
-			theNether.updatedAllAgeArea();
-		}
-		if (overworld != null) {
-			overworld.updatedAllAgeArea();
-		}
-		if (theEnd != null) {
-			theEnd.updatedAllAgeArea();
-		}
-		for (DimensionAgeAreas dimensionAges : dimList.values()) {
-			dimensionAges.updatedAllAgeArea();
 		}
 	}
 	
@@ -317,5 +218,18 @@ public class AgesManager {
 			}
 		}
 		unsavedModifications = false;
+		
+		if (theNether != null) {
+			theNether.saveAgeAreas();
+		}
+		if (overworld != null) {
+			overworld.saveAgeAreas();
+		}
+		if (theEnd != null) {
+			theEnd.saveAgeAreas();
+		}
+		for (DimensionAgeAreas dimensionAges : dimList.values()) {
+			dimensionAges.saveAgeAreas();
+		}
 	}
 }

@@ -33,7 +33,7 @@ public class ContainerLookOfLinkingBook extends Container {
 		this.tileEntityLinkingBook = tileEntityLinkingBook;
 		
 		// Add the slot for blocks used to set the look of the linking book table:
-		addSlot(blockSlot = new SlotAppearanceOfLinkingBook(tileEntityLinkingBook.inventoryLinkingBook, 0, 53, 35, mod_MLB));
+		addSlot(blockSlot = new SlotAppearanceOfLinkingBook(tileEntityLinkingBook.inventoryLinkingBook, 0, 26, 44, mod_MLB));
 		
 		// Add the slots of the player inventory:
 		for (int j = 0; j < 3; j++) {

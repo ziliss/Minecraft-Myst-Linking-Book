@@ -10,6 +10,8 @@ import net.minecraft.src.ModLoader;
 import net.minecraft.src.NBTTagCompound;
 import net.minecraft.src.World;
 
+import org.lwjgl.opengl.GL11;
+
 /**
  * Represents Linking Books as {@code Item} (ie. either dropped in the world or in the inventory).<br>
  * <br>
@@ -30,6 +32,12 @@ public class ItemBlockLinkingBook extends ItemBlock {
 	 */
 	public Mod_MystLinkingBook mod_MLB;
 	
+	public int pagesIconIndex;
+	public int unwrittenIconIndex;
+	public int unwrittenPagesIconIndex;
+	
+	public int itemsTexture = ModLoader.getMinecraftInstance().renderEngine.getTexture("/gui/items.png");
+	
 	public ItemBlockLinkingBook(int itemID, Mod_MystLinkingBook mod_MLB) {
 		super(itemID);
 		
@@ -38,6 +46,30 @@ public class ItemBlockLinkingBook extends ItemBlock {
 		setItemName("linkingBookItem");
 		setMaxStackSize(1);
 		setMaxDamage(0);
+	}
+	
+	// Should the icon be rendered in 2 passes ?
+	@Override
+	public boolean func_46058_c() {
+		return true;
+	}
+	
+	@Override
+	public int func_46057_a(int i, int j) {
+		// Workaround a limitation when rendering an item in the hand.
+		// ItemRenderer.renderItem() only checks for itemID < 256, not for func_46058_c(), and thus it uses the terrain texture.
+		GL11.glBindTexture(GL11.GL_TEXTURE_2D, itemsTexture);
+		
+		//@formatter:off
+		return (i & 16) == 16 ? // Is it written ? Yes if the fourth bit is set.
+				j == 0 ? iconIndex : pagesIconIndex
+			   : j == 0 ? unwrittenIconIndex : unwrittenPagesIconIndex;
+		//@formatter:on
+	}
+	
+	@Override
+	public int getColorFromDamage(int i, int j) {
+		return j == 0 ? 0xffffff : ItemPage.brighterColorInts[i & 15];
 	}
 	
 	/**
@@ -68,40 +100,49 @@ public class ItemBlockLinkingBook extends ItemBlock {
 		}
 		if (mod_MLB.linkingBook.isWritten(nbttagcompound)) {
 			
+			int x = i, y = j, z = k, side = l;
+			
+			// The following part is taken from ItemBlock.onItemUse(...).
+			// It tells us the position of the new block depending on the side (int l) of the aimed block:
+			int i1 = world.getBlockId(i, j, k);
+			if (i1 == Block.snow.blockID) {
+				l = 0;
+			}
+			else if (i1 != Block.vine.blockID) {
+				if (l == 0) {
+					j--;
+				}
+				else if (l == 1) {
+					j++;
+				}
+				else if (l == 2) {
+					k--;
+				}
+				else if (l == 3) {
+					k++;
+				}
+				else if (l == 4) {
+					i--;
+				}
+				else if (l == 5) {
+					i++;
+				}
+			}
+			// End of the part from ItemBlock.onItemUse(...).
+			
+			// if (world.getBlockTileEntity(i, j, k) != null) return false;
+			
 			// Now we try to place the block, then if the block has been placed, set it's tileEntity:
-			if (super.onItemUse(itemstack, entityplayer, world, i, j, k, l)) {
-				
-				// The following part is taken from ItemBlock.onItemUse(...).
-				// It tells us the position of the new block depending on the side (int l) of the aimed block:
-				int i1 = world.getBlockId(i, j, k);
-				if (i1 == Block.snow.blockID) {
-					l = 0;
-				}
-				else if (i1 != Block.vine.blockID) {
-					if (l == 0) {
-						j--;
-					}
-					else if (l == 1) {
-						j++;
-					}
-					else if (l == 2) {
-						k--;
-					}
-					else if (l == 3) {
-						k++;
-					}
-					else if (l == 4) {
-						i--;
-					}
-					else if (l == 5) {
-						i++;
-					}
-				}
-				// End of the part from ItemBlock.onItemUse(...).
+			if (super.onItemUse(itemstack, entityplayer, world, x, y, z, side)) {
 				
 				TileEntityLinkingBook tileEntity = (TileEntityLinkingBook)world.getBlockTileEntity(i, j, k);
+				if (tileEntity == null) {
+					tileEntity = (TileEntityLinkingBook)mod_MLB.blockLinkingBook.getBlockEntity();
+					world.setBlockTileEntity(i, j, k, tileEntity);
+				}
 				tileEntity.nbttagcompound_linkingBook = nbttagcompound;
-				mod_MLB.blockLinkingBook.onNeighborBlockChange(world, i, j, k, Block.redstoneWire.blockID);
+				tileEntity.notifyColorChanged();
+				tileEntity.onNeighborBlockChange(Block.redstoneWire.blockID);
 				return true;
 			}
 		}

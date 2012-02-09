@@ -46,7 +46,7 @@ public class RenderLinkingBook extends TileEntitySpecialRenderer {
 		Minecraft mc = ModLoader.getMinecraftInstance();
 		mc.renderEngine.bindTexture(mc.renderEngine.getTexture(Mod_MystLinkingBook.resourcesPath + "tempLinkingBook3D.png"));
 		float f6 = tileEntityLinkingBook.field_40060_g + (tileEntityLinkingBook.field_40059_f - tileEntityLinkingBook.field_40060_g) * f;
-		field_40450_a.render(null, -1, -1, -1, f6, 0.0F, 0.0625F);
+		field_40450_a.render(f6, tileEntityLinkingBook.color, 0.0625F);
 		GL11.glPopMatrix();
 	}
 }

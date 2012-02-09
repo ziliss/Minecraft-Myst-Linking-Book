@@ -11,10 +11,12 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.src.BaseMod;
 import net.minecraft.src.Block;
 import net.minecraft.src.GameSettings;
+import net.minecraft.src.IBlockAccess;
 import net.minecraft.src.ISaveFormat;
 import net.minecraft.src.Item;
 import net.minecraft.src.ItemStack;
 import net.minecraft.src.ModLoader;
+import net.minecraft.src.RenderBlocks;
 import net.minecraft.src.SoundManager;
 import net.minecraft.src.SoundPool;
 import net.minecraft.src.SoundPoolEntry;
@@ -27,6 +29,7 @@ public class Mod_MystLinkingBook extends BaseMod {
 	
 	public BlockLinkingBook blockLinkingBook = new BlockLinkingBook(233, 233, this);
 	public ItemBlockLinkingBook itemBlockLinkingBook = new ItemBlockLinkingBook(233 - 256, this);
+	public ItemPage itemPage = new ItemPage(3233);
 	
 	public static String resourcesPath = "/mystlinkingbook/resources/";
 	
@@ -52,7 +55,14 @@ public class Mod_MystLinkingBook extends BaseMod {
 		blockLinkingBook.topTextureIndex = ModLoader.addOverride("/terrain.png", resourcesPath + "blockLinkingBookSide.png");
 		blockLinkingBook.sideTextureIndex = blockLinkingBook.topTextureIndex;
 		blockLinkingBook.bottomTextureIndex = blockLinkingBook.topTextureIndex;
-		// itemBlockLinkingBook.iconIndex = ModLoader.addOverride("/gui/items.png", resourcePath+"tempBook.png");
+		blockLinkingBook.renderType = ModLoader.getUniqueBlockModelID(this, false);
+		
+		itemBlockLinkingBook.setIconIndex(ModLoader.addOverride("/gui/items.png", resourcesPath + "iconLinkingBook.png"));
+		itemBlockLinkingBook.unwrittenIconIndex = ModLoader.addOverride("/gui/items.png", resourcesPath + "iconLinkingBookUnwritten.png");
+		itemBlockLinkingBook.pagesIconIndex = ModLoader.addOverride("/gui/items.png", resourcesPath + "iconLinkingBookPages.png");
+		itemBlockLinkingBook.unwrittenPagesIconIndex = ModLoader.addOverride("/gui/items.png", resourcesPath + "iconLinkingBookUnwrittenPages.png");
+		
+		itemPage.setIconIndex(ModLoader.addOverride("/gui/items.png", resourcesPath + "iconPage.png"));
 		
 		// Execute the following private method:
 		// Block.fire.setBurnRate(Block.bookShelf.blockID, 70, 100);
@@ -60,17 +70,18 @@ public class Mod_MystLinkingBook extends BaseMod {
 		PrivateAccesses.BlockFire_abilityToCatchFire.getFrom(Block.fire)[blockLinkingBook.blockID] = 100;
 		
 		BufferedImage img;
+		int nextTextureId = 3233;
 		try {
 			img = ModLoader.loadImage(mc.renderEngine, resourcesPath + "tempLinkGUI.png");
-			mc.renderEngine.setupTexture(img, 3233);
-			img = ModLoader.loadImage(mc.renderEngine, resourcesPath + "tempPanel.png");
-			mc.renderEngine.setupTexture(img, 3234);
+			mc.renderEngine.setupTexture(img, nextTextureId++);
+			// img = ModLoader.loadImage(mc.renderEngine, resourcesPath + "tempPanel.png");
+			// mc.renderEngine.setupTexture(img, nextTextureId++);
 			img = ModLoader.loadImage(mc.renderEngine, resourcesPath + "tempWriteGUI.png");
-			mc.renderEngine.setupTexture(img, 3235);
+			mc.renderEngine.setupTexture(img, nextTextureId++);
 			img = ModLoader.loadImage(mc.renderEngine, resourcesPath + "tempLookGUI.png");
-			mc.renderEngine.setupTexture(img, 3236);
+			mc.renderEngine.setupTexture(img, nextTextureId++);
 			img = ModLoader.loadImage(mc.renderEngine, resourcesPath + "tempLinkingBook3D.png");
-			mc.renderEngine.setupTexture(img, 3237);
+			mc.renderEngine.setupTexture(img, nextTextureId++);
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -81,15 +92,21 @@ public class Mod_MystLinkingBook extends BaseMod {
 		
 		ModLoader.RegisterTileEntity(TileEntityLinkingBook.class, "LinkingBook", new RenderLinkingBook());
 		
-		ModLoader.AddRecipe(new ItemStack(itemBlockLinkingBook, 1), new Object[] { "#", "#", Character.valueOf('#'), Item.paper });
+		ModLoader.AddRecipe(new ItemStack(itemBlockLinkingBook, 1, 0), new Object[] { "#", "#", Character.valueOf('#'), Item.paper });
 		
 		File resourcesFolder = new File(Minecraft.getMinecraftDir(), "resources/");
 		String[] exts = new String[] { ".wav", ".ogg", ".mus" };
 		File linkingsound = null;
 		for (String ext : exts) {
 			linkingsound = new File(resourcesFolder, "mod/mystlinkingbook/linkingsound" + ext);
+			// For debugging the sound file:
+			/*File temp = linkingsound;
+			while (temp.getParent() != null) {
+				System.out.println(temp.getAbsolutePath() + ": " + (temp.exists() ? "exists" : "!!! DOES NOT EXIST !!!"));
+			}*/
 			if (linkingsound.exists()) {
 				mc.sndManager.addSound("mystlinkingbook/linkingsound" + ext, linkingsound);
+				System.out.println("Using linking sound: " + linkingsound);
 				break;
 			}
 			linkingsound = null;
@@ -101,6 +118,7 @@ public class Mod_MystLinkingBook extends BaseMod {
 				try {
 					downloadRessource(integratedLinkingSound, linkingsound);
 					mc.sndManager.addSound("mystlinkingbook/linkingsound.wav", linkingsound);
+					System.out.println("Using linking sound: " + linkingsound);
 				}
 				catch (Exception e) {
 					e.printStackTrace();
@@ -125,8 +143,7 @@ public class Mod_MystLinkingBook extends BaseMod {
 	public void onWorldStarting(String worldFolderName) {
 		File worldFolder = new File(Minecraft.getMinecraftDir(), "saves/" + worldFolderName);
 		File worldMLBFolder = new File(worldFolder, "mystlinkingbook");
-		linkingBook.agesManager.setAgesDataFile(new File(worldMLBFolder, "AgesDatas.props"));
-		linkingBook.agesManager.loadAges();
+		linkingBook.agesManager.changeWorld(worldFolder);
 	}
 	
 	public static final void downloadRessource(InputStream in, File dest) throws Exception {
@@ -191,5 +208,13 @@ public class Mod_MystLinkingBook extends BaseMod {
 			sndSystem.play(s1);
 		}
 		// End of the part from SoundManager.playSoundFX(...).
+	}
+	
+	@Override
+	public boolean RenderWorldBlock(RenderBlocks renderblocks, IBlockAccess iblockaccess, int i, int j, int k, Block block, int l) {
+		// Taken from: RenderBlocks.renderBlockByRenderType:
+		// block.setBlockBoundsBasedOnState(iblockaccess, i, j, k);
+		renderblocks.renderStandardBlock(block, i, j, k);
+		return true;
 	}
 }

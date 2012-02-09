@@ -1,5 +1,8 @@
 package net.minecraft.src.mystlinkingbook;
 
+import java.awt.Color;
+
+import net.minecraft.src.BlockCloth;
 import net.minecraft.src.EntityPlayer;
 import net.minecraft.src.GuiButton;
 import net.minecraft.src.GuiContainer;
@@ -29,6 +32,14 @@ public class GuiWriteLinkingBook extends GuiContainer {
 	
 	boolean canWrite;
 	
+	int timePassing = 0;
+	
+	public Color pagesColor;
+	int pagesLeft = 75;
+	int pagesTop = 26;
+	int pagesWidth = 63;
+	int pagesHeight = 45;
+	
 	public GuiWriteLinkingBook(EntityPlayer entityplayer, NBTTagCompound nbttagcompound_linkingBook, Mod_MystLinkingBook mod_MLB) {
 		super(new ContainerWriteLinkingBook(entityplayer.inventory, mod_MLB));
 		this.entityplayer = entityplayer;
@@ -49,6 +60,8 @@ public class GuiWriteLinkingBook extends GuiContainer {
 		// Because of a bug in GuiContainer.drawScreen(), the buttons are drawn over the item tooltips.
 		// As a workaround, we will not add the button to the controlList but manage it ourself:
 		// controlList.add(writeButton);
+		
+		notifyColorChanged();
 		
 		updateCanWrite();
 	}
@@ -78,6 +91,9 @@ public class GuiWriteLinkingBook extends GuiContainer {
 	protected void handleMouseClick(Slot slot, int i, int j, boolean flag) {
 		if (slot != null && slot.slotNumber != container.inventorySlots.size() - (9 - entityplayer.inventory.currentItem)) {
 			super.handleMouseClick(slot, i, j, flag);
+			if (slot.slotNumber == container.colorSlot.slotNumber) {
+				notifyColorChanged();
+			}
 			updateCanWrite();
 		}
 	}
@@ -100,6 +116,9 @@ public class GuiWriteLinkingBook extends GuiContainer {
 	@Override
 	protected void actionPerformed(GuiButton guibutton) {
 		if (guibutton == writeButton && canWrite) {
+			container.featherSlot.putStack(null);
+			container.inkSlot.putStack(null);
+			
 			int nbPaper = container.paperSlot.getHasStack() ? container.paperSlot.getStack().stackSize : 0;
 			if (nbPaper > 0) {
 				container.paperSlot.putStack(null);
@@ -108,7 +127,12 @@ public class GuiWriteLinkingBook extends GuiContainer {
 			if (unstable) {
 				container.redstoneSlot.putStack(null);
 			}
-			container.inkSlot.putStack(null);
+			
+			boolean hasDyeColor = container.colorSlot.getHasStack() && container.colorSlot.getStack().stackSize == 1;
+			if (hasDyeColor) {
+				mod_MLB.linkingBook.setPagesColorFromDye(nbttagcompound_linkingBook, container.colorSlot.getStack().getItemDamage());
+				container.colorSlot.putStack(null);
+			}
 			updateCanWrite();
 			
 			mod_MLB.linkingBook.write(nbttagcompound_linkingBook, entityplayer, nbPaper, unstable);
@@ -117,10 +141,18 @@ public class GuiWriteLinkingBook extends GuiContainer {
 			if (!name.isEmpty()) {
 				mod_MLB.linkingBook.setName(nbttagcompound_linkingBook, name);
 			}
-			if (entityplayer.inventory.addItemStackToInventory(container.featherSlot.getStack())) {
-				container.featherSlot.putStack(null);
-			}
+			
 			mc.displayGuiScreen(null);
+		}
+	}
+	
+	public void notifyColorChanged() {
+		if (container.colorSlot.getHasStack()) {
+			int dyeColor = container.colorSlot.getStack().getItemDamage();
+			pagesColor = ItemPage.brighterColorTable[BlockCloth.getBlockFromDye(dyeColor)];
+		}
+		else {
+			pagesColor = ItemPage.brighterColorTable[mod_MLB.linkingBook.getPagesColor(nbttagcompound_linkingBook)];
 		}
 	}
 	
@@ -131,12 +163,27 @@ public class GuiWriteLinkingBook extends GuiContainer {
 	}
 	
 	@Override
+	public void updateScreen() {
+		timePassing++;
+	}
+	
+	@Override
 	protected void drawGuiContainerBackgroundLayer(float f, int i, int j) {
 		mc.renderEngine.bindTexture(mc.renderEngine.getTexture(Mod_MystLinkingBook.resourcesPath + "tempWriteGUI.png"));
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-		int l = (width - xSize) / 2;
-		int i1 = (height - ySize) / 2;
-		drawTexturedModalRect(l, i1, 0, 0, xSize, ySize);
+		drawTexturedModalRect(guiLeft, guiTop, 0, 0, xSize, ySize);
+		
+		GL11.glColor3ub((byte)pagesColor.getRed(), (byte)pagesColor.getGreen(), (byte)pagesColor.getBlue());
+		drawTexturedModalRect(guiLeft + pagesLeft, guiTop + pagesTop, pagesLeft, pagesTop, pagesWidth, pagesHeight);
+		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+		
+		if (!container.colorSlot.getHasStack() || container.colorSlot.getStack().stackSize < 1) {
+			int itemNb = timePassing / 20 % 16;
+			int itemCoordX = itemNb / 8 * 16;
+			int itemCoordY = itemNb % 8 * 16;
+			drawTexturedModalRect(guiLeft + 143, guiTop + 53, xSize + itemCoordX, itemCoordY, 16, 16);
+		}
+		
 		// Because writeButton is not in the controlList, we need to draw it:
 		writeButton.drawButton(mc, i, j);
 		nameTextfield.drawTextBox();

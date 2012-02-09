@@ -1,6 +1,7 @@
 package net.minecraft.src.mystlinkingbook;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.src.BlockCloth;
 import net.minecraft.src.ChunkProviderLoadOrGenerate;
 import net.minecraft.src.EntityPlayer;
 import net.minecraft.src.EntityPlayerSP;
@@ -95,6 +96,15 @@ public class LinkingBook {
 		}
 	}
 	
+	public int getPagesColor(NBTTagCompound nbttagcompound) {
+		return nbttagcompound.getInteger("color");
+	}
+	
+	public void setPagesColorFromDye(NBTTagCompound nbttagcompound, int dyeColor) {
+		int color = BlockCloth.getBlockFromDye(dyeColor);
+		nbttagcompound.setInteger("color", color);
+	}
+	
 	public boolean isUnstable(NBTTagCompound nbttagcompound) {
 		return nbttagcompound.getBoolean("unstable");
 	}
@@ -168,12 +178,6 @@ public class LinkingBook {
 		theWorld.setEntityDead(thePlayer);
 		thePlayer.isDead = false;
 		
-		thePlayer.setLocationAndAngles(destX, destY, destZ, destRotYaw, destRotPitch);
-		if (thePlayer.isEntityAlive()) {
-			// Is the following not useful ?
-			// theWorld.updateEntityWithOptionalForce(thePlayer, false);
-		}
-		
 		World newWorld = linkPreloader.getWorld();
 		if (newWorld != null && newWorld.worldProvider.worldType != destDim) {
 			newWorld = null;
@@ -182,8 +186,15 @@ public class LinkingBook {
 			newWorld = new World(theWorld, WorldProvider.getProviderForDimension(destDim));
 		}
 		
+		thePlayer.setLocationAndAngles(destX, destY, destZ, destRotYaw, destRotPitch);
+		if (thePlayer.isEntityAlive()) {
+			// Is the following not useful ?
+			newWorld.updateEntityWithOptionalForce(thePlayer, false);
+		}
+		
 		mc.changeWorld(newWorld, "Linking to " + bookName, thePlayer);
 		
+		thePlayer = mc.thePlayer; // Just in case.
 		thePlayer.worldObj = newWorld;
 		System.out.println("Teleported to " + newWorld.worldProvider.worldType);
 		if (thePlayer.isEntityAlive()) {

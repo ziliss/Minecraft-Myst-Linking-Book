@@ -1,10 +1,13 @@
 package net.minecraft.src.mystlinkingbook;
 
-import net.minecraft.src.Entity;
+import java.awt.Color;
+
 import net.minecraft.src.MathHelper;
 import net.minecraft.src.ModelBase;
 import net.minecraft.src.ModelBook;
 import net.minecraft.src.ModelRenderer;
+
+import org.lwjgl.opengl.GL11;
 
 /**
  * 3D model of the linking book.<br>
@@ -31,8 +34,8 @@ public class ModelLinkingBook extends ModelBase {
 		field_40330_a = new ModelRenderer(this).setTextureOffset(0, 0).addBox(-6F, -7F, 0.0F, 6, 10, 0);
 		field_40328_b = new ModelRenderer(this).setTextureOffset(16, 0).addBox(0.0F, -7F, 0.0F, 6, 10, 0);
 		field_40325_g = new ModelRenderer(this).setTextureOffset(12, 0).addBox(-2F, -7F, 0.0F, 2, 10, 0);
-		field_40329_c = new ModelRenderer(this).setTextureOffset(0, 10).addBox(0.0F, -6F, -0.99F, 5, 8, 1);
-		field_40326_d = new ModelRenderer(this).setTextureOffset(12, 10).addBox(0.0F, -6F, -0.01F, 5, 8, 1);
+		field_40329_c = new ModelRenderer(this).setTextureOffset(0, 10).addBox(0.0F, -7F, -1F, 6, 10, 1);
+		field_40326_d = new ModelRenderer(this).setTextureOffset(14, 10).addBox(0.0F, -7F, 0F, 6, 10, 1);
 		
 		field_40330_a.rotateAngleY = PI + halfPI;
 		field_40329_c.rotateAngleY = halfPI;
@@ -41,23 +44,32 @@ public class ModelLinkingBook extends ModelBase {
 		field_40326_d.rotationPointX = 1;
 	}
 	
-	@Override
-	public void render(Entity entity, float f, float f1, float f2, float f3, float f4, float f5) {
-		if (f3 != lastF3) {
-			lastF3 = f3;
-			setRotationAngles(f, f1, f2, f3, f4, f5);
+	public void render(float opening, Color color, float f5) {
+		if (opening != lastF3) {
+			lastF3 = opening;
+			setRotationAngles(opening);
 		}
 		field_40330_a.render(f5);
 		field_40328_b.render(f5);
 		field_40325_g.render(f5);
+		
+		// This is a workaround for a bug in the Nether:
+		boolean GL_BLEND_enabled = GL11.glIsEnabled(GL11.GL_BLEND);
+		GL11.glDisable(GL11.GL_BLEND);
+		
+		GL11.glColor3ub((byte)color.getRed(), (byte)color.getGreen(), (byte)color.getBlue());
 		field_40329_c.render(f5);
 		field_40326_d.render(f5);
+		GL11.glColor4f(1, 1, 1, 1);
+		
+		if (GL_BLEND_enabled) {
+			GL11.glEnable(GL11.GL_BLEND);
+		}
 	}
 	
-	@Override
-	public void setRotationAngles(float f, float f1, float f2, float f3, float f4, float f5) {
-		float angleOpen = PI * f3;
-		float halfPI_F3 = halfPI * f3;
+	public void setRotationAngles(float opening) {
+		float angleOpen = PI * opening;
+		float halfPI_F3 = halfPI * opening;
 		
 		float openingTranslation = -MathHelper.sin(halfPI_F3) * 3 + 3;
 		
