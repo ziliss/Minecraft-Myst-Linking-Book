@@ -11,6 +11,9 @@ import net.minecraft.src.NBTTagCompound;
 import net.minecraft.src.World;
 import net.minecraft.src.WorldProvider;
 
+import org.lwjgl.input.Keyboard;
+import org.lwjgl.input.Mouse;
+
 /**
  * Contains the methods to interact with the datas of the Linking Books.<br>
  * <br>
@@ -192,6 +195,13 @@ public class LinkingBook {
 			newWorld.updateEntityWithOptionalForce(thePlayer, false);
 		}
 		
+		// This is a workaround for a weird bug I called the "speed bug".
+		// I don't know why, but sometimes after teleporting quickly multiple times to the same dimension, the player is in this list.
+		// Maybe a chunkloader cache bug ?
+		if (newWorld.loadedEntityList.contains(thePlayer)) {
+			newWorld.loadedEntityList.remove(thePlayer);
+		}
+		
 		mc.changeWorld(newWorld, "Linking to " + bookName, thePlayer);
 		
 		thePlayer = mc.thePlayer; // Just in case.
@@ -200,6 +210,12 @@ public class LinkingBook {
 		if (thePlayer.isEntityAlive()) {
 			thePlayer.setLocationAndAngles(destX, destY, destZ, destRotYaw, destRotPitch);
 			newWorld.updateEntityWithOptionalForce(thePlayer, false);
+		}
+		
+		while (Keyboard.next()) {
+			// KeyBinding.setKeyBindState(Keyboard.getEventKey(), Keyboard.getEventKeyState());
+		}
+		while (Mouse.next()) {
 		}
 	}
 	

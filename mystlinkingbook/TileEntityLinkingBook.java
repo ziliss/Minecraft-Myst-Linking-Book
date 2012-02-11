@@ -156,7 +156,7 @@ public class TileEntityLinkingBook extends TileEntity {
 				nbttagcompound1 = new NBTTagCompound();
 				nbttagcompound1.setByte("Slot", (byte)i);
 				itemstack.writeToNBT(nbttagcompound1);
-				nbttaglist.setTag(nbttagcompound1);
+				nbttaglist.appendTag(nbttagcompound1);
 			}
 		}
 		nbttagcompound.setTag("Inventory", nbttaglist);
