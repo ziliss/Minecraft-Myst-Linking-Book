@@ -17,36 +17,46 @@ import org.lwjgl.opengl.GL11;
  */
 public class RenderLinkingBook extends TileEntitySpecialRenderer {
 	
+	/**
+	 * Reference to the mod instance.
+	 */
+	public Mod_MystLinkingBook mod_MLB;
+	
 	private ModelLinkingBook field_40450_a = new ModelLinkingBook();
+	
+	public RenderLinkingBook(Mod_MystLinkingBook mod_MLB) {
+		this.mod_MLB = mod_MLB;
+	}
 	
 	@Override
 	public void renderTileEntityAt(TileEntity tileentity, double d, double d1, double d2, float f) {
 		TileEntityLinkingBook tileEntityLinkingBook = (TileEntityLinkingBook)tileentity;
+		String bookName = mod_MLB.linkingBook.getName(tileEntityLinkingBook.nbttagcompound_linkingBook);
 		
 		GL11.glPushMatrix();
-		GL11.glTranslatef((float)d + 0.5F, (float)d1 + 1.1F, (float)d2 + 0.5F);
 		
-		float angle = 0;
-		// Inspired by BlockRedstoneRepeater.randomDisplayTick:
-		switch (tileEntityLinkingBook.getBlockMetadata() & 3) {
-			case 0:
-				angle = 90;
-				break;
-			case 1:
-				angle = 180;
-				break;
-			case 2:
-				angle = 270;
-				break;
-		// By default: case 3: angle = 0;
-		}
-		GL11.glRotatef(-angle, 0.0F, 1.0F, 0.0F);
-		GL11.glRotatef(80F, 0.0F, 0.0F, 1.0F);
+		float opening = tileEntityLinkingBook.field_40060_g + (tileEntityLinkingBook.field_40059_f - tileEntityLinkingBook.field_40060_g) * f;
+		float inclination = 10f; // Angle in degrees.
+		float recul = 0f;
+		
+		// Set the book position over the block:
+		GL11.glTranslatef((float)d + 0.5F, (float)d1 + 1F, (float)d2 + 0.5F);
+		
+		// Facing the right direction (upward when closed):
+		GL11.glRotatef(90, 1F, 0, 0);
+		// Rotate in the direction of the block:
+		int direction = tileEntityLinkingBook.getBlockMetadata() & 3;
+		GL11.glRotatef(90 * direction, 0, 0, 1F);
+		// Incline the book a little:
+		GL11.glTranslatef(0, 7 / 16f, 0);
+		GL11.glRotatef(inclination, 1F, 0, 0);
+		GL11.glTranslatef(0, (-7 + recul) / 16f, 0);
+		
 		// bindTextureByName("/item/book.png");
 		Minecraft mc = ModLoader.getMinecraftInstance();
 		mc.renderEngine.bindTexture(mc.renderEngine.getTexture(Mod_MystLinkingBook.resourcesPath + "tempLinkingBook3D.png"));
-		float f6 = tileEntityLinkingBook.field_40060_g + (tileEntityLinkingBook.field_40059_f - tileEntityLinkingBook.field_40060_g) * f;
-		field_40450_a.render(f6, tileEntityLinkingBook.color, 0.0625F);
+		field_40450_a.render(opening, tileEntityLinkingBook.color, bookName, getFontRenderer(), 0.0625F);
+		
 		GL11.glPopMatrix();
 	}
 }

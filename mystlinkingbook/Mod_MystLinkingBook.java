@@ -90,7 +90,7 @@ public class Mod_MystLinkingBook extends BaseMod {
 		ModLoader.AddName(blockLinkingBook, "Linking Book");
 		ModLoader.AddName(itemBlockLinkingBook, "Linking Book");
 		
-		ModLoader.RegisterTileEntity(TileEntityLinkingBook.class, "LinkingBook", new RenderLinkingBook());
+		ModLoader.RegisterTileEntity(TileEntityLinkingBook.class, "LinkingBook", new RenderLinkingBook(this));
 		
 		ModLoader.AddRecipe(new ItemStack(itemBlockLinkingBook, 1, 0), new Object[] { "#", "#", Character.valueOf('#'), Item.paper });
 		

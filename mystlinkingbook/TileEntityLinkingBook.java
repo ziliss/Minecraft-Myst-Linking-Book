@@ -195,16 +195,16 @@ public class TileEntityLinkingBook extends TileEntity {
 		if (closestPlayer != null || stayOpen) {
 			if (field_40059_f < 1.0F) {
 				field_40059_f += 0.1F;
-				if (field_40059_f > 1.0F) {
-					field_40059_f = 1.0F;
+				if (field_40059_f > 1F) {
+					field_40059_f = 1F;
 				}
 			}
 		}
 		else {
 			if (field_40059_f > 0) {
 				field_40059_f -= 0.1F;
-				if (field_40059_f < 0.0F) {
-					field_40059_f = 0.0F;
+				if (field_40059_f < 0F) {
+					field_40059_f = 0F;
 				}
 			}
 		}
