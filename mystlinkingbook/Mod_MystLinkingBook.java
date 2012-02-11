@@ -38,7 +38,7 @@ public class Mod_MystLinkingBook extends BaseMod {
 	
 	@Override
 	public String getVersion() {
-		return "0.6b";
+		return "0.7b";
 	}
 	
 	/**
