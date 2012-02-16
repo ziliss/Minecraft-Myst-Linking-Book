@@ -38,6 +38,7 @@ public class RenderLinkingBook extends TileEntitySpecialRenderer {
 		float opening = tileEntityLinkingBook.field_40060_g + (tileEntityLinkingBook.field_40059_f - tileEntityLinkingBook.field_40060_g) * f;
 		float inclination = 10f; // Angle in degrees.
 		float recul = 0f;
+		inclination = opening * 20;
 		
 		// Set the book position over the block:
 		GL11.glTranslatef((float)d + 0.5F, (float)d1 + 1F, (float)d2 + 0.5F);
@@ -48,9 +49,9 @@ public class RenderLinkingBook extends TileEntitySpecialRenderer {
 		int direction = tileEntityLinkingBook.getBlockMetadata() & 3;
 		GL11.glRotatef(90 * direction, 0, 0, 1F);
 		// Incline the book a little:
-		GL11.glTranslatef(0, 7 / 16f, 0);
+		GL11.glTranslatef(0, (+7 + recul) / 16f, 0 / 16f);
 		GL11.glRotatef(inclination, 1F, 0, 0);
-		GL11.glTranslatef(0, (-7 + recul) / 16f, 0);
+		GL11.glTranslatef(0, -7 / 16f, 0 / 16f);
 		
 		// bindTextureByName("/item/book.png");
 		Minecraft mc = ModLoader.getMinecraftInstance();

@@ -3,6 +3,7 @@ package net.minecraft.src.mystlinkingbook;
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,7 +39,7 @@ public class Mod_MystLinkingBook extends BaseMod {
 	
 	@Override
 	public String getVersion() {
-		return "0.7b";
+		return "0.6.1b";
 	}
 	
 	/**
@@ -95,33 +96,37 @@ public class Mod_MystLinkingBook extends BaseMod {
 		ModLoader.AddRecipe(new ItemStack(itemBlockLinkingBook, 1, 0), new Object[] { "#", "#", Character.valueOf('#'), Item.paper });
 		
 		File resourcesFolder = new File(Minecraft.getMinecraftDir(), "resources/");
-		String[] exts = new String[] { ".wav", ".ogg", ".mus" };
-		File linkingsound = null;
-		for (String ext : exts) {
-			linkingsound = new File(resourcesFolder, "mod/mystlinkingbook/linkingsound" + ext);
-			// For debugging the sound file:
-			/*File temp = linkingsound;
-			while (temp.getParent() != null) {
-				System.out.println(temp.getAbsolutePath() + ": " + (temp.exists() ? "exists" : "!!! DOES NOT EXIST !!!"));
-			}*/
-			if (linkingsound.exists()) {
-				mc.sndManager.addSound("mystlinkingbook/linkingsound" + ext, linkingsound);
-				System.out.println("Using linking sound: " + linkingsound);
-				break;
-			}
-			linkingsound = null;
-		}
-		if (linkingsound == null) {
-			InputStream integratedLinkingSound = Mod_MystLinkingBook.class.getResourceAsStream(resourcesPath + "linkingsound.wav");
-			if (integratedLinkingSound != null) {
-				linkingsound = new File(resourcesFolder, "mod/mystlinkingbook/linkingsound.wav");
+		File linkingsound = new File(resourcesFolder, "mod/mystlinkingbook/defaultlinkingsound.wav");
+		if (!linkingsound.exists()) {
+			InputStream includedLinkingSound = Mod_MystLinkingBook.class.getResourceAsStream(resourcesPath + "defaultlinkingsound.wav");
+			if (includedLinkingSound != null) {
 				try {
-					downloadRessource(integratedLinkingSound, linkingsound);
-					mc.sndManager.addSound("mystlinkingbook/linkingsound.wav", linkingsound);
-					System.out.println("Using linking sound: " + linkingsound);
+					downloadRessource(includedLinkingSound, linkingsound);
+					System.out.println("Added default linking sound: " + linkingsound);
 				}
 				catch (Exception e) {
 					e.printStackTrace();
+				}
+			}
+			else {
+				new FileNotFoundException("Could not add default linking sound: " + linkingsound).printStackTrace();
+			}
+		}
+		linkingsound = null;
+		String[] names = new String[] { "linkingsound", "defaultlinkingsound" };
+		String[] exts = new String[] { ".wav", ".ogg", ".mus" };
+		searchSound: for (String name : names) {
+			for (String ext : exts) {
+				linkingsound = new File(resourcesFolder, "mod/mystlinkingbook/" + name + ext);
+				// For debugging the sound file:
+				/*File temp = linkingsound;
+				while (temp.getParent() != null) {
+					System.out.println(temp.getAbsolutePath() + ": " + (temp.exists() ? "exists" : "!!! DOES NOT EXIST !!!"));
+				}*/
+				if (linkingsound.exists()) {
+					mc.sndManager.addSound("mystlinkingbook/linkingsound" + ext, linkingsound);
+					System.out.println("Using linking sound: " + linkingsound);
+					break searchSound;
 				}
 			}
 		}
