@@ -229,10 +229,10 @@ public class BlockLinkingBook extends BlockContainer {
 		}
 		
 		if (openGui == GuiLinkingBook.class) {
-			ModLoader.OpenGUI(entityplayer, new GuiLinkingBook(entityplayer, tileEntityLinkingBook, mod_MLB));
+			ModLoader.openGUI(entityplayer, new GuiLinkingBook(entityplayer, tileEntityLinkingBook, mod_MLB));
 		}
 		else if (openGui == GuiLookOfLinkingBook.class) {
-			ModLoader.OpenGUI(entityplayer, new GuiLookOfLinkingBook(entityplayer, tileEntityLinkingBook, mod_MLB));
+			ModLoader.openGUI(entityplayer, new GuiLookOfLinkingBook(entityplayer, tileEntityLinkingBook, mod_MLB));
 		}
 		return true;
 	}
@@ -291,7 +291,7 @@ public class BlockLinkingBook extends BlockContainer {
 		
 		// This instruction is from BlockChest.onBlockRemoval(...):
 		if (itemStack.getTagCompound() != null) {
-			entityitem.item.setTagCompound((NBTTagCompound)itemStack.getTagCompound().cloneTag());
+			entityitem.item.setTagCompound((NBTTagCompound)itemStack.getTagCompound().copy());
 		}
 		
 		world.spawnEntityInWorld(entityitem);

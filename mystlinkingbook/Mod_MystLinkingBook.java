@@ -39,7 +39,7 @@ public class Mod_MystLinkingBook extends BaseMod {
 	
 	@Override
 	public String getVersion() {
-		return "0.6.1b";
+		return "0.6.2b";
 	}
 	
 	/**
@@ -88,12 +88,12 @@ public class Mod_MystLinkingBook extends BaseMod {
 			e.printStackTrace();
 		}
 		
-		ModLoader.AddName(blockLinkingBook, "Linking Book");
-		ModLoader.AddName(itemBlockLinkingBook, "Linking Book");
+		ModLoader.addName(blockLinkingBook, "Linking Book");
+		ModLoader.addName(itemBlockLinkingBook, "Linking Book");
 		
-		ModLoader.RegisterTileEntity(TileEntityLinkingBook.class, "LinkingBook", new RenderLinkingBook(this));
+		ModLoader.registerTileEntity(TileEntityLinkingBook.class, "LinkingBook", new RenderLinkingBook(this));
 		
-		ModLoader.AddRecipe(new ItemStack(itemBlockLinkingBook, 1, 0), new Object[] { "#", "#", Character.valueOf('#'), Item.paper });
+		ModLoader.addRecipe(new ItemStack(itemBlockLinkingBook, 1, 0), new Object[] { "#", "#", Character.valueOf('#'), Item.paper });
 		
 		File resourcesFolder = new File(Minecraft.getMinecraftDir(), "resources/");
 		File linkingsound = new File(resourcesFolder, "mod/mystlinkingbook/defaultlinkingsound.wav");
@@ -216,7 +216,7 @@ public class Mod_MystLinkingBook extends BaseMod {
 	}
 	
 	@Override
-	public boolean RenderWorldBlock(RenderBlocks renderblocks, IBlockAccess iblockaccess, int i, int j, int k, Block block, int l) {
+	public boolean renderWorldBlock(RenderBlocks renderblocks, IBlockAccess iblockaccess, int i, int j, int k, Block block, int l) {
 		// Taken from: RenderBlocks.renderBlockByRenderType:
 		// block.setBlockBoundsBasedOnState(iblockaccess, i, j, k);
 		renderblocks.renderStandardBlock(block, i, j, k);

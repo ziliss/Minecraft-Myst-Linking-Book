@@ -163,7 +163,7 @@ public class ItemBlockLinkingBook extends ItemBlock {
 			nbttagcompound = itemstack.getTagCompound();
 		}
 		if (!mod_MLB.linkingBook.isWritten(nbttagcompound)) {
-			ModLoader.OpenGUI(entityplayer, new GuiWriteLinkingBook(entityplayer, nbttagcompound, mod_MLB));
+			ModLoader.openGUI(entityplayer, new GuiWriteLinkingBook(entityplayer, nbttagcompound, mod_MLB));
 		}
 		return itemstack;
 	}

@@ -71,9 +71,9 @@ public class PrivateAccesses {
 	
 	public static PrivateField<InventoryBasic, ItemStack[]> InventoryBasic_inventoryContents = new PrivateField<InventoryBasic, ItemStack[]>(InventoryBasic.class, "InventoryBasic", "c", "inventoryContents", ItemStack[].class);
 	
-	public static PrivateField<Item, Integer> Item_maxStackSize = new PrivateField<Item, Integer>(Item.class, "Item", "bP", "maxStackSize", int.class);
+	public static PrivateField<Item, Integer> Item_maxStackSize = new PrivateField<Item, Integer>(Item.class, "Item", "bR", "maxStackSize", int.class);
 	
-	public static PrivateField<World, WorldInfo> World_worldInfo = new PrivateField<World, WorldInfo>(World.class, "World", "C", "worldInfo", WorldInfo.class);
+	public static PrivateField<World, WorldInfo> World_worldInfo = new PrivateField<World, WorldInfo>(World.class, "World", "x", "worldInfo", WorldInfo.class);
 	
 	// End of the private fields definitions.
 	
