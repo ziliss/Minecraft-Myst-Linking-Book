@@ -92,7 +92,7 @@ public class ContainerWriteLinkingBook extends Container {
 			itemstack = inventoryWriteLinkingBook.getStackInSlot(i);
 			if (itemstack != null) {
 				inventoryWriteLinkingBook.setInventorySlotContents(i, null);
-				entityplayer.func_48153_a(itemstack);	//Before 1.2.3, was: entityplayer.dropPlayerItem(itemstack);
+				entityplayer.dropPlayerItem(itemstack);
 			}
 		}
 		super.onCraftGuiClosed(entityplayer);

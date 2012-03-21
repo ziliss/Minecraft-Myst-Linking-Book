@@ -6,6 +6,7 @@ import net.minecraft.src.EntityPlayer;
 import net.minecraft.src.GuiButton;
 import net.minecraft.src.GuiScreen;
 import net.minecraft.src.GuiTextField;
+import net.minecraft.src.ModLoader;
 import net.minecraft.src.NBTTagCompound;
 
 import org.lwjgl.opengl.GL11;
@@ -48,7 +49,8 @@ public class GuiLinkingBook extends GuiScreen {
 	String missingPagesStr = null;
 	int missingPagesStrWidth;
 	
-	public GuiLinkingPanel linkingPanel;
+	LinkingPanel linkingPanel;
+	public GuiLinkingPanel guiLinkingPanel;
 	
 	// Using coordinates relative to those to draw everything:
 	int bookLeft;
@@ -63,15 +65,15 @@ public class GuiLinkingBook extends GuiScreen {
 	int pagesHeight = 170;
 	
 	/**
-	 * -1 means not started, a value between 0 and 1 represents the current progress of the linking.<br>
-	 * 
+	 * -1 means not started
 	 */
-	public float linkingProgress = -1;
-	public long linkingStartedTime;
-	public float defaultLinkingDuration = 2000f; // 2 seconds. (float is important for division !)
-	public float linkingDuration;
+	public int ticksBeforeLinking = -1;
+	public int defaultTicksBeforeLinking = 2 * 20;
+	public int maxTicksBeforeLinking;
 	
-	public boolean runGC;
+	public PositionKeeper positionKeeper;
+	
+	public boolean runGC = false;
 	
 	public GuiLinkingBook(EntityPlayer entityplayer, TileEntityLinkingBook tileEntityLinkingBook, Mod_MystLinkingBook mod_MLB) {
 		this.entityplayer = entityplayer;
@@ -82,15 +84,16 @@ public class GuiLinkingBook extends GuiScreen {
 	
 	@Override
 	public void initGui() {
-		linkingProgress = -1;
-		runGC = false;
+		if (linkingPanel == null) {
+			linkingPanel = tileEntityLinkingBook.linkingPanel.acquireLinkingPanel();
+		}
 		
 		bookLeft = (width - bookWidth) / 2;
 		bookTop = (height - bookHeight) / 2;
 		
 		controlList.clear();
-		linkingPanel = new GuiLinkingPanel(1, bookLeft + 149, bookTop + 21, 80, 60, this);
-		controlList.add(linkingPanel);
+		guiLinkingPanel = new GuiLinkingPanel(1, bookLeft + 149, bookTop + 21, 80, 60, linkingPanel, this);
+		controlList.add(guiLinkingPanel);
 		
 		savedName = mod_MLB.linkingBook.getName(nbttagcompound_linkingBook);
 		nameTextfield = new GuiTextField(this, fontRenderer, bookLeft + 12, bookTop + 26, 105, 14, savedName);
@@ -105,7 +108,7 @@ public class GuiLinkingBook extends GuiScreen {
 		
 		notifyColorChanged();
 		
-		linkingPanel.initGui();
+		guiLinkingPanel.initGui();
 		
 		tileEntityLinkingBook.guiLinkingBook = this;
 	}
@@ -116,7 +119,7 @@ public class GuiLinkingBook extends GuiScreen {
 	
 	@Override
 	protected void mouseClicked(int i, int j, int k) {
-		if (linkingProgress != -1) return;
+		if (ticksBeforeLinking != -1) return;
 		// The following part is taken from GuiScreen.mouseClicked(...):
 		if (k == 0) {
 			for (int l = 0; l < controlList.size(); l++) {
@@ -125,7 +128,7 @@ public class GuiLinkingBook extends GuiScreen {
 					
 					PrivateAccesses.GuiScreen_selectedButton.setTo(this, guibutton);
 					
-					if (guibutton != linkingPanel) {
+					if (guibutton != guiLinkingPanel) {
 						mc.sndManager.playSoundFX("random.click", 1.0F, 1.0F);
 					}
 					actionPerformed(guibutton);
@@ -141,7 +144,7 @@ public class GuiLinkingBook extends GuiScreen {
 	
 	@Override
 	protected void keyTyped(char c, int i) {
-		if (linkingProgress != -1) return;
+		if (ticksBeforeLinking != -1) return;
 		super.keyTyped(c, i);
 		if (editName && nameTextfield.isEnabled && nameTextfield.isFocused) {
 			if (i == 28 || i == 156) {
@@ -159,15 +162,17 @@ public class GuiLinkingBook extends GuiScreen {
 	
 	@Override
 	protected void actionPerformed(GuiButton guibutton) {
-		if (guibutton == linkingPanel && linkingPanel.updateCanLink()) {
-			linkingProgress = 0;
+		if (guibutton == guiLinkingPanel && guiLinkingPanel.updateCanLink()) {
+			maxTicksBeforeLinking = defaultTicksBeforeLinking;
 			runGC = mod_MLB.linkingBook.doLinkChangesDimension(nbttagcompound_linkingBook, entityplayer);
-			linkingDuration = defaultLinkingDuration;
+			
 			if (runGC) {
-				linkingDuration -= 200;
+				maxTicksBeforeLinking -= 4; // 0.2 seconds
 			}
 			
-			linkingPanel.startLinking();
+			ticksBeforeLinking = maxTicksBeforeLinking;
+			
+			guiLinkingPanel.startLinking();
 			
 			if (editName) {
 				nameTextfield.setFocused(false);
@@ -176,12 +181,13 @@ public class GuiLinkingBook extends GuiScreen {
 			
 			mod_MLB.linkingBook.prepareLinking(nbttagcompound_linkingBook, entityplayer);
 			
-			linkingStartedTime = System.currentTimeMillis();
-			
 			Mod_MystLinkingBook.playSoundFX("mystlinkingbook.linkingsound", 1.0F, 1.0F);
 			// ModLoader.getMinecraftInstance().sndManager.playSoundFX("mystlinkingbook.linkingsound", 1.0F, 1.0F);
 			// ModLoader.getMinecraftInstance().sndManager.playSound("mystlinkingbook.linkingsound", (float)entityplayer.posX, (float)entityplayer.posY, (float)entityplayer.posZ, 1.0F, 1.0F);
 			// entityplayer.worldObj.playSoundAtEntity(entityplayer, "mystlinkingbook.linkingsound", 1.0F, 1.0F);
+			
+			positionKeeper = new PositionKeeper(entityplayer, false, mod_MLB);
+			positionKeeper.start();
 		}
 	}
 	
@@ -193,7 +199,11 @@ public class GuiLinkingBook extends GuiScreen {
 	@Override
 	public void onGuiClosed() {
 		saveName();
-		linkingPanel.onGuiClosed();
+		if (positionKeeper != null) {
+			positionKeeper.stop();
+		}
+		guiLinkingPanel.onGuiClosed();
+		linkingPanel.releaseLinkingPanel();
 		if (tileEntityLinkingBook.guiLinkingBook == this) {
 			tileEntityLinkingBook.guiLinkingBook = null;
 		}
@@ -214,7 +224,7 @@ public class GuiLinkingBook extends GuiScreen {
 	}
 	
 	public void notifyPowerStateChanged(boolean isPowered) {
-		linkingPanel.notifyPowerStateChanged(isPowered);
+		guiLinkingPanel.notifyPowerStateChanged(isPowered);
 	}
 	
 	public void updateNbMissingPages() {
@@ -228,21 +238,35 @@ public class GuiLinkingBook extends GuiScreen {
 			missingPagesStr = "";
 		}
 		missingPagesStrWidth = fontRenderer.getStringWidth(missingPagesStr);
-		linkingPanel.updateCanLink();
+		guiLinkingPanel.updateCanLink();
 	}
 	
-	public void updateLinkingProgress() {
-		linkingProgress = (System.currentTimeMillis() - linkingStartedTime) / linkingDuration;
-		if (linkingProgress < 0) {
-			linkingProgress = 0;
-		}
-		else if (linkingProgress > 1) {
-			linkingProgress = 1;
+	@Override
+	public void updateScreen() {
+		if (ticksBeforeLinking != -1) {
+			ticksBeforeLinking--;
+			
+			if (ticksBeforeLinking == 1 && runGC) {
+				runGC = false;
+				// Shortens the System.gc() run after teleporting to another dimension. See end of: Minecraft.changeWorld()
+				System.gc();
+			}
+			else if (ticksBeforeLinking == 0) {
+				mc.displayGuiScreen(null);
+				boolean linked = mod_MLB.linkingBook.link(nbttagcompound_linkingBook, entityplayer);
+				if (linked) {
+					ModLoader.openGUI(entityplayer, new GuiAfterLinking(entityplayer, tileEntityLinkingBook, mod_MLB));
+				}
+			}
 		}
 	}
 	
 	public void notifyColorChanged() {
 		pagesColor = ItemPage.brighterColorTable[nbttagcompound_linkingBook.getInteger("color")];
+	}
+	
+	public void notifyLinkingPanelImageChanged(LinkingPanel linkingPanel) {
+		guiLinkingPanel.notifyLinkingPanelImageChanged(linkingPanel);
 	}
 	
 	@Override
@@ -270,20 +294,9 @@ public class GuiLinkingBook extends GuiScreen {
 		
 		super.drawScreen(mouseX, mouseY, f);
 		
-		if (linkingProgress != -1) {
-			updateLinkingProgress();
-			drawRect(0, 0, width, height, (int)(linkingProgress * 0xff) * 0x01000000);
-			
-			if (linkingProgress > 0.95 && runGC) {
-				runGC = false;
-				// Shortens the System.gc() run after teleporting to another dimension. See end of: Minecraft.changeWorld()
-				System.gc();
-				updateLinkingProgress();
-			}
-			if (linkingProgress == 1) {
-				mc.displayGuiScreen(null);
-				mod_MLB.linkingBook.link(nbttagcompound_linkingBook, entityplayer);
-			}
+		if (ticksBeforeLinking != -1) {
+			int alpha = (int)((maxTicksBeforeLinking - (ticksBeforeLinking - f)) * 0xff) / maxTicksBeforeLinking;
+			drawRect(0, 0, width, height, alpha * 0x01000000);
 		}
 	}
 }

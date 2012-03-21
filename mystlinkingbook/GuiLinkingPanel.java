@@ -30,6 +30,8 @@ public class GuiLinkingPanel extends GuiButton {
 	 */
 	public boolean isPowered;
 	
+	public LinkingPanel linkingPanel = null;
+	
 	/**
 	 * True if the linking book links to another Age.
 	 */
@@ -50,8 +52,9 @@ public class GuiLinkingPanel extends GuiButton {
 	Cursor originalCursor;
 	static Cursor linkCursor = new Cursor(Cursor.HAND_CURSOR);
 	
-	public GuiLinkingPanel(int id, int xPosition, int yPosition, int width, int height, GuiLinkingBook guiLinkingBook) {
+	public GuiLinkingPanel(int id, int xPosition, int yPosition, int width, int height, LinkingPanel linkingPanel, GuiLinkingBook guiLinkingBook) {
 		super(id, xPosition, yPosition, width, height, "");
+		this.linkingPanel = linkingPanel;
 		this.guiLinkingBook = guiLinkingBook;
 	}
 	
@@ -68,6 +71,10 @@ public class GuiLinkingPanel extends GuiButton {
 	public void notifyPowerStateChanged(boolean isPowered) {
 		this.isPowered = isPowered;
 		canLink = guiLinkingBook.missingPages == 0 && (isUnstable ? isPowered : true) && !linkingStarted;
+	}
+	
+	public void notifyLinkingPanelImageChanged(LinkingPanel linkingPanel) {
+		this.linkingPanel = linkingPanel;
 	}
 	
 	public boolean canLink() {
@@ -107,12 +114,6 @@ public class GuiLinkingPanel extends GuiButton {
 			}
 		}
 		
-		drawRect(xPosition, yPosition, xPosition + width, yPosition + height, 0xff000000);
-		
-		/*minecraft.renderEngine.bindTexture(minecraft.renderEngine.getTexture(Mod_MystLinkingBook.resourcesPath + "tempPanel.png"));
-		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-		drawTexturedModalRect(xPosition, yPosition, 108, 36, width, height);*/
-		
-		// drawRect(xPosition, yPosition, width, height, 0x88ff0000);
+		linkingPanel.drawOnGui(xPosition, yPosition, 80, 60);
 	}
 }

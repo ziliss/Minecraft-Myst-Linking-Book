@@ -4,6 +4,7 @@ import java.util.Random;
 
 import net.minecraft.src.Block;
 import net.minecraft.src.BlockContainer;
+import net.minecraft.src.Entity;
 import net.minecraft.src.EntityItem;
 import net.minecraft.src.EntityLiving;
 import net.minecraft.src.EntityPlayer;
@@ -83,7 +84,7 @@ public class BlockLinkingBook extends BlockContainer {
 	 */
 	@Override
 	public TileEntity getBlockEntity() {
-		return new TileEntityLinkingBook();
+		return new TileEntityLinkingBook(mod_MLB);
 	}
 	
 	@Override
@@ -155,7 +156,7 @@ public class BlockLinkingBook extends BlockContainer {
 		NBTTagCompound nbttagcompound_linkingBook = tileEntityLinkingBook.nbttagcompound_linkingBook;
 		
 		ItemStack currentItem = entityplayer.inventory.getCurrentItem();
-		boolean canUseBook = tileEntityLinkingBook.field_40059_f >= 1f && tileEntityLinkingBook.isInRange(entityplayer);
+		boolean canUseBook = tileEntityLinkingBook.bookSpread >= 1f && tileEntityLinkingBook.isInRange(entityplayer);
 		if (!canUseBook) return false;
 		
 		Class openGui = null;
@@ -170,6 +171,7 @@ public class BlockLinkingBook extends BlockContainer {
 					if (currentItem.stackSize == 0) {
 						entityplayer.inventory.mainInventory[entityplayer.inventory.currentItem] = null;
 					}
+					tileEntityLinkingBook.notifyNbMissingPagesChanged();
 				}
 			}
 		}
@@ -189,6 +191,7 @@ public class BlockLinkingBook extends BlockContainer {
 				// End of the part from BlockChest.onBlockRemoval(...).
 				
 				currentItem.damageItem(1, entityplayer);
+				tileEntityLinkingBook.notifyNbMissingPagesChanged();
 			}
 		}
 		else if (currentItem.itemID == Item.feather.shiftedIndex) {
@@ -209,20 +212,25 @@ public class BlockLinkingBook extends BlockContainer {
 		}
 		else if (currentItem.itemID == Item.stick.shiftedIndex) { // For debugging only
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.pickaxeDiamond, 1, 0));
+			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Block.torchWood, 64, 0));
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Block.wood, 64, 0));
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.feather, 64, 0));
-			entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.paper, 64, 0));
+			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.paper, 64, 0));
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.dyePowder, 64, 0)); // Damage must be 0 here to get the ink sack.
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.redstone, 64, 0));
-			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Block.cloth, 64, 0)); // Damage 0 is the white wool.
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.flintAndSteel, 1, 0));
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Block.obsidian, 64, 0));
+			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.painting, 1, 0));
+			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Block.cloth, 64, 0)); // Damage 0 is the white wool.
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Block.grass, 64, 0));
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Block.snow, 64, 0));
+			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.monsterPlacer, 64, 93)); // Chickens spawners
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.dyePowder, 64, 14));
 			for (int d = 0; d < 0; d++) {
 				entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.dyePowder, 64, d));
 			}
+			// mod_MLB.mc.theWorld.getWorldInfo().setWorldTime(5000);
+			// mod_MLB.mc.theWorld.getWorldInfo().setRaining(false);
 		}
 		else {
 			openGui = GuiLinkingBook.class;
@@ -235,6 +243,30 @@ public class BlockLinkingBook extends BlockContainer {
 			ModLoader.openGUI(entityplayer, new GuiLookOfLinkingBook(entityplayer, tileEntityLinkingBook, mod_MLB));
 		}
 		return true;
+	}
+	
+	@Override
+	public void onEntityWalking(World world, int i, int j, int k, Entity entity) {
+		super.onEntityWalking(world, i, j, k, entity);
+		linkEntity(i, j, k, entity);
+	}
+	
+	@Override
+	public void onFallenUpon(World world, int i, int j, int k, Entity entity, float f) {
+		super.onFallenUpon(world, i, j, k, entity, f);
+		linkEntity(i, j, k, entity);
+	}
+	
+	public void linkEntity(int i, int j, int k, Entity entity) {
+		if (entity instanceof EntityLiving && !(entity instanceof EntityPlayer)) {
+			World world = entity.worldObj;
+			TileEntityLinkingBook tileEntityLinkingBook = (TileEntityLinkingBook)world.getBlockTileEntity(i, j, k);
+			if (tileEntityLinkingBook.bookSpread >= 1f) {
+				world.playSoundAtEntity(entity, "mystlinkingbook.linkingsound", 1.0F, 1.0F);
+				// world.playSoundEffect(i + 0.5D, j + 1.1D, k + 0.5D, "mystlinkingbook.linkingsound", 1.0F, 1.0F);
+				new LinkingEntity(entity, tileEntityLinkingBook, mod_MLB);
+			}
+		}
 	}
 	
 	@Override

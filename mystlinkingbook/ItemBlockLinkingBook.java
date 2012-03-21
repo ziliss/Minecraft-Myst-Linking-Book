@@ -79,7 +79,7 @@ public class ItemBlockLinkingBook extends ItemBlock {
 	 */
 	@Override
 	public void onCreated(ItemStack itemstack, World world, EntityPlayer entityplayer) {
-		itemstack.setTagCompound(new NBTTagCompound());
+		itemstack.setTagCompound(mod_MLB.linkingBook.createNew());
 	}
 	
 	/**
@@ -92,7 +92,7 @@ public class ItemBlockLinkingBook extends ItemBlock {
 	 */
 	@Override
 	public boolean onItemUse(ItemStack itemstack, EntityPlayer entityplayer, World world, int i, int j, int k, int l) {
-		NBTTagCompound nbttagcompound = itemstack.getTagCompound();
+		NBTTagCompound nbttagcompound = mod_MLB.linkingBook.checkAndUpdateOldFormat(itemstack.getTagCompound());
 		// In case onCreated() was not called on this item:
 		if (nbttagcompound == null) {
 			onCreated(itemstack, world, entityplayer);
@@ -140,9 +140,7 @@ public class ItemBlockLinkingBook extends ItemBlock {
 					tileEntity = (TileEntityLinkingBook)mod_MLB.blockLinkingBook.getBlockEntity();
 					world.setBlockTileEntity(i, j, k, tileEntity);
 				}
-				tileEntity.nbttagcompound_linkingBook = nbttagcompound;
-				tileEntity.notifyColorChanged();
-				tileEntity.onNeighborBlockChange(Block.redstoneWire.blockID);
+				tileEntity.onPlacedInWorld(nbttagcompound);
 				return true;
 			}
 		}

@@ -7,6 +7,7 @@ import net.minecraft.src.MathHelper;
 import net.minecraft.src.ModelBase;
 import net.minecraft.src.ModelBook;
 import net.minecraft.src.ModelRenderer;
+import net.minecraft.src.Tessellator;
 
 import org.lwjgl.opengl.GL11;
 
@@ -20,6 +21,10 @@ import org.lwjgl.opengl.GL11;
  * @since 0.3a
  */
 public class ModelLinkingBook extends ModelBase {
+	ImagesOnTextureManager itm;
+	
+	public Tessellator tessellator = Tessellator.instance;
+	
 	public ModelRenderer coverLeft;
 	public ModelRenderer coverRight;
 	public ModelRenderer pagesLeft;
@@ -29,12 +34,13 @@ public class ModelLinkingBook extends ModelBase {
 	public ModelRenderer pagesLeftTransparent;
 	public ModelRenderer pagesRightTransparent;
 	
-	public float lastOpening = -1;
+	public float lastBookSpread = -1;
 	
 	public static final float PI = (float)Math.PI;
 	public static final float halfPI = PI / 2f;
 	
-	public ModelLinkingBook() {
+	public ModelLinkingBook(ImagesOnTextureManager itm) {
+		this.itm = itm;
 		coverLeft = new ModelRenderer(this).setTextureOffset(0, 0).addBox(-6F, -3F, 0.0F, 6, 10, 0);
 		coverRight = new ModelRenderer(this).setTextureOffset(16, 0).addBox(0.0F, -3F, 0.0F, 6, 10, 0);
 		bookSpine = new ModelRenderer(this).setTextureOffset(12, 0).addBox(-2F, -3F, 0.0F, 2, 10, 0);
@@ -69,45 +75,45 @@ public class ModelLinkingBook extends ModelBase {
 		pagesRight.rotationPointX -= 1;
 		pagesLeftTransparent.rotationPointX -= 1;
 		pagesRightTransparent.rotationPointX -= 1;
-		
 	}
 	
 	private float count = 0;
 	
-	public void render(float opening, Color color, String bookName, FontRenderer fontrenderer, float f5) {
+	public void render(float bookSpread, Color color, String bookName, LinkingPanel linkingPanel, FontRenderer fontrenderer) {
+		float renderScale = 1 / 16f; // The float f5 = 0.0625F value.
 		GL11.glPushMatrix();
 		
-		float angleOpen = halfPI * opening;
+		float angleOpen = halfPI * bookSpread;
 		
-		if (opening != lastOpening) {
+		if (bookSpread != lastBookSpread) {
 			setRotationAngles(angleOpen);
-			lastOpening = opening;
+			lastBookSpread = bookSpread;
 		}
 		// Lateral translation of the book when opening + replace the origin at 10/16f:
 		GL11.glTranslatef(((MathHelper.cos(angleOpen) + 1f) * -4f + 5) / 16f, 10 / 16f, 0);
 		// Make the right cover stay in place:
-		GL11.glRotatef(90 * (opening - 1), 0, 1, 0);
+		GL11.glRotatef(90 * (bookSpread - 1), 0, 1, 0);
 		
-		coverLeft.render(f5);
-		coverRight.render(f5);
-		bookSpine.render(f5);
+		coverLeft.render(renderScale);
+		coverRight.render(renderScale);
+		bookSpine.render(renderScale);
 		
 		GL11.glColor3ub((byte)color.getRed(), (byte)color.getGreen(), (byte)color.getBlue());
-		if (opening <= 0.01f || opening >= 0.99f) {
+		if (bookSpread <= 0.01f || bookSpread >= 0.99f) {
 			pagesLeftTransparent.rotateAngleY = pagesLeft.rotateAngleY;
 			pagesLeftTransparent.rotationPointZ = pagesLeft.rotationPointZ;
 			pagesRightTransparent.rotateAngleY = pagesRight.rotateAngleY;
 			pagesRightTransparent.rotationPointZ = pagesRight.rotationPointZ;
-			pagesLeftTransparent.render(f5);
-			pagesRightTransparent.render(f5);
+			pagesLeftTransparent.render(renderScale);
+			pagesRightTransparent.render(renderScale);
 		}
 		else {
-			pagesLeft.render(f5);
-			pagesRight.render(f5);
+			pagesLeft.render(renderScale);
+			pagesRight.render(renderScale);
 		}
 		GL11.glColor4f(1, 1, 1, 1);
 		
-		if (opening > 0f) {
+		if (bookSpread > 0f) {
 			// Follow the slight up and down movement of the pages:
 			float d = MathHelper.sin(angleOpen);
 			
@@ -118,8 +124,20 @@ public class ModelLinkingBook extends ModelBase {
 			
 			// Move to the center of the book, following the pages up and down movements:
 			GL11.glTranslatef(-1f, 4f, -d - 0.01f);
+			
+			GL11.glPushMatrix();
+			
+			// Follow right pages rotation:
+			GL11.glRotatef(-90 * (bookSpread - 1), 0, 1f, 0);
+			// Set at the right place on the right page:
+			GL11.glTranslatef(1f, 0, 0);
+			
+			linkingPanel.draw(0, 0, 4, 3);
+			
+			GL11.glPopMatrix();
+			
 			// Follow left pages rotation:
-			GL11.glRotatef(90 * (opening - 1), 0, 1f, 0);
+			GL11.glRotatef(90 * (bookSpread - 1), 0, 1f, 0);
 			// Set at the right place on the left page:
 			GL11.glTranslatef(-3f, 0.5f, 0);
 			// Set the size of the font:
@@ -145,6 +163,7 @@ public class ModelLinkingBook extends ModelBase {
 	
 	// This method is for debugging only:
 	public static final void drawOrigin() {
+		// System.out.println(GL11.glGetError());
 		boolean GL_TEXTURE_2D_enabled = GL11.glIsEnabled(GL11.GL_TEXTURE_2D);
 		boolean GL_DEPTH_TEST_enabled = GL11.glIsEnabled(GL11.GL_DEPTH_TEST);
 		boolean GL_BLEND_enabled = GL11.glIsEnabled(GL11.GL_BLEND);
@@ -152,7 +171,8 @@ public class ModelLinkingBook extends ModelBase {
 		GL11.glDisable(GL11.GL_DEPTH_TEST);
 		GL11.glDisable(GL11.GL_BLEND);
 		
-		// GL11.glPointSize(1);
+		float originalPointSize = GL11.glGetFloat(GL11.GL_POINT_SIZE);
+		GL11.glPointSize(2);
 		GL11.glColor3f(0, 1, 1);
 		
 		// Draw a point at the origine:
@@ -172,6 +192,8 @@ public class ModelLinkingBook extends ModelBase {
 		GL11.glVertex3f(0, 0, 0);
 		GL11.glVertex3f(0, 0, 1);
 		GL11.glEnd();
+		
+		GL11.glPointSize(originalPointSize);
 		
 		if (GL_TEXTURE_2D_enabled) {
 			GL11.glEnable(GL11.GL_TEXTURE_2D);

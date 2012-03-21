@@ -1,10 +1,14 @@
 package net.minecraft.src.mystlinkingbook;
 
+import java.awt.image.BufferedImage;
+import java.util.Collections;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.src.BlockCloth;
+import net.minecraft.src.Chunk;
 import net.minecraft.src.ChunkProviderLoadOrGenerate;
+import net.minecraft.src.Entity;
 import net.minecraft.src.EntityPlayer;
-import net.minecraft.src.EntityPlayerSP;
 import net.minecraft.src.IChunkProvider;
 import net.minecraft.src.ModLoader;
 import net.minecraft.src.NBTTagCompound;
@@ -30,18 +34,97 @@ public class LinkingBook {
 	
 	public AgesManager agesManager = new AgesManager();
 	
-	public LinkingBook() {
+	public ImagesOnTextureManager itm;;
+	
+	public LinkingBook(ImagesOnTextureManager itm) {
+		this.itm = itm;
 	}
 	
 	public boolean isWritten(NBTTagCompound nbttagcompound) {
 		return nbttagcompound.getBoolean("dest");
 	}
 	
+	public NBTTagCompound createNew() {
+		NBTTagCompound nbttagcompound = new NBTTagCompound();
+		// nbttagcompound.setByte("ver", (byte)0);
+		return nbttagcompound;
+	}
+	
+	// Only for current versions!
+	NBTTagCompound cleanup(NBTTagCompound oldNbttagcompound) {
+		NBTTagCompound nbttagcompound = createNew();
+		byte ver = oldNbttagcompound.getByte("ver");
+		if (ver != 0) {
+			nbttagcompound.setByte("ver", ver);
+		}
+		if (nbttagcompound.getBoolean("dest")) {
+			nbttagcompound.setBoolean("dest", true);
+			nbttagcompound.setDouble("destX", oldNbttagcompound.getDouble("destX"));
+			nbttagcompound.setDouble("destY", oldNbttagcompound.getDouble("destY"));
+			nbttagcompound.setDouble("destZ", oldNbttagcompound.getDouble("destZ"));
+			nbttagcompound.setFloat("destRotYaw", oldNbttagcompound.getFloat("destRotYaw"));
+			nbttagcompound.setFloat("destRotPitch", oldNbttagcompound.getFloat("destRotPitch"));
+			nbttagcompound.setInteger("destDim", oldNbttagcompound.getInteger("destDim"));
+			nbttagcompound.setInteger("nbPages", oldNbttagcompound.getInteger("nbPages"));
+			nbttagcompound.setInteger("maxPages", oldNbttagcompound.getInteger("maxPages"));
+			nbttagcompound.setBoolean("unstable", oldNbttagcompound.getBoolean("unstable"));
+			int color = oldNbttagcompound.getInteger("color");
+			if (color != 0) {
+				nbttagcompound.setInteger("color", color);
+			}
+			boolean stayOpen = oldNbttagcompound.getBoolean("stayOpen");
+			if (stayOpen) {
+				nbttagcompound.setBoolean("stayOpen", true);
+			}
+			String name = oldNbttagcompound.getString("name");
+			if (name.length() > 0) {
+				nbttagcompound.setString("name", name);
+			}
+			byte imgVer = oldNbttagcompound.getByte("imgVer");
+			byte[] imageDatas;
+			switch (imgVer) {
+				case 1:
+					imageDatas = oldNbttagcompound.getByteArray("img");
+					if (imageDatas != null && imageDatas.length > 0) {
+						nbttagcompound.setByte("imgVer", imgVer);
+						nbttagcompound.setByteArray("img", imageDatas);
+					}
+					break;
+				case 2:
+					imageDatas = oldNbttagcompound.getByteArray("img");
+					if (imageDatas != null && imageDatas.length > 0) {
+						nbttagcompound.setByte("imgVer", imgVer);
+						nbttagcompound.setByteArray("img", imageDatas);
+					}
+					break;
+			}
+		}
+		return nbttagcompound;
+	}
+	
+	public NBTTagCompound checkAndUpdateOldFormat(NBTTagCompound nbttagcompound) {
+		if (nbttagcompound == null) return null;
+		
+		boolean updated = false;
+		
+		double destY = nbttagcompound.getDouble("destY");
+		if (destY - (int)destY == 0.62f) {
+			System.out.println("Removing yOffset from destY");
+			nbttagcompound.setDouble("destY", destY - 1.62f);
+		}
+		else if (destY - (int)destY == 0f) {
+			// System.out.println("Adding yOffset to destY");
+			// nbttagcompound.setDouble("destY", destY + 1.62f);
+		}
+		
+		return updated ? cleanup(nbttagcompound) : nbttagcompound;
+	}
+	
 	public boolean write(NBTTagCompound nbttagcompound, EntityPlayer entityplayer, int nbPages, boolean unstable) {
 		if (nbttagcompound.getBoolean("dest")) return false;
 		nbttagcompound.setBoolean("dest", true);
 		nbttagcompound.setDouble("destX", entityplayer.posX);
-		nbttagcompound.setDouble("destY", entityplayer.posY);
+		nbttagcompound.setDouble("destY", entityplayer.posY - entityplayer.yOffset);
 		nbttagcompound.setDouble("destZ", entityplayer.posZ);
 		nbttagcompound.setFloat("destRotYaw", entityplayer.rotationYaw);
 		nbttagcompound.setFloat("destRotPitch", entityplayer.rotationPitch);
@@ -112,11 +195,44 @@ public class LinkingBook {
 		return nbttagcompound.getBoolean("unstable");
 	}
 	
+	public boolean getStayOpen(NBTTagCompound nbttagcompound) {
+		return nbttagcompound.getBoolean("stayOpen");
+	}
+	
+	public void setStayOpen(NBTTagCompound nbttagcompound, boolean stayOpen) {
+		nbttagcompound.setBoolean("stayOpen", stayOpen);
+	}
+	
+	public BufferedImage getLinkingPanelImage(NBTTagCompound nbttagcompound) {
+		byte imgVer = nbttagcompound.getByte("imgVer");
+		switch (imgVer) {
+			case 1:
+				return itm.getImageFromRawBytes(nbttagcompound.getByteArray("img"), 80, 60);
+			case 2:
+				return itm.getImageFromPNGBytes(nbttagcompound.getByteArray("img"));
+			default:
+				return null;
+		}
+	}
+	
+	public void setLinkingPanelImage(NBTTagCompound nbttagcompound, BufferedImage image) {
+		byte imgVer = 2;
+		nbttagcompound.setByte("imgVer", imgVer);
+		switch (imgVer) {
+			case 1:
+				nbttagcompound.setByteArray("img", itm.getRawBytesFromImage(image));
+				break;
+			case 2:
+				nbttagcompound.setByteArray("img", itm.getPNGBytesFromImage(image));
+				break;
+		}
+	}
+	
 	public boolean doLinkToDifferentAge(TileEntityLinkingBook tileEntityLinkingBook, EntityPlayer entityplayer) {
 		NBTTagCompound nbttagcompound = tileEntityLinkingBook.nbttagcompound_linkingBook;
 		if (!nbttagcompound.getBoolean("dest")) return false;
 		int destX = (int)nbttagcompound.getDouble("destX");
-		int destY = (int)(nbttagcompound.getDouble("destY") - entityplayer.yOffset); // yOffset: prevent the tiny jump when teleporting
+		int destY = (int)nbttagcompound.getDouble("destY");
 		int destZ = (int)nbttagcompound.getDouble("destZ");
 		int destDim = nbttagcompound.getInteger("destDim");
 		int bookX = tileEntityLinkingBook.xCoord;
@@ -131,55 +247,50 @@ public class LinkingBook {
 	}
 	
 	public void prepareLinking(NBTTagCompound nbttagcompound, EntityPlayer entityplayer) {
+		if ("".length() == 0) return;
 		if (!nbttagcompound.getBoolean("dest")) return;
 		int destX = (int)nbttagcompound.getDouble("destX");
-		int destY = (int)(nbttagcompound.getDouble("destY") - entityplayer.yOffset); // yOffset: prevent the tiny jump when teleporting
+		int destY = (int)nbttagcompound.getDouble("destY");
 		int destZ = (int)nbttagcompound.getDouble("destZ");
 		int destDim = nbttagcompound.getInteger("destDim");
-		if (destDim == entityplayer.dimension) {
-			linkPreloader.preloadDestination(destX, destY, destZ);
-		}
-		else {
-			linkPreloader.preloadDestination(destX, destY, destZ, destDim);
-		}
+		linkPreloader.preloadDestination(entityplayer.worldObj, destX, destY, destZ, destDim);
 	}
 	
-	public boolean link(NBTTagCompound nbttagcompound, EntityPlayer entityplayer) {
+	public boolean link(NBTTagCompound nbttagcompound, Entity entity) {
 		if (nbttagcompound.getBoolean("dest")) {
+			entity.setVelocity(0, 0, 0);
+			entity.fallDistance = 0f;
+			
 			double destX = nbttagcompound.getDouble("destX");
-			double destY = nbttagcompound.getDouble("destY") - entityplayer.yOffset; // yOffset: prevent the tiny jump when teleporting
+			double destY = nbttagcompound.getDouble("destY");
 			double destZ = nbttagcompound.getDouble("destZ");
 			float destRotYaw = nbttagcompound.getFloat("destRotYaw");
 			float destRotPitch = nbttagcompound.getFloat("destRotPitch");
+			int curDim = entity.worldObj.worldProvider.worldType;
 			int destDim = nbttagcompound.getInteger("destDim");
 			String bookName = getName(nbttagcompound);
 			
-			if (destDim == entityplayer.dimension) {
-				teleport(destX, destY, destZ, destRotYaw, destRotPitch, bookName, entityplayer);
+			if (destDim == curDim) {
+				teleport(destX, destY, destZ, destRotYaw, destRotPitch, bookName, entity);
 				return true;
 			}
 			else {
-				teleport(destX, destY, destZ, destRotYaw, destRotPitch, destDim, bookName, entityplayer);
+				teleport(destX, destY, destZ, destRotYaw, destRotPitch, destDim, bookName, entity);
 				return true;
 			}
 		}
 		return false;
 	}
 	
-	public void teleport(double destX, double destY, double destZ, float destRotYaw, float destRotPitch, String bookName, EntityPlayer entityplayer) {
-		entityplayer.setLocationAndAngles(destX, destY, destZ, destRotYaw, destRotPitch);
+	public void teleport(double destX, double destY, double destZ, float destRotYaw, float destRotPitch, String bookName, Entity entity) {
+		Chunk chunk = entity.worldObj.getChunkFromBlockCoords((int)destX, (int)destZ); // Load or generate the needed chunk.
+		entity.setLocationAndAngles(destX, destY, destZ, destRotYaw, destRotPitch);
+		entity.worldObj.updateEntityWithOptionalForce(entity, true);
+		chunk.isModified = true; // Because it is not set in Chunk.addEntity()
 	}
 	
-	public void teleport(double destX, double destY, double destZ, float destRotYaw, float destRotPitch, int destDim, String bookName, EntityPlayer entityplayer) {
-		Minecraft mc = ModLoader.getMinecraftInstance();
-		World theWorld = mc.theWorld;
-		EntityPlayerSP thePlayer = mc.thePlayer;
-		
-		// Inspired by Minecraft.usePortal(int i):
-		int curDim = thePlayer.dimension;
-		thePlayer.dimension = destDim;
-		theWorld.setEntityDead(thePlayer);
-		thePlayer.isDead = false;
+	public void teleport(double destX, double destY, double destZ, float destRotYaw, float destRotPitch, int destDim, String bookName, Entity entity) {
+		World theWorld = entity.worldObj;
 		
 		World newWorld = linkPreloader.getWorld();
 		if (newWorld != null && newWorld.worldProvider.worldType != destDim) {
@@ -188,38 +299,61 @@ public class LinkingBook {
 		if (newWorld == null) {
 			newWorld = new World(theWorld, WorldProvider.getProviderForDimension(destDim));
 		}
+		Chunk chunk = newWorld.getChunkFromBlockCoords((int)destX, (int)destZ); // Load or generate the needed chunk.
 		
-		thePlayer.setLocationAndAngles(destX, destY, destZ, destRotYaw, destRotPitch);
-		if (thePlayer.isEntityAlive()) {
+		if (entity instanceof EntityPlayer) {
+			EntityPlayer entityplayer = (EntityPlayer)entity;
+			
+			// This is a workaround for a weird bug I called the "speed bug".
+			// I don't know why, but sometimes after teleporting quickly multiple times to the same dimension, the player is in this list.
+			// Maybe a chunkloader cache bug ?
+			if (newWorld.loadedEntityList.contains(entityplayer)) {
+				newWorld.unloadEntities(Collections.singletonList(entity));
+				newWorld.updateEntityList();
+				
+				// newWorld.loadedEntityList.remove(entityplayer);
+				// This should be called, but it is a protected method:
+				// newWorld.releaseEntitySkin(entityplayer);
+			}
+			
+			// Inspired by Minecraft.usePortal(int i):
+			int curDim = entityplayer.dimension;
+			theWorld.setEntityDead(entityplayer);
+			entityplayer.isDead = false;
+			entityplayer.dimension = destDim;
+			
+			entityplayer.setLocationAndAngles(destX, destY, destZ, destRotYaw, destRotPitch);
 			// Is the following not useful ?
-			newWorld.updateEntityWithOptionalForce(thePlayer, false);
+			newWorld.updateEntityWithOptionalForce(entityplayer, true);
+			
+			ModLoader.getMinecraftInstance().changeWorld(newWorld, "Linking to " + bookName, entityplayer);
+			
+			entityplayer.worldObj = newWorld;
+			System.out.println("Teleported to " + newWorld.worldProvider.worldType);
+			entityplayer.setLocationAndAngles(destX, destY, destZ, destRotYaw, destRotPitch);
+			newWorld.updateEntityWithOptionalForce(entityplayer, true);
+			
+			while (Keyboard.next()) {
+				// KeyBinding.setKeyBindState(Keyboard.getEventKey(), Keyboard.getEventKeyState());
+			}
+			while (Mouse.next()) {
+			}
 		}
-		
-		// This is a workaround for a weird bug I called the "speed bug".
-		// I don't know why, but sometimes after teleporting quickly multiple times to the same dimension, the player is in this list.
-		// Maybe a chunkloader cache bug ?
-		if (newWorld.loadedEntityList.contains(thePlayer)) {
-			newWorld.loadedEntityList.remove(thePlayer);
-		}
-		
-		mc.changeWorld(newWorld, "Linking to " + bookName, thePlayer);
-		
-		thePlayer = mc.thePlayer; // Just in case.
-		thePlayer.worldObj = newWorld;
-		System.out.println("Teleported to " + newWorld.worldProvider.worldType);
-		if (thePlayer.isEntityAlive()) {
-			thePlayer.setLocationAndAngles(destX, destY, destZ, destRotYaw, destRotPitch);
-			newWorld.updateEntityWithOptionalForce(thePlayer, false);
-		}
-		
-		while (Keyboard.next()) {
-			// KeyBinding.setKeyBindState(Keyboard.getEventKey(), Keyboard.getEventKeyState());
-		}
-		while (Mouse.next()) {
+		else {
+			theWorld.unloadEntities(Collections.singletonList(entity));
+			theWorld.updateEntityList();
+			
+			entity.setLocationAndAngles(destX, destY, destZ, destRotYaw, destRotPitch);
+			newWorld.spawnEntityInWorld(entity);
+			entity.setWorld(newWorld);
+			newWorld.updateEntityWithOptionalForce(entity, true);
+			chunk.isModified = true; // Because it is not set in Chunk.addEntity()
+			
+			newWorld.quickSaveWorld(0);
 		}
 	}
 	
-	class LinkPreloader {
+	static class LinkPreloader {
 		
 		public PreloadThread preloadThread = null;
 		
@@ -234,14 +368,6 @@ public class LinkingBook {
 			public World destWorld;
 			
 			public boolean aborted = false;
-			
-			public PreloadThread(World curWorld, double destX, double destY, double destZ) {
-				this.curWorld = curWorld;
-				this.destX = (int)Math.floor(destX);
-				this.destY = (int)Math.floor(destY);
-				this.destZ = (int)Math.floor(destZ);
-				destWorld = curWorld;
-			}
 			
 			public PreloadThread(World curWorld, double destX, double destY, double destZ, int destDim, World destWorld) {
 				this.curWorld = curWorld;
@@ -298,26 +424,17 @@ public class LinkingBook {
 			this.mc = mc;
 		}
 		
-		public void preloadDestination(double destX, double destY, double destZ) {
+		public void preloadDestination(World curWorld, double destX, double destY, double destZ, int destDim) {
+			World destWorld = curWorld != null && curWorld.worldProvider.worldType == destDim ? curWorld : null;
 			if (preloadThread != null) {
 				preloadThread.abort();
-			}
-			preloadThread = new PreloadThread(mc.theWorld, destX, destY, destZ);
-			preloadThread.setPriority(Thread.MIN_PRIORITY);
-			preloadThread.start();
-		}
-		
-		public void preloadDestination(double destX, double destY, double destZ, int destDim) {
-			World destWorld = null;
-			if (preloadThread != null) {
-				preloadThread.abort();
-				if (preloadThread.destDim == destDim) {
+				if (destWorld == null && preloadThread.destDim == destDim) {
 					destWorld = getWorld();
 				}
 			}
-			preloadThread = new PreloadThread(mc.theWorld, destX, destY, destZ, destDim, destWorld);
+			preloadThread = new PreloadThread(curWorld, destX, destY, destZ, destDim, destWorld);
 			preloadThread.setPriority(Thread.MIN_PRIORITY);
-			preloadThread.start();
+			preloadThread.run();
 		}
 		
 		public World getWorld() {

@@ -22,10 +22,11 @@ public class RenderLinkingBook extends TileEntitySpecialRenderer {
 	 */
 	public Mod_MystLinkingBook mod_MLB;
 	
-	private ModelLinkingBook field_40450_a = new ModelLinkingBook();
+	private ModelLinkingBook field_40450_a;
 	
 	public RenderLinkingBook(Mod_MystLinkingBook mod_MLB) {
 		this.mod_MLB = mod_MLB;
+		field_40450_a = new ModelLinkingBook(mod_MLB.itm);
 	}
 	
 	@Override
@@ -35,10 +36,10 @@ public class RenderLinkingBook extends TileEntitySpecialRenderer {
 		
 		GL11.glPushMatrix();
 		
-		float opening = tileEntityLinkingBook.field_40060_g + (tileEntityLinkingBook.field_40059_f - tileEntityLinkingBook.field_40060_g) * f;
+		float bookSpread = tileEntityLinkingBook.bookSpreadPrev + (tileEntityLinkingBook.bookSpread - tileEntityLinkingBook.bookSpreadPrev) * f;
 		float inclination = 10f; // Angle in degrees.
 		float recul = 0f;
-		inclination = opening * 20;
+		inclination = bookSpread * 20;
 		
 		// Set the book position over the block:
 		GL11.glTranslatef((float)d + 0.5F, (float)d1 + 1F, (float)d2 + 0.5F);
@@ -56,7 +57,7 @@ public class RenderLinkingBook extends TileEntitySpecialRenderer {
 		// bindTextureByName("/item/book.png");
 		Minecraft mc = ModLoader.getMinecraftInstance();
 		mc.renderEngine.bindTexture(mc.renderEngine.getTexture(Mod_MystLinkingBook.resourcesPath + "tempLinkingBook3D.png"));
-		field_40450_a.render(opening, tileEntityLinkingBook.color, bookName, getFontRenderer(), 0.0625F);
+		field_40450_a.render(bookSpread, tileEntityLinkingBook.color, bookName, tileEntityLinkingBook.linkingPanel, getFontRenderer());
 		
 		GL11.glPopMatrix();
 	}

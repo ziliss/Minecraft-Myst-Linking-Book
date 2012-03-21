@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.TreeSet;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.src.BaseMod;
@@ -21,25 +22,40 @@ import net.minecraft.src.RenderBlocks;
 import net.minecraft.src.SoundManager;
 import net.minecraft.src.SoundPool;
 import net.minecraft.src.SoundPoolEntry;
+import net.minecraft.src.mystlinkingbook.ImagesOnTextureManager.ImageRef;
+
+import org.lwjgl.opengl.GL11;
+
 import paulscode.sound.SoundSystem;
 
 public class Mod_MystLinkingBook extends BaseMod {
 	
-	// Contains methods to interact with the datas of the Linking Books:
-	public LinkingBook linkingBook = new LinkingBook();
+	public Minecraft mc;
 	
-	public BlockLinkingBook blockLinkingBook = new BlockLinkingBook(233, 233, this);
-	public ItemBlockLinkingBook itemBlockLinkingBook = new ItemBlockLinkingBook(233 - 256, this);
-	public ItemPage itemPage = new ItemPage(3233);
+	public ScheduledActionsManager scheduledActionsManager;
+	
+	public ImagesOnTextureManager itm;
+	
+	// Contains methods to interact with the datas of the Linking Books:
+	public LinkingBook linkingBook;
+	
+	public BlockLinkingBook blockLinkingBook;
+	public ItemBlockLinkingBook itemBlockLinkingBook;
+	public ItemPage itemPage;
 	
 	public static String resourcesPath = "/mystlinkingbook/resources/";
+	
+	TreeSet<Integer> texturesPool = new TreeSet<Integer>();
+	int lastUsedTextureId = 3233 - 1;
+	
+	public ImageRef missingLinkingPanelImageRef = null;
 	
 	public Mod_MystLinkingBook() {
 	}
 	
 	@Override
 	public String getVersion() {
-		return "0.6.2b";
+		return "0.7b-dev2";
 	}
 	
 	/**
@@ -51,7 +67,14 @@ public class Mod_MystLinkingBook extends BaseMod {
 	public void load() {
 		if (PrivateAccesses.hasFieldsNotFound) throw new RuntimeException("Some private fields could not be found.");
 		
-		Minecraft mc = ModLoader.getMinecraftInstance();
+		mc = ModLoader.getMinecraftInstance();
+		
+		scheduledActionsManager = new ScheduledActionsManager(this);
+		itm = new ImagesOnTextureManager(256, 256, 80, 60, this);
+		linkingBook = new LinkingBook(itm);
+		blockLinkingBook = new BlockLinkingBook(233, 233, this);
+		itemBlockLinkingBook = new ItemBlockLinkingBook(233 - 256, this);
+		itemPage = new ItemPage(3233);
 		
 		blockLinkingBook.topTextureIndex = ModLoader.addOverride("/terrain.png", resourcesPath + "blockLinkingBookSide.png");
 		blockLinkingBook.sideTextureIndex = blockLinkingBook.topTextureIndex;
@@ -71,18 +94,19 @@ public class Mod_MystLinkingBook extends BaseMod {
 		PrivateAccesses.BlockFire_abilityToCatchFire.getFrom(Block.fire)[blockLinkingBook.blockID] = 100;
 		
 		BufferedImage img;
-		int nextTextureId = 3233;
 		try {
 			img = ModLoader.loadImage(mc.renderEngine, resourcesPath + "tempLinkGUI.png");
-			mc.renderEngine.setupTexture(img, nextTextureId++);
+			mc.renderEngine.setupTexture(img, getTextureId());
 			// img = ModLoader.loadImage(mc.renderEngine, resourcesPath + "tempPanel.png");
 			// mc.renderEngine.setupTexture(img, nextTextureId++);
 			img = ModLoader.loadImage(mc.renderEngine, resourcesPath + "tempWriteGUI.png");
-			mc.renderEngine.setupTexture(img, nextTextureId++);
+			mc.renderEngine.setupTexture(img, getTextureId());
 			img = ModLoader.loadImage(mc.renderEngine, resourcesPath + "tempLookGUI.png");
-			mc.renderEngine.setupTexture(img, nextTextureId++);
+			mc.renderEngine.setupTexture(img, getTextureId());
 			img = ModLoader.loadImage(mc.renderEngine, resourcesPath + "tempLinkingBook3D.png");
-			mc.renderEngine.setupTexture(img, nextTextureId++);
+			mc.renderEngine.setupTexture(img, getTextureId());
+			img = ModLoader.loadImage(mc.renderEngine, resourcesPath + "missingLinkingPanelImage.png");
+			missingLinkingPanelImageRef = itm.registerImage(img);
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -136,6 +160,8 @@ public class Mod_MystLinkingBook extends BaseMod {
 		ISaveFormat saveLoader = PrivateAccesses.Minecraft_saveLoader.getFrom(mc);
 		SaveFormat saveFormat = new SaveFormat(saveLoader, this);
 		PrivateAccesses.Minecraft_saveLoader.setTo(mc, saveFormat);
+		
+		// ModLoader.setInGameHook(this, true, true);
 	}
 	
 	/**
@@ -216,10 +242,33 @@ public class Mod_MystLinkingBook extends BaseMod {
 	}
 	
 	@Override
+	public boolean onTickInGame(float tick, Minecraft mc) {
+		return scheduledActionsManager.OnTickInGame(tick, mc);
+	}
+	
+	@Override
 	public boolean renderWorldBlock(RenderBlocks renderblocks, IBlockAccess iblockaccess, int i, int j, int k, Block block, int l) {
 		// Taken from: RenderBlocks.renderBlockByRenderType:
 		// block.setBlockBoundsBasedOnState(iblockaccess, i, j, k);
 		renderblocks.renderStandardBlock(block, i, j, k);
 		return true;
 	}
+	
+	public int getTextureId() {
+		if (texturesPool.isEmpty()) {
+			while (GL11.glIsTexture(++lastUsedTextureId)) {
+			}
+			return lastUsedTextureId;
+		}
+		else {
+			Integer id = texturesPool.first();
+			texturesPool.remove(id);
+			return id;
+		}
+	}
+	
+	public void addReleasedTextureId(int id) {
+		texturesPool.add(id);
+	}
+	
 }

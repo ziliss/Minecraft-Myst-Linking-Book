@@ -14,6 +14,7 @@ import net.minecraft.src.ItemStack;
 import net.minecraft.src.ModLoader;
 import net.minecraft.src.SoundManager;
 import net.minecraft.src.SoundPool;
+import net.minecraft.src.Timer;
 import net.minecraft.src.World;
 import net.minecraft.src.WorldInfo;
 import paulscode.sound.SoundSystem;
@@ -75,6 +76,8 @@ public class PrivateAccesses {
 	
 	public static PrivateField<World, WorldInfo> World_worldInfo = new PrivateField<World, WorldInfo>(World.class, "World", "x", "worldInfo", WorldInfo.class);
 	
+	public static PrivateField<Minecraft, Timer> Minecraft_timer = new PrivateField<Minecraft, Timer>(Minecraft.class, "Minecraft", "X", "timer", Timer.class);
+	
 	// End of the private fields definitions.
 	
 	static {
@@ -130,39 +133,26 @@ public class PrivateAccesses {
 		
 		public <I extends C> V getFrom(I instance) {
 			try {
-				// First try with the obfuscated name:
-				return (V)ModLoader.getPrivateValue(instanceClass, instance, obfName);
+				return (V)ModLoader.getPrivateValue(instanceClass, instance, isObfuscated ? obfName : mcpName);
 			}
-			catch (NoSuchFieldException e) {
-				try {
-					// Otherwise use the MCP name (in case it is run from Eclipse):
-					return (V)ModLoader.getPrivateValue(instanceClass, instance, mcpName);
-				}
-				catch (Exception ex) {
-					// Because of the checks in the constructor, this should never happen !
-					// But just in case:
-					e.printStackTrace();
-					throw new RuntimeException(ex);
-				}
+			catch (Exception e) {
+				// Because of the checks in the constructor, this should never happen !
+				// But just in case:
+				e.printStackTrace();
+				throw new RuntimeException(e);
 			}
 		}
 		
 		public <I extends C> void setTo(I instance, V value) {
 			try {
 				// First try with the obfuscated name:
-				ModLoader.setPrivateValue(instanceClass, instance, obfName, value);
+				ModLoader.setPrivateValue(instanceClass, instance, isObfuscated ? obfName : mcpName, value);
 			}
-			catch (NoSuchFieldException e) {
-				try {
-					// Otherwise use the MCP name (in case it is run from Eclipse):
-					ModLoader.setPrivateValue(instanceClass, instance, mcpName, value);
-				}
-				catch (Exception ex) {
-					// Because of the checks in the constructor, this should never happen !
-					// But just in case:
-					e.printStackTrace();
-					throw new RuntimeException(ex);
-				}
+			catch (Exception e) {
+				// Because of the checks in the constructor, this should never happen !
+				// But just in case:
+				e.printStackTrace();
+				throw new RuntimeException(e);
 			}
 		}
 	}

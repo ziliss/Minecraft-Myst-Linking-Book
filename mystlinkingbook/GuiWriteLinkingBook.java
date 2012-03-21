@@ -100,7 +100,7 @@ public class GuiWriteLinkingBook extends GuiContainer {
 	
 	@Override
 	protected void keyTyped(char c, int i) {
-		if (i == 1) {
+		if (i == 1) { // Esc
 			mc.displayGuiScreen(null);
 			mc.setIngameFocus();
 		}
@@ -136,6 +136,8 @@ public class GuiWriteLinkingBook extends GuiContainer {
 			updateCanWrite();
 			
 			mod_MLB.linkingBook.write(nbttagcompound_linkingBook, entityplayer, nbPaper, unstable);
+			
+			mod_MLB.linkingBook.setLinkingPanelImage(nbttagcompound_linkingBook, mod_MLB.itm.takeImageFromScreen());
 			
 			String name = nameTextfield.getText();
 			if (!name.isEmpty()) {
@@ -188,5 +190,4 @@ public class GuiWriteLinkingBook extends GuiContainer {
 		writeButton.drawButton(mc, i, j);
 		nameTextfield.drawTextBox();
 	}
-	
 }

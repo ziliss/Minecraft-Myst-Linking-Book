@@ -21,10 +21,10 @@ public class GuiLookOfLinkingBook extends GuiContainer {
 	
 	public ContainerLookOfLinkingBook container;
 	
-	// Not used for now:
-	GuiButton stayOpenButton;
-	String openButton_text = "Book Stays Open: ";
-	boolean stayOpen;
+	GuiButtonStates stayOpenButton;
+	
+	GuiButton updateImageButton;
+	GuiButtonStates autoUpdateImageButton;
 	
 	public GuiLookOfLinkingBook(EntityPlayer entityplayer, TileEntityLinkingBook tileEntityLinkingBook, Mod_MystLinkingBook mod_MLB) {
 		super(new ContainerLookOfLinkingBook(entityplayer.inventory, tileEntityLinkingBook, mod_MLB));
@@ -39,23 +39,44 @@ public class GuiLookOfLinkingBook extends GuiContainer {
 		super.initGui();
 		
 		controlList.clear();
-		stayOpenButton = new GuiButton(1, guiLeft + 25, guiTop + 20, 120, 20, openButton_text);
+		stayOpenButton = new GuiButtonStates(1, guiLeft + 40, guiTop + 22, 120, 20, "Book Stays Open", new String[] { "NO", "YES" }) {
+			@Override
+			public void updateState() {
+				setBooleanState(tileEntityLinkingBook.stayOpen);
+			}
+		};
 		controlList.add(stayOpenButton);
-		updateStayOpenButton();
-	}
-	
-	public void updateStayOpenButton() {
-		stayOpen = tileEntityLinkingBook.getStayOpen();
-		stayOpenButton.displayString = openButton_text + (stayOpen ? "YES" : "NO");
+		
+		updateImageButton = new GuiButton(1, guiLeft + 10, guiTop + 46, 70, 20, "Update image");
+		controlList.add(updateImageButton);
+		
+		autoUpdateImageButton = new GuiButtonStates(1, guiLeft + 85, guiTop + 46, 80, 20, "Update", new String[] { "MANUAL", "AUTO" }) {
+			@Override
+			public void updateState() {
+				// setBooleanState(tileEntityLinkingBook.);
+				setNextBooleanState(); // For testing
+			}
+		};
+		// controlList.add(autoUpdateImageButton);
 	}
 	
 	@Override
 	protected void actionPerformed(GuiButton guibutton) {
 		if (guibutton == stayOpenButton) {
-			if (tileEntityLinkingBook.getStayOpen() == stayOpen) {
-				tileEntityLinkingBook.setStayOpen(!stayOpen);
-				updateStayOpenButton();
+			boolean stayOpen = stayOpenButton.getBooleanState();
+			if (tileEntityLinkingBook.stayOpen == stayOpen) {
+				mod_MLB.linkingBook.setStayOpen(tileEntityLinkingBook.nbttagcompound_linkingBook, !stayOpen);
+				tileEntityLinkingBook.notifyStayOpenChanged();
+				stayOpenButton.updateState();
 			}
+		}
+		else if (guibutton == updateImageButton) {
+			mc.displayGuiScreen(null);
+			GuiTakeLinkingPanelImage.startTakeLinkingPanelImage(entityplayer, tileEntityLinkingBook, mod_MLB);
+		}
+		else if (guibutton == autoUpdateImageButton) {
+			
+			autoUpdateImageButton.updateState();
 		}
 	}
 	
@@ -66,7 +87,7 @@ public class GuiLookOfLinkingBook extends GuiContainer {
 	
 	@Override
 	protected void drawGuiContainerForegroundLayer() {
-		fontRenderer.drawString("Look of the linking table ", 8, 10, 0x404040);
+		fontRenderer.drawString("Look of the linking table", 8, 10, 0x404040);
 		fontRenderer.drawString("Inventory", 8, ySize - 96 + 2, 0x404040);
 	}
 	
