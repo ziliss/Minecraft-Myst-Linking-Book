@@ -96,11 +96,12 @@ public class GuiLinkingBook extends GuiScreen {
 		controlList.add(guiLinkingPanel);
 		
 		savedName = mod_MLB.linkingBook.getName(nbttagcompound_linkingBook);
-		nameTextfield = new GuiTextField(this, fontRenderer, bookLeft + 12, bookTop + 26, 105, 14, savedName);
+		nameTextfield = new GuiTextField(fontRenderer, bookLeft + 12, bookTop + 26, 105, 14);
 		nameTextfield.setMaxStringLength(16);
+		nameTextfield.setText(savedName);
 		if (savedName.isEmpty()) {
 			editName = true;
-			nameTextfield.setFocused(true);
+			nameTextfield.func_50033_b(true);	// Was setFocused(boolean b) before MC 1.2.4
 		}
 		savedNameWidth = fontRenderer.getStringWidth(savedName);
 		
@@ -146,12 +147,12 @@ public class GuiLinkingBook extends GuiScreen {
 	protected void keyTyped(char c, int i) {
 		if (ticksBeforeLinking != -1) return;
 		super.keyTyped(c, i);
-		if (editName && nameTextfield.isEnabled && nameTextfield.isFocused) {
+		if (editName && PrivateAccesses.GuiTextField_isEnabled.getFrom(nameTextfield) && nameTextfield.func_50025_j()) {	// For: isFocused()
 			if (i == 28 || i == 156) {
 				saveName();
 			}
 			else {
-				nameTextfield.textboxKeyTyped(c, i);
+				nameTextfield.func_50037_a(c, i);	// Was textboxKeyTyped(char c, int i) before MC 1.2.4
 			}
 		}
 		else if (i == mc.gameSettings.keyBindInventory.keyCode) {
@@ -175,7 +176,7 @@ public class GuiLinkingBook extends GuiScreen {
 			guiLinkingPanel.startLinking();
 			
 			if (editName) {
-				nameTextfield.setFocused(false);
+				nameTextfield.func_50033_b(false);	// Was setFocused(boolean b) before MC 1.2.4
 				saveName();
 			}
 			

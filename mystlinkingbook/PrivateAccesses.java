@@ -7,6 +7,7 @@ import net.minecraft.src.BlockFire;
 import net.minecraft.src.GameSettings;
 import net.minecraft.src.GuiButton;
 import net.minecraft.src.GuiScreen;
+import net.minecraft.src.GuiTextField;
 import net.minecraft.src.ISaveFormat;
 import net.minecraft.src.InventoryBasic;
 import net.minecraft.src.Item;
@@ -78,12 +79,14 @@ public class PrivateAccesses {
 	
 	public static PrivateField<Minecraft, Timer> Minecraft_timer = new PrivateField<Minecraft, Timer>(Minecraft.class, "Minecraft", "X", "timer", Timer.class);
 	
+	public static PrivateField<GuiTextField, Boolean> GuiTextField_isEnabled = new PrivateField<GuiTextField, Boolean>(GuiTextField.class, "GuiTextField", "m", "field_50043_m", boolean.class);
+
 	// End of the private fields definitions.
 	
 	static {
 		if (hasFieldsNotFound) {
 			//@formatter:off
-			String msg = "\n########## NoSuchFieldException: wrong private fields names ! ##########\n"
+			String msg = "\n########## NoSuchFieldException: wrong private field names ! ##########\n"
 					   + "MCPBot commands (http://mcp.ocean-labs.de/index.php/MCPBot):\n"
 					   + errors.toString()
 					   + "#####################################################################\n\n";
