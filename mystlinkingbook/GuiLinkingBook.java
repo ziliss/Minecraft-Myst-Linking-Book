@@ -103,7 +103,7 @@ public class GuiLinkingBook extends GuiScreen {
 		nameTextfield.setText(savedName);
 		if (savedName.isEmpty() && tileEntityLinkingBook.missingPages == 0) {
 			editName = true;
-			nameTextfield.func_50033_b(true); // Was setFocused(boolean b) before MC 1.2.4
+			nameTextfield.setFocused(true);
 		}
 		savedNameWidth = fontRenderer.getStringWidth(savedName);
 		
@@ -146,12 +146,12 @@ public class GuiLinkingBook extends GuiScreen {
 	protected void keyTyped(char c, int i) {
 		if (ticksBeforeLinking != -1) return;
 		super.keyTyped(c, i);
-		if (editName && PrivateAccesses.GuiTextField_isEnabled.getFrom(nameTextfield) && nameTextfield.func_50025_j()) { // For: isFocused()
+		if (editName && PrivateAccesses.GuiTextField_isEnabled.getFrom(nameTextfield) && nameTextfield.getIsFocused()) {
 			if (i == 28 || i == 156) {
 				saveName();
 			}
 			else {
-				nameTextfield.func_50037_a(c, i); // Was textboxKeyTyped(char c, int i) before MC 1.2.4
+				nameTextfield.textboxKeyTyped(c, i);
 			}
 		}
 		else if (i == mc.gameSettings.keyBindInventory.keyCode) {
@@ -175,7 +175,7 @@ public class GuiLinkingBook extends GuiScreen {
 			guiLinkingPanel.startLinking();
 			
 			if (editName) {
-				nameTextfield.func_50033_b(false); // Was setFocused(boolean b) before MC 1.2.4
+				nameTextfield.setFocused(false);
 				saveName();
 			}
 			
@@ -217,7 +217,7 @@ public class GuiLinkingBook extends GuiScreen {
 					savedName = name;
 				}
 				savedNameWidth = fontRenderer.getStringWidth(savedName);
-				nameTextfield.func_50033_b(false); // Was setFocused(boolean b) before MC 1.2.4
+				nameTextfield.setFocused(false);
 				editName = false;
 			}
 		}
@@ -236,7 +236,7 @@ public class GuiLinkingBook extends GuiScreen {
 		missingPagesStrWidth = fontRenderer.getStringWidth(missingPagesStr);
 		
 		if (editName && missingPages > 0) {
-			nameTextfield.func_50033_b(false); // Was setFocused(boolean b) before MC 1.2.4
+			nameTextfield.setFocused(false);
 			editName = false;
 		}
 	}

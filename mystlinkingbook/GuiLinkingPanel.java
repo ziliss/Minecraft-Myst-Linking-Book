@@ -32,10 +32,18 @@ public class GuiLinkingPanel extends GuiButton {
 	Cursor originalCursor;
 	static Cursor linkCursor = new Cursor(Cursor.HAND_CURSOR);
 	
+	// TODO: remove the following temporary fields:
+	public int width;
+	public int height;
+	
 	public GuiLinkingPanel(int id, int xPosition, int yPosition, int width, int height, LinkingPanel linkingPanel, GuiLinkingBook guiLinkingBook) {
 		super(id, xPosition, yPosition, width, height, "");
 		this.linkingPanel = linkingPanel;
 		this.guiLinkingBook = guiLinkingBook;
+		
+		// The following is a quick fix for unnamed fields in mcp:
+		this.width = field_52008_a;
+		this.height = field_52007_b;
 	}
 	
 	public void initGui() {

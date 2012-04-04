@@ -40,10 +40,18 @@ public abstract class GuiSelect extends GuiButton {
 	/** Hides the select completely if false. */
 	public boolean draw = true;
 	
+	// TODO: remove the following temporary fields:
+	public int width;
+	public int height;
+	
 	public GuiSelect(int id, int xPosition, int yPosition, int width, int nbVisibleLines, int lineHeight) {
 		super(id, xPosition, yPosition, width, nbVisibleLines * lineHeight, null);
 		this.lineHeight = lineHeight;
 		this.nbVisibleLines = nbVisibleLines;
+		
+		// The following is a quick fix for unnamed fields in mcp:
+		this.width = field_52008_a;
+		this.height = field_52007_b;
 	}
 	
 	public int getWidth() {

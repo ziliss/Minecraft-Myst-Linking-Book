@@ -92,7 +92,7 @@ public class LinkingPanel {
 	
 	public void loadLinkingPanelImage() {
 		BufferedImage linkingPanelImage = entityLB.mod_MLB.linkingBook.getLinkingPanelImage(entityLB.nbttagcompound_linkingBook);
-		if (imageRef == entityLB.mod_MLB.missingLinkingPanelImage.imageRef && linkingPanelImage != null) {
+		if (imageRef == entityLB.mod_MLB.missingLinkingPanelImage.imageRef) {
 			unloadLinkingPanelImage();
 		}
 		if (imageRef == null) {

@@ -92,13 +92,21 @@ public class GuiAfterLinking extends GuiScreen {
 		
 		World world = tileEntityLinkingBook.worldObj;
 		Chunk chunk = world.getChunkFromBlockCoords(tileEntityLinkingBook.xCoord, tileEntityLinkingBook.zCoord); // Load or generate the needed chunk.
+		
+		// TODO: there is a bug here, the image is not always saved properly when source is overworld
+		mod_MLB.linkingBook.setLinkingPanelImage(tileEntityLinkingBook.nbttagcompound_linkingBook, linkingPanelImage);
+		tileEntityLinkingBook.notifyLinkingPanelImageChanged();
+		
+		// Re do it, in case the tileEntityLinkingBook has been deleted:
 		tileEntityLinkingBook = (TileEntityLinkingBook)world.getBlockTileEntity(tileEntityLinkingBook.xCoord, tileEntityLinkingBook.yCoord, tileEntityLinkingBook.zCoord);
 		mod_MLB.linkingBook.setLinkingPanelImage(tileEntityLinkingBook.nbttagcompound_linkingBook, linkingPanelImage);
 		tileEntityLinkingBook.notifyLinkingPanelImageChanged();
-		chunk.isModified = true; // Because it is not set in Chunk.addEntity()
+		
+		chunk.isModified = true; // To force saving
 		
 		if (world != entityplayer.worldObj) {
-			world.quickSaveWorld(0);
+			while (!world.quickSaveWorld(-1)) { // Until all chunks have been saved
+			}
 		}
 	}
 	

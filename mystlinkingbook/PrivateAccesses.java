@@ -82,7 +82,7 @@ public class PrivateAccesses {
 	
 	public static PrivateField<Minecraft, Timer> Minecraft_timer = new PrivateField<Minecraft, Timer>(Minecraft.class, "Minecraft", "X", "timer", Timer.class);
 	
-	public static PrivateField<GuiTextField, Boolean> GuiTextField_isEnabled = new PrivateField<GuiTextField, Boolean>(GuiTextField.class, "GuiTextField", "m", "field_50043_m", boolean.class);
+	public static PrivateField<GuiTextField, Boolean> GuiTextField_isEnabled = new PrivateField<GuiTextField, Boolean>(GuiTextField.class, "GuiTextField", "m", "isEnabled", boolean.class);
 	
 	public static PrivateField<RenderEngine, List> RenderEngine_textureList = new PrivateField<RenderEngine, List>(RenderEngine.class, "RenderEngine", "i", "textureList", List.class);
 	

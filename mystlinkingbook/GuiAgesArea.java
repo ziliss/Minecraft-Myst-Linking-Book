@@ -101,12 +101,11 @@ public class GuiAgesArea extends GuiScreen {
 			@Override
 			protected int lineSelected(int line, int prevLine) {
 				if (line >= 0 && line < ageAreasMods.displayAgeAreas.size()) {
-					currentAgeArea = ageAreasMods.displayAgeAreas.get(line);
+					displayAgeArea(ageAreasMods.displayAgeAreas.get(line));
 				}
 				else {
-					currentAgeArea = null;
+					displayAgeArea(null);
 				}
-				displayCurrentAgeArea();
 				return line;
 			}
 			
@@ -164,7 +163,8 @@ public class GuiAgesArea extends GuiScreen {
 		agesSelect.setSelectedLine(0);
 	}
 	
-	public void displayCurrentAgeArea() {
+	public void displayAgeArea(AgeArea ageArea) {
+		currentAgeArea = ageArea;
 		if (currentAgeArea == null) {
 			nameTextfield.setText("");
 			pos1Textfield.setText("");
@@ -197,18 +197,18 @@ public class GuiAgesArea extends GuiScreen {
 		boolean typedInTextField = false;
 		if (currentAgeArea != null) {
 			typedInTextField = true;
-			if (PrivateAccesses.GuiTextField_isEnabled.getFrom(nameTextfield) && nameTextfield.func_50025_j()) { // For: isFocused()
-				if (nameTextfield.func_50037_a(c, i)) { // Was textboxKeyTyped(char c, int i) before MC 1.2.4
+			if (PrivateAccesses.GuiTextField_isEnabled.getFrom(nameTextfield) && nameTextfield.getIsFocused()) {
+				if (nameTextfield.textboxKeyTyped(c, i)) {
 					currentAgeArea.name = nameTextfield.getText();
 				}
 			}
-			else if (PrivateAccesses.GuiTextField_isEnabled.getFrom(pos1Textfield) && pos1Textfield.func_50025_j()) { // For: isFocused()
-				if (pos1Textfield.func_50037_a(c, i)) { // Was textboxKeyTyped(char c, int i) before MC 1.2.4
+			else if (PrivateAccesses.GuiTextField_isEnabled.getFrom(pos1Textfield) && pos1Textfield.getIsFocused()) {
+				if (pos1Textfield.textboxKeyTyped(c, i)) {
 					currentAgeArea.setPos1(pos1Textfield.getText());
 				}
 			}
-			else if (PrivateAccesses.GuiTextField_isEnabled.getFrom(pos2Textfield) && pos2Textfield.func_50025_j()) { // For: isFocused()
-				if (pos2Textfield.func_50037_a(c, i)) { // Was textboxKeyTyped(char c, int i) before MC 1.2.4
+			else if (PrivateAccesses.GuiTextField_isEnabled.getFrom(pos2Textfield) && pos2Textfield.getIsFocused()) {
+				if (pos2Textfield.textboxKeyTyped(c, i)) {
 					currentAgeArea.setPos2(pos2Textfield.getText());
 				}
 			}
@@ -239,9 +239,11 @@ public class GuiAgesArea extends GuiScreen {
 			ageAreasMods.removeDisplayedAgeArea(selectedLine);
 			agesSelect.setSelectedLine(selectedLine > 0 ? selectedLine - 1 : 0);
 		}
-		else if (guibutton == enabledButton && currentAgeArea != null) {
-			currentAgeArea.disabled = enabledButton.getBooleanState();
-			enabledButton.updateState();
+		else if (guibutton == enabledButton) {
+			if (currentAgeArea != null) {
+				currentAgeArea.disabled = enabledButton.getBooleanState();
+				enabledButton.updateState();
+			}
 		}
 		else if (guibutton == saveButton) {
 			mc.displayGuiScreen(null);

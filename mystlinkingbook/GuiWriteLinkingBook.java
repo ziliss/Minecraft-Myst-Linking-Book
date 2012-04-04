@@ -55,7 +55,7 @@ public class GuiWriteLinkingBook extends GuiContainer {
 		controlList.clear();
 		nameTextfield = new GuiTextField(fontRenderer, guiLeft + 40, guiTop + 6, 120, 14);
 		nameTextfield.setMaxStringLength(16);
-		nameTextfield.func_50033_b(true); // Was setFocused(boolean b) before MC 1.2.4
+		nameTextfield.setFocused(true);
 		writeButton = new GuiButton(1, guiLeft + 86, guiTop + 46, 40, 20, "Write");
 		// Because of a bug in GuiContainer.drawScreen(), the buttons are drawn over the item tooltips.
 		// As a workaround, we will not add the button to the controlList but manage it ourself:
@@ -104,8 +104,8 @@ public class GuiWriteLinkingBook extends GuiContainer {
 			mc.displayGuiScreen(null);
 			mc.setIngameFocus();
 		}
-		else if (PrivateAccesses.GuiTextField_isEnabled.getFrom(nameTextfield) && nameTextfield.func_50025_j()) { // For: isFocused()
-			nameTextfield.func_50037_a(c, i); // Was textboxKeyTyped(char c, int i) before MC 1.2.4
+		else if (PrivateAccesses.GuiTextField_isEnabled.getFrom(nameTextfield) && nameTextfield.getIsFocused()) {
+			nameTextfield.textboxKeyTyped(c, i);
 		}
 		else if (i == mc.gameSettings.keyBindInventory.keyCode) {
 			mc.displayGuiScreen(null);
