@@ -56,7 +56,7 @@ public class RenderLinkingBook extends TileEntitySpecialRenderer {
 		
 		// bindTextureByName("/item/book.png");
 		Minecraft mc = ModLoader.getMinecraftInstance();
-		mc.renderEngine.bindTexture(mc.renderEngine.getTexture(Mod_MystLinkingBook.resourcesPath + "tempLinkingBook3D.png"));
+		mc.renderEngine.bindTexture(mod_MLB.texture_tempLinkingBook3D.textureId);
 		field_40450_a.render(bookSpread, tileEntityLinkingBook.color, bookName, tileEntityLinkingBook.linkingPanel, getFontRenderer());
 		
 		GL11.glPopMatrix();

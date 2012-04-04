@@ -1,12 +1,8 @@
 package net.minecraft.src.mystlinkingbook;
 
-import java.awt.image.BufferedImage;
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.TreeSet;
 
 import net.minecraft.client.Minecraft;
@@ -22,7 +18,12 @@ import net.minecraft.src.RenderBlocks;
 import net.minecraft.src.SoundManager;
 import net.minecraft.src.SoundPool;
 import net.minecraft.src.SoundPoolEntry;
-import net.minecraft.src.mystlinkingbook.ImagesOnTextureManager.ImageRef;
+import net.minecraft.src.mystlinkingbook.RessourcesManager.ImageRefRessource;
+import net.minecraft.src.mystlinkingbook.RessourcesManager.PathEnd;
+import net.minecraft.src.mystlinkingbook.RessourcesManager.Ressource;
+import net.minecraft.src.mystlinkingbook.RessourcesManager.SoundRessource;
+import net.minecraft.src.mystlinkingbook.RessourcesManager.SpriteRessource;
+import net.minecraft.src.mystlinkingbook.RessourcesManager.TextureRessource;
 
 import org.lwjgl.opengl.GL11;
 
@@ -32,9 +33,14 @@ public class Mod_MystLinkingBook extends BaseMod {
 	
 	public Minecraft mc;
 	
+	public Settings settings;
+	
 	public ScheduledActionsManager scheduledActionsManager;
 	
 	public ImagesOnTextureManager itm;
+	
+	public RessourcesManager ressourcesManager = new RessourcesManager(this);
+	public ArrayList<Ressource> ressources = new ArrayList<Ressource>();
 	
 	// Contains methods to interact with the datas of the Linking Books:
 	public LinkingBook linkingBook;
@@ -43,12 +49,17 @@ public class Mod_MystLinkingBook extends BaseMod {
 	public ItemBlockLinkingBook itemBlockLinkingBook;
 	public ItemPage itemPage;
 	
-	public static String resourcesPath = "/mystlinkingbook/resources/";
-	
 	TreeSet<Integer> texturesPool = new TreeSet<Integer>();
 	int lastUsedTextureId = 3233 - 1;
 	
-	public ImageRef missingLinkingPanelImageRef = null;
+	public TextureRessource texture_tempLinkGUI;
+	public TextureRessource texture_tempWriteGUI;
+	public TextureRessource texture_tempLookGUI;
+	public TextureRessource texture_tempLinkingBook3D;
+	
+	public ImageRefRessource missingLinkingPanelImage;
+	
+	public SoundRessource linkingsound;
 	
 	public Mod_MystLinkingBook() {
 	}
@@ -70,47 +81,41 @@ public class Mod_MystLinkingBook extends BaseMod {
 		mc = ModLoader.getMinecraftInstance();
 		
 		scheduledActionsManager = new ScheduledActionsManager(this);
+		ressourcesManager.init();
 		itm = new ImagesOnTextureManager(256, 256, 80, 60, this);
-		linkingBook = new LinkingBook(itm);
-		blockLinkingBook = new BlockLinkingBook(233, 233, this);
-		itemBlockLinkingBook = new ItemBlockLinkingBook(233 - 256, this);
-		itemPage = new ItemPage(3233);
 		
-		blockLinkingBook.topTextureIndex = ModLoader.addOverride("/terrain.png", resourcesPath + "blockLinkingBookSide.png");
-		blockLinkingBook.sideTextureIndex = blockLinkingBook.topTextureIndex;
-		blockLinkingBook.bottomTextureIndex = blockLinkingBook.topTextureIndex;
+		PathEnd basePropsPath = new PathEnd(ressourcesManager.configMLB, "options.properties");
+		PathEnd worldPropsPath = new PathEnd(ressourcesManager.worldMLB, "options.properties");
+		settings = new Settings(basePropsPath, worldPropsPath);
+		
+		linkingBook = new LinkingBook(settings, this);
+		
+		SpriteRessource top = ressourcesManager.new SpriteRessource("blockLinkingBookSide.png", RessourcesManager.TERRAIN_SPRITE);
+		SpriteRessource side = ressourcesManager.new SpriteRessource("blockLinkingBookSide.png", RessourcesManager.TERRAIN_SPRITE);
+		SpriteRessource bottom = ressourcesManager.new SpriteRessource("blockLinkingBookSide.png", RessourcesManager.TERRAIN_SPRITE);
+		blockLinkingBook = new BlockLinkingBook(233, 233, top, side, bottom, this);
 		blockLinkingBook.renderType = ModLoader.getUniqueBlockModelID(this, false);
-		
-		itemBlockLinkingBook.setIconIndex(ModLoader.addOverride("/gui/items.png", resourcesPath + "iconLinkingBook.png"));
-		itemBlockLinkingBook.unwrittenIconIndex = ModLoader.addOverride("/gui/items.png", resourcesPath + "iconLinkingBookUnwritten.png");
-		itemBlockLinkingBook.pagesIconIndex = ModLoader.addOverride("/gui/items.png", resourcesPath + "iconLinkingBookPages.png");
-		itemBlockLinkingBook.unwrittenPagesIconIndex = ModLoader.addOverride("/gui/items.png", resourcesPath + "iconLinkingBookUnwrittenPages.png");
-		
-		itemPage.setIconIndex(ModLoader.addOverride("/gui/items.png", resourcesPath + "iconPage.png"));
 		
 		// Execute the following private method:
 		// Block.fire.setBurnRate(Block.bookShelf.blockID, 70, 100);
 		PrivateAccesses.BlockFire_chanceToEncourageFire.getFrom(Block.fire)[blockLinkingBook.blockID] = 70;
 		PrivateAccesses.BlockFire_abilityToCatchFire.getFrom(Block.fire)[blockLinkingBook.blockID] = 100;
 		
-		BufferedImage img;
-		try {
-			img = ModLoader.loadImage(mc.renderEngine, resourcesPath + "tempLinkGUI.png");
-			mc.renderEngine.setupTexture(img, getTextureId());
-			// img = ModLoader.loadImage(mc.renderEngine, resourcesPath + "tempPanel.png");
-			// mc.renderEngine.setupTexture(img, nextTextureId++);
-			img = ModLoader.loadImage(mc.renderEngine, resourcesPath + "tempWriteGUI.png");
-			mc.renderEngine.setupTexture(img, getTextureId());
-			img = ModLoader.loadImage(mc.renderEngine, resourcesPath + "tempLookGUI.png");
-			mc.renderEngine.setupTexture(img, getTextureId());
-			img = ModLoader.loadImage(mc.renderEngine, resourcesPath + "tempLinkingBook3D.png");
-			mc.renderEngine.setupTexture(img, getTextureId());
-			img = ModLoader.loadImage(mc.renderEngine, resourcesPath + "missingLinkingPanelImage.png");
-			missingLinkingPanelImageRef = itm.registerImage(img);
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}
+		SpriteRessource icon = ressourcesManager.new SpriteRessource("iconLinkingBook.png", RessourcesManager.ITEMS_SPRITE);
+		SpriteRessource unwritten = ressourcesManager.new SpriteRessource("iconLinkingBookUnwritten.png", RessourcesManager.ITEMS_SPRITE);
+		SpriteRessource pages = ressourcesManager.new SpriteRessource("iconLinkingBookPages.png", RessourcesManager.ITEMS_SPRITE);
+		SpriteRessource unwrittenPages = ressourcesManager.new SpriteRessource("iconLinkingBookUnwrittenPages.png", RessourcesManager.ITEMS_SPRITE);
+		itemBlockLinkingBook = new ItemBlockLinkingBook(233 - 256, icon, unwritten, pages, unwrittenPages, this);
+		
+		SpriteRessource page = ressourcesManager.new SpriteRessource("iconPage.png", RessourcesManager.ITEMS_SPRITE);
+		itemPage = new ItemPage(3233, page);
+		
+		texture_tempLinkGUI = ressourcesManager.new TextureRessource("tempLinkGUI-BW.png");
+		texture_tempWriteGUI = ressourcesManager.new TextureRessource("tempWriteGUI.png");
+		texture_tempLookGUI = ressourcesManager.new TextureRessource("tempLookGUI.png");
+		texture_tempLinkingBook3D = ressourcesManager.new TextureRessource("tempLinkingBook3D.png");
+		
+		missingLinkingPanelImage = ressourcesManager.new ImageRefRessource("missingLinkingPanelImage.png", itm.registerImage(null));
 		
 		ModLoader.addName(blockLinkingBook, "Linking Book");
 		ModLoader.addName(itemBlockLinkingBook, "Linking Book");
@@ -119,40 +124,27 @@ public class Mod_MystLinkingBook extends BaseMod {
 		
 		ModLoader.addRecipe(new ItemStack(itemBlockLinkingBook, 1, 0), new Object[] { "#", "#", Character.valueOf('#'), Item.paper });
 		
-		File resourcesFolder = new File(Minecraft.getMinecraftDir(), "resources/");
-		File linkingsound = new File(resourcesFolder, "mod/mystlinkingbook/defaultlinkingsound.wav");
-		if (!linkingsound.exists()) {
-			InputStream includedLinkingSound = Mod_MystLinkingBook.class.getResourceAsStream(resourcesPath + "defaultlinkingsound.wav");
-			if (includedLinkingSound != null) {
-				try {
-					downloadRessource(includedLinkingSound, linkingsound);
-					System.out.println("Added default linking sound: " + linkingsound);
-				}
-				catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-			else {
-				new FileNotFoundException("Could not add default linking sound: " + linkingsound).printStackTrace();
-			}
-		}
-		linkingsound = null;
-		String[] names = new String[] { "linkingsound", "defaultlinkingsound" };
-		String[] exts = new String[] { ".wav", ".ogg", ".mus" };
-		searchSound: for (String name : names) {
-			for (String ext : exts) {
-				linkingsound = new File(resourcesFolder, "mod/mystlinkingbook/" + name + ext);
-				// For debugging the sound file:
-				/*File temp = linkingsound;
-				while (temp.getParent() != null) {
-					System.out.println(temp.getAbsolutePath() + ": " + (temp.exists() ? "exists" : "!!! DOES NOT EXIST !!!"));
-				}*/
-				if (linkingsound.exists()) {
-					mc.sndManager.addSound("mystlinkingbook/linkingsound" + ext, linkingsound);
-					System.out.println("Using linking sound: " + linkingsound);
-					break searchSound;
-				}
-			}
+		linkingsound = ressourcesManager.new SoundRessource("mystlinkingbook/", "linkingsound");
+		
+		ressources.add(blockLinkingBook.topSprite);
+		ressources.add(blockLinkingBook.sideSprite);
+		ressources.add(blockLinkingBook.bottomSprite);
+		ressources.add(itemBlockLinkingBook.icon);
+		ressources.add(itemBlockLinkingBook.unwritten);
+		ressources.add(itemBlockLinkingBook.pages);
+		ressources.add(itemBlockLinkingBook.unwrittenPages);
+		ressources.add(itemPage.pageSprite);
+		ressources.add(blockLinkingBook.topSprite);
+		ressources.add(blockLinkingBook.sideSprite);
+		ressources.add(blockLinkingBook.bottomSprite);
+		ressources.add(texture_tempLinkGUI);
+		ressources.add(texture_tempWriteGUI);
+		ressources.add(texture_tempLookGUI);
+		ressources.add(texture_tempLinkingBook3D);
+		ressources.add(missingLinkingPanelImage);
+		ressources.add(linkingsound);
+		for (Ressource ressource : ressources) {
+			ressource.load();
 		}
 		
 		// Modify the following private field:
@@ -174,71 +166,25 @@ public class Mod_MystLinkingBook extends BaseMod {
 	public void onWorldStarting(String worldFolderName) {
 		File worldFolder = new File(Minecraft.getMinecraftDir(), "saves/" + worldFolderName);
 		File worldMLBFolder = new File(worldFolder, "mystlinkingbook");
-		linkingBook.agesManager.changeWorld(worldFolder);
-	}
-	
-	public static final void downloadRessource(InputStream in, File dest) throws Exception {
-		in = new BufferedInputStream(in);
-		dest.getParentFile().mkdirs();
-		FileOutputStream out = null;
+		
+		ressourcesManager.world.piece = worldFolderName + "/";
+		
+		settings.load();
+		ressourcesManager.assets_world.setDisabled(!settings.allowWorldAssets);
+		if (!settings.allowWorldAssets) {
+			System.out.println("World assets disabled.");
+		}
+		
+		for (Ressource ressource : ressources) {
+			ressource.load();
+		}
+		
 		try {
-			out = new FileOutputStream(dest);
-			byte cache[] = new byte[1024 * 32];
-			for (int i = 0; (i = in.read(cache)) >= 0;) {
-				out.write(cache, 0, i);
-			}
-			out.flush();
-			System.out.println("Resource added: " + dest);
+			linkingBook.agesManager.load();
 		}
-		catch (Exception e) {
-			throw e;
+		catch (IOException e) {
+			throw new RuntimeException(e);
 		}
-		finally {
-			try {
-				in.close();
-				if (out != null) {
-					out.close();
-				}
-			}
-			catch (IOException ignored) {
-			}
-		}
-	}
-	
-	/**
-	 * Rewrites the method {@code SoundManager.playSoundFX()} so that it doesn't lower the volume of the sound. <br>
-	 * <br>
-	 * The only difference is that the instruction {@code f *= 0.25F} is not executed.
-	 * 
-	 * @see SoundManager#playSoundFX(String s, float f, float f1)
-	 */
-	public static final void playSoundFX(String s, float f, float f1) {
-		SoundManager sndManager = ModLoader.getMinecraftInstance().sndManager;
-		
-		boolean loaded = PrivateAccesses.SoundManager_loaded.getFrom(sndManager);
-		GameSettings options = PrivateAccesses.SoundManager_options.getFrom(sndManager);
-		SoundPool soundPoolSounds = PrivateAccesses.SoundManager_soundPoolSounds.getFrom(sndManager);
-		int latestSoundID = PrivateAccesses.SoundManager_latestSoundID.getFrom(sndManager);
-		SoundSystem sndSystem = PrivateAccesses.SoundManager_sndSystem.getFrom(sndManager);
-		
-		// The following part is taken from SoundManager.playSoundFX(...):
-		if (!loaded || options.soundVolume == 0.0F) return;
-		
-		SoundPoolEntry soundpoolentry = soundPoolSounds.getRandomSoundFromSoundPool(s);
-		if (soundpoolentry != null) {
-			latestSoundID = (latestSoundID + 1) % 256;
-			PrivateAccesses.SoundManager_latestSoundID.setTo(sndManager, latestSoundID);
-			String s1 = new StringBuilder("sound_").append(latestSoundID).toString();
-			sndSystem.newSource(false, s1, soundpoolentry.soundUrl, soundpoolentry.soundName, false, 0.0F, 0.0F, 0.0F, 0, 0.0F);
-			if (f > 1.0F) {
-				f = 1.0F;
-			}
-			// Removing this instruction: f *= 0.25F;
-			sndSystem.setPitch(s1, f1);
-			sndSystem.setVolume(s1, f * options.soundVolume);
-			sndSystem.play(s1);
-		}
-		// End of the part from SoundManager.playSoundFX(...).
 	}
 	
 	@Override
@@ -268,7 +214,44 @@ public class Mod_MystLinkingBook extends BaseMod {
 	}
 	
 	public void addReleasedTextureId(int id) {
-		texturesPool.add(id);
+		if (id > 0) {
+			texturesPool.add(id);
+		}
 	}
 	
+	/**
+	 * Rewrites the method {@code SoundManager.playSoundFX()} so that it doesn't lower the volume of the sound. <br>
+	 * <br>
+	 * The only difference is that the instruction {@code f *= 0.25F} is not executed.
+	 * 
+	 * @see SoundManager#playSoundFX(String s, float f, float f1)
+	 */
+	public static final void playSoundFX(String s, float f, float f1) {
+		// Preparing the variables:
+		SoundManager sndManager = ModLoader.getMinecraftInstance().sndManager;
+		boolean loaded = PrivateAccesses.SoundManager_loaded.getFrom(sndManager);
+		GameSettings options = PrivateAccesses.SoundManager_options.getFrom(sndManager);
+		SoundPool soundPoolSounds = PrivateAccesses.SoundManager_soundPoolSounds.getFrom(sndManager);
+		int latestSoundID = PrivateAccesses.SoundManager_latestSoundID.getFrom(sndManager);
+		SoundSystem sndSystem = PrivateAccesses.SoundManager_sndSystem.getFrom(sndManager);
+		
+		// The following part is taken from SoundManager.playSoundFX(...):
+		if (!loaded || options.soundVolume == 0.0F) return;
+		
+		SoundPoolEntry soundpoolentry = soundPoolSounds.getRandomSoundFromSoundPool(s);
+		if (soundpoolentry != null) {
+			latestSoundID = (latestSoundID + 1) % 256;
+			PrivateAccesses.SoundManager_latestSoundID.setTo(sndManager, latestSoundID);
+			String s1 = new StringBuilder("sound_").append(latestSoundID).toString();
+			sndSystem.newSource(false, s1, soundpoolentry.soundUrl, soundpoolentry.soundName, false, 0.0F, 0.0F, 0.0F, 0, 0.0F);
+			if (f > 1.0F) {
+				f = 1.0F;
+			}
+			// Removing this instruction: f *= 0.25F;
+			sndSystem.setPitch(s1, f1);
+			sndSystem.setVolume(s1, f * options.soundVolume);
+			sndSystem.play(s1);
+		}
+		// End of the part from SoundManager.playSoundFX(...).
+	}
 }

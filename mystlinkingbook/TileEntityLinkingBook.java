@@ -48,9 +48,31 @@ public class TileEntityLinkingBook extends TileEntity {
 		}
 	};
 	
+	public double playerRange = 1.18D;
+	public double rangeCenterHoriz = 0.60D;
+	public double rangeCenterVert = 1.8D;
+	
+	/**
+	 * True if the linking book links to another Age.
+	 */
+	boolean linksToDifferentAge;
+	int lastUpdateCounter = -1;
+	
 	public boolean isTopBlocked;
 	
+	/**
+	 * Does the linking book need power to be able to link ?
+	 */
+	public boolean isUnstable;
+	
+	/**
+	 * Whether the Block of the linking book is powered.
+	 */
 	public boolean isPowered;
+	
+	public int nbPages;
+	public int maxPages;
+	public int missingPages;
 	
 	public Color color;
 	
@@ -101,20 +123,17 @@ public class TileEntityLinkingBook extends TileEntity {
 		}
 		
 		if (id == 0 || id > 0 && Block.blocksList[id].canProvidePower()) {
-			boolean powered = worldObj.isBlockIndirectlyGettingPowered(xCoord, yCoord, zCoord);
-			if (powered != this.isPowered) {
-				this.isPowered = powered;
-				if (guiLinkingBook != null) {
-					guiLinkingBook.notifyPowerStateChanged(isPowered);
-				}
-			}
+			isPowered = worldObj.isBlockIndirectlyGettingPowered(xCoord, yCoord, zCoord);
 		}
 	}
 	
 	public void notifyNbMissingPagesChanged() {
-		linkingPanel.updateNbMissingPages();
+		nbPages = mod_MLB.linkingBook.getNbPages(nbttagcompound_linkingBook);
+		maxPages = mod_MLB.linkingBook.getMaxPages(nbttagcompound_linkingBook);
+		missingPages = maxPages - nbPages;
+		linkingPanel.notifyNbMissingPagesChanged();
 		if (guiLinkingBook != null) {
-			guiLinkingBook.updateNbMissingPages();
+			guiLinkingBook.notifyNbMissingPagesChanged();
 		}
 	}
 	
@@ -136,25 +155,44 @@ public class TileEntityLinkingBook extends TileEntity {
 		stayOpen = mod_MLB.linkingBook.getStayOpen(nbttagcompound_linkingBook);
 	}
 	
+	public boolean getLinksToDifferentAge() {
+		if (lastUpdateCounter != mod_MLB.linkingBook.agesManager.updateCounter) {
+			linksToDifferentAge = mod_MLB.linkingBook.doLinkToDifferentAge(this);
+			lastUpdateCounter = mod_MLB.linkingBook.agesManager.updateCounter;
+		}
+		return linksToDifferentAge;
+	}
+	
+	public boolean canLink() {
+		return missingPages == 0 && (isUnstable ? isPowered : true) && getLinksToDifferentAge();
+	}
+	
 	@Override
 	public void invalidate() {
 		if (guiLinkingBook != null) {
 			ModLoader.getMinecraftInstance().displayGuiScreen(null);
 		}
 		linkingPanel.invalidate();
+		lastUpdateCounter = -1;
 		super.invalidate();
 	}
 	
 	public void onPlacedInWorld(NBTTagCompound nbttagcompound_linkingBook) {
 		this.nbttagcompound_linkingBook = mod_MLB.linkingBook.checkAndUpdateOldFormat(nbttagcompound_linkingBook);
-		linkingPanel.entityReady();
+		onNeighborBlockChange(Block.redstoneWire.blockID);
+		initBookState();
+	}
+	
+	public void initBookState() {
+		isUnstable = mod_MLB.linkingBook.isUnstable(nbttagcompound_linkingBook);
+		
+		notifyNbMissingPagesChanged();
 		notifyColorChanged();
 		notifyStayOpenChanged();
 		if (stayOpen) {
 			setBookSpread(1F);
 		}
 		notifyLinkingPanelImageChanged();
-		onNeighborBlockChange(Block.redstoneWire.blockID);
 	}
 	
 	/**
@@ -166,13 +204,7 @@ public class TileEntityLinkingBook extends TileEntity {
 		isTopBlocked = nbttagcompound.getBoolean("topBlocked");
 		isPowered = nbttagcompound.getBoolean("powered");
 		nbttagcompound_linkingBook = mod_MLB.linkingBook.checkAndUpdateOldFormat(nbttagcompound.getCompoundTag("tag"));
-		linkingPanel.entityReady();
-		notifyColorChanged();
-		notifyStayOpenChanged();
-		if (stayOpen) {
-			setBookSpread(1F);
-		}
-		notifyLinkingPanelImageChanged();
+		initBookState();
 		
 		int slotNb;
 		NBTTagCompound nbttagcompound1;
@@ -225,24 +257,24 @@ public class TileEntityLinkingBook extends TileEntity {
 		
 		EntityPlayer closestPlayer = null;
 		if (!isTopBlocked) {
-			float dX = 0.5f;
-			float dZ = 0.5f;
+			double dX = 0.5D;
+			double dZ = 0.5D;
 			// Get the coordinates of the front of the book, depending on orientation:
 			switch (getBlockMetadata() & 3) {
 				case 0:
-					dZ += 0.7f;
+					dZ += rangeCenterHoriz;
 					break;
 				case 1:
-					dX -= 0.7f;
+					dX -= rangeCenterHoriz;
 					break;
 				case 2:
-					dZ -= 0.7f;
+					dZ -= rangeCenterHoriz;
 					break;
 				case 3:
-					dX += 0.7f;
+					dX += rangeCenterHoriz;
 					break;
 			}
-			closestPlayer = worldObj.getClosestPlayer(xCoord + dX, yCoord + 1.8F, zCoord + dZ, 1.1D);
+			closestPlayer = worldObj.getClosestPlayer(xCoord + dX, yCoord + rangeCenterVert, zCoord + dZ, playerRange);
 		}
 		
 		boolean wasClosed = bookSpread == 0f;
@@ -297,23 +329,23 @@ public class TileEntityLinkingBook extends TileEntity {
 	}
 	
 	public boolean isInRange(EntityPlayer entityPlayer) {
-		float dX = 0.5f;
-		float dZ = 0.5f;
+		double dX = 0.5D;
+		double dZ = 0.5D;
 		// Get the coordinates of the front of the book, depending on orientation:
 		switch (getBlockMetadata() & 3) {
 			case 0:
-				dZ += 0.7f;
+				dZ += rangeCenterHoriz;
 				break;
 			case 1:
-				dX -= 0.7f;
+				dX -= rangeCenterHoriz;
 				break;
 			case 2:
-				dZ -= 0.7f;
+				dZ -= rangeCenterHoriz;
 				break;
 			case 3:
-				dX += 0.7f;
+				dX += rangeCenterHoriz;
 				break;
 		}
-		return entityPlayer.getDistance(xCoord + dX, yCoord + 1.8F, zCoord + dZ) <= 1.1D;
+		return entityPlayer.getDistance(xCoord + dX, yCoord + rangeCenterVert, zCoord + dZ) <= playerRange;
 	}
 }

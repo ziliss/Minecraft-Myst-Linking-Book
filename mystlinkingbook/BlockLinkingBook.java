@@ -17,6 +17,7 @@ import net.minecraft.src.ModLoader;
 import net.minecraft.src.NBTTagCompound;
 import net.minecraft.src.TileEntity;
 import net.minecraft.src.World;
+import net.minecraft.src.mystlinkingbook.RessourcesManager.SpriteRessource;
 
 /**
  * Represents Linking Books that are placed in the world as {@code Block}.<br>
@@ -35,9 +36,9 @@ public class BlockLinkingBook extends BlockContainer {
 	
 	public static Random random = new Random();
 	
-	public int topTextureIndex;
-	public int sideTextureIndex;
-	public int bottomTextureIndex;
+	public SpriteRessource topSprite;
+	public SpriteRessource sideSprite;
+	public SpriteRessource bottomSprite;
 	
 	/**
 	 * Reference to the mod instance.
@@ -46,8 +47,12 @@ public class BlockLinkingBook extends BlockContainer {
 	
 	public int renderType;
 	
-	public BlockLinkingBook(int blockID, int textureID, Mod_MystLinkingBook mod_MLB) {
+	public BlockLinkingBook(int blockID, int textureID, SpriteRessource top, SpriteRessource side, SpriteRessource bottom, Mod_MystLinkingBook mod_MLB) {
 		super(blockID, textureID, Material.wood);
+		
+		topSprite = top;
+		sideSprite = side;
+		bottomSprite = bottom;
 		
 		this.mod_MLB = mod_MLB;
 		
@@ -113,11 +118,11 @@ public class BlockLinkingBook extends BlockContainer {
 	public int getBlockTextureFromSide(int i) {
 		switch (i) {
 			case 0:
-				return topTextureIndex;
+				return topSprite.spriteId;
 			case 1:
-				return bottomTextureIndex;
+				return bottomSprite.spriteId;
 			default:
-				return sideTextureIndex;
+				return sideSprite.spriteId;
 		}
 	}
 	
@@ -165,9 +170,8 @@ public class BlockLinkingBook extends BlockContainer {
 			openGui = GuiLinkingBook.class;
 		}
 		else if (currentItem.itemID == mod_MLB.itemPage.shiftedIndex) {
-			if (currentItem.stackSize >= 1 && currentItem.getItemDamage() == mod_MLB.linkingBook.getPagesColor(nbttagcompound_linkingBook)) {
-				if (mod_MLB.linkingBook.addPages(nbttagcompound_linkingBook, 1) == 0) {
-					currentItem.stackSize--;
+			if (currentItem.stackSize > 0) {
+				if (mod_MLB.linkingBook.addPages(nbttagcompound_linkingBook, currentItem, 1) != 0) {
 					if (currentItem.stackSize == 0) {
 						entityplayer.inventory.mainInventory[entityplayer.inventory.currentItem] = null;
 					}
@@ -176,10 +180,8 @@ public class BlockLinkingBook extends BlockContainer {
 			}
 		}
 		else if (currentItem.itemID == Item.shears.shiftedIndex) {
-			int removed = mod_MLB.linkingBook.removePages(nbttagcompound_linkingBook, PrivateAccesses.Item_maxStackSize.getFrom(Item.paper));
-			if (removed > 0) {
-				ItemStack itemstack = new ItemStack(mod_MLB.itemPage, removed, mod_MLB.linkingBook.getPagesColor(nbttagcompound_linkingBook));
-				
+			ItemStack itemstack = mod_MLB.linkingBook.removePages(nbttagcompound_linkingBook);
+			if (itemstack != null) {
 				// The following part is taken from BlockChest.onBlockRemoval(...):
 				EntityItem entityitem = new EntityItem(world, i + 0.5, j + 1, k + 0.5, itemstack);
 				float f3 = 0.05F;
@@ -195,10 +197,11 @@ public class BlockLinkingBook extends BlockContainer {
 			}
 		}
 		else if (currentItem.itemID == Item.feather.shiftedIndex) {
-			mod_MLB.linkingBook.setName(nbttagcompound_linkingBook, "");
-			currentItem.stackSize--;
-			if (currentItem.stackSize == 0) {
-				entityplayer.inventory.mainInventory[entityplayer.inventory.currentItem] = null;
+			if (mod_MLB.linkingBook.setName(nbttagcompound_linkingBook, "")) {
+				currentItem.stackSize--;
+				if (currentItem.stackSize == 0) {
+					entityplayer.inventory.mainInventory[entityplayer.inventory.currentItem] = null;
+				}
 			}
 			openGui = GuiLinkingBook.class;
 		}
@@ -206,7 +209,10 @@ public class BlockLinkingBook extends BlockContainer {
 		else if (currentItem.itemID == Item.painting.shiftedIndex) {
 			openGui = GuiLookOfLinkingBook.class;
 		}
-		else if (currentItem.itemID == Item.dyePowder.shiftedIndex) {
+		else if (currentItem.itemID == Item.map.shiftedIndex) {
+			openGui = GuiAgesArea.class;
+		}
+		else if (currentItem.itemID == Item.dyePowder.shiftedIndex) { // TODO: remove for 1.0
 			mod_MLB.linkingBook.setPagesColorFromDye(nbttagcompound_linkingBook, currentItem.getItemDamage());
 			tileEntityLinkingBook.notifyColorChanged();
 		}
@@ -221,6 +227,7 @@ public class BlockLinkingBook extends BlockContainer {
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.flintAndSteel, 1, 0));
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Block.obsidian, 64, 0));
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.painting, 1, 0));
+			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.map, 1, 0));
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Block.cloth, 64, 0)); // Damage 0 is the white wool.
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Block.grass, 64, 0));
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Block.snow, 64, 0));
@@ -229,8 +236,9 @@ public class BlockLinkingBook extends BlockContainer {
 			for (int d = 0; d < 0; d++) {
 				entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.dyePowder, 64, d));
 			}
-			// mod_MLB.mc.theWorld.getWorldInfo().setWorldTime(5000);
+			// mod_MLB.mc.theWorld.getWorldInfo().setWorldTime(5000); // A bit before noon
 			// mod_MLB.mc.theWorld.getWorldInfo().setRaining(false);
+			// nbttagcompound_linkingBook.setInteger("nbPages", nbttagcompound_linkingBook.getInteger("nbPages") + 1);
 		}
 		else {
 			openGui = GuiLinkingBook.class;
@@ -241,6 +249,9 @@ public class BlockLinkingBook extends BlockContainer {
 		}
 		else if (openGui == GuiLookOfLinkingBook.class) {
 			ModLoader.openGUI(entityplayer, new GuiLookOfLinkingBook(entityplayer, tileEntityLinkingBook, mod_MLB));
+		}
+		else if (openGui == GuiAgesArea.class) {
+			ModLoader.openGUI(entityplayer, new GuiAgesArea(entityplayer, mod_MLB));
 		}
 		return true;
 	}
@@ -262,7 +273,7 @@ public class BlockLinkingBook extends BlockContainer {
 			World world = entity.worldObj;
 			TileEntityLinkingBook tileEntityLinkingBook = (TileEntityLinkingBook)world.getBlockTileEntity(i, j, k);
 			if (tileEntityLinkingBook.bookSpread >= 1f) {
-				world.playSoundAtEntity(entity, "mystlinkingbook.linkingsound", 1.0F, 1.0F);
+				world.playSoundAtEntity(entity, mod_MLB.linkingsound.soundId, 1.0F, 1.0F);
 				// world.playSoundEffect(i + 0.5D, j + 1.1D, k + 0.5D, "mystlinkingbook.linkingsound", 1.0F, 1.0F);
 				new LinkingEntity(entity, tileEntityLinkingBook, mod_MLB);
 			}

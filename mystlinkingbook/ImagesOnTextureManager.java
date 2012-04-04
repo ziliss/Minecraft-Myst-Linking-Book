@@ -299,6 +299,10 @@ public class ImagesOnTextureManager {
 		return imageRef;
 	}
 	
+	public void updateImage(ImageRef imageRef, BufferedImage image) {
+		imageRef.texture.updateImage(imageRef.pos, image);
+	}
+	
 	public void disposeImage(ImageRef imageRef) {
 		imageRef.texture.removeImage(imageRef);
 		scheduleTexturesOptimization();
@@ -453,23 +457,22 @@ public class ImagesOnTextureManager {
 			images[pos] = new ImageRef(this, pos);
 			free--;
 			
+			updateImage(pos, image);
+			
+			return images[pos];
+		}
+		
+		public void updateImage(int pos, BufferedImage image) {
 			int left = getLeft(pos);
 			int top = getTop(pos);
 			
 			graphics2D.fillRect(left, top, imagesWidth, imagesHeight);
 			
 			if (image != null) {
-				if (image.getWidth() == imagesWidth && image.getHeight() == imagesHeight) {
-					graphics2D.drawImage(image, left, top, null);
-				}
-				else {// Just in case
-					graphics2D.drawImage(image, left, top, imagesWidth, imagesHeight, null);
-				}
+				graphics2D.drawImage(image, left, top, imagesWidth, imagesHeight, null);
 				
 				mod_MLB.mc.renderEngine.setupTexture(textureImage, glId);
 			}
-			
-			return images[pos];
 		}
 		
 		public void removeImage(ImageRef imageRef) {
@@ -607,6 +610,9 @@ public class ImagesOnTextureManager {
 				fboImageRef = new TextureContainer(myFBOTexId, mod_MLB).addImage(null);
 				
 				EXTFramebufferObject.glBindFramebufferEXT(EXTFramebufferObject.GL_FRAMEBUFFER_EXT, 0);
+			}
+			else {
+				System.out.println("FBO (OpenGL FrameBuffer Objects) are unsupported !");
 			}
 		}
 		

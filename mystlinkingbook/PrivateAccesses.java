@@ -1,6 +1,8 @@
 package net.minecraft.src.mystlinkingbook;
 
 import java.lang.reflect.Field;
+import java.util.List;
+import java.util.Map;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.src.BlockFire;
@@ -13,11 +15,11 @@ import net.minecraft.src.InventoryBasic;
 import net.minecraft.src.Item;
 import net.minecraft.src.ItemStack;
 import net.minecraft.src.ModLoader;
+import net.minecraft.src.RenderEngine;
 import net.minecraft.src.SoundManager;
 import net.minecraft.src.SoundPool;
 import net.minecraft.src.Timer;
 import net.minecraft.src.World;
-import net.minecraft.src.WorldInfo;
 import paulscode.sound.SoundSystem;
 
 /**
@@ -63,6 +65,9 @@ public class PrivateAccesses {
 	public static PrivateField<BlockFire, int[]> BlockFire_abilityToCatchFire = new PrivateField<BlockFire, int[]>(BlockFire.class, "BlockFire", "b", "abilityToCatchFire", int[].class);
 	public static PrivateField<Minecraft, ISaveFormat> Minecraft_saveLoader = new PrivateField<Minecraft, ISaveFormat>(Minecraft.class, "Minecraft", "ad", "saveLoader", ISaveFormat.class);
 	
+	public static PrivateField<SoundPool, Map> SoundPool_nameToSoundPoolEntriesMapping = new PrivateField<SoundPool, Map>(SoundPool.class, "SoundPool", "d", "nameToSoundPoolEntriesMapping", Map.class);
+	public static PrivateField<SoundPool, List> SoundPool_allSoundPoolEntries = new PrivateField<SoundPool, List>(SoundPool.class, "SoundPool", "e", "allSoundPoolEntries", List.class);
+	
 	public static PrivateField<SoundManager, Boolean> SoundManager_loaded = new PrivateField<SoundManager, Boolean>(SoundManager.class, "SoundManager", "g", "loaded", boolean.class);
 	public static PrivateField<SoundManager, GameSettings> SoundManager_options = new PrivateField<SoundManager, GameSettings>(SoundManager.class, "SoundManager", "f", "options", GameSettings.class);
 	public static PrivateField<SoundManager, SoundPool> SoundManager_soundPoolSounds = new PrivateField<SoundManager, SoundPool>(SoundManager.class, "SoundManager", "b", "soundPoolSounds", SoundPool.class);
@@ -75,12 +80,12 @@ public class PrivateAccesses {
 	
 	public static PrivateField<Item, Integer> Item_maxStackSize = new PrivateField<Item, Integer>(Item.class, "Item", "bR", "maxStackSize", int.class);
 	
-	public static PrivateField<World, WorldInfo> World_worldInfo = new PrivateField<World, WorldInfo>(World.class, "World", "x", "worldInfo", WorldInfo.class);
-	
 	public static PrivateField<Minecraft, Timer> Minecraft_timer = new PrivateField<Minecraft, Timer>(Minecraft.class, "Minecraft", "X", "timer", Timer.class);
 	
 	public static PrivateField<GuiTextField, Boolean> GuiTextField_isEnabled = new PrivateField<GuiTextField, Boolean>(GuiTextField.class, "GuiTextField", "m", "field_50043_m", boolean.class);
-
+	
+	public static PrivateField<RenderEngine, List> RenderEngine_textureList = new PrivateField<RenderEngine, List>(RenderEngine.class, "RenderEngine", "i", "textureList", List.class);
+	
 	// End of the private fields definitions.
 	
 	static {

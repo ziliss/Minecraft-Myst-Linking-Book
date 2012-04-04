@@ -48,6 +48,7 @@ public class GuiLookOfLinkingBook extends GuiContainer {
 		controlList.add(stayOpenButton);
 		
 		updateImageButton = new GuiButton(1, guiLeft + 10, guiTop + 46, 70, 20, "Update image");
+		updateImageButton.enabled = tileEntityLinkingBook.canLink();
 		controlList.add(updateImageButton);
 		
 		autoUpdateImageButton = new GuiButtonStates(1, guiLeft + 85, guiTop + 46, 80, 20, "Update", new String[] { "MANUAL", "AUTO" }) {
@@ -71,8 +72,10 @@ public class GuiLookOfLinkingBook extends GuiContainer {
 			}
 		}
 		else if (guibutton == updateImageButton) {
-			mc.displayGuiScreen(null);
-			GuiTakeLinkingPanelImage.startTakeLinkingPanelImage(entityplayer, tileEntityLinkingBook, mod_MLB);
+			if (tileEntityLinkingBook.canLink()) {
+				mc.displayGuiScreen(null);
+				GuiTakeLinkingPanelImage.startTakeLinkingPanelImage(entityplayer, tileEntityLinkingBook, mod_MLB);
+			}
 		}
 		else if (guibutton == autoUpdateImageButton) {
 			
@@ -86,6 +89,13 @@ public class GuiLookOfLinkingBook extends GuiContainer {
 	}
 	
 	@Override
+	public void updateScreen() {
+		if (tileEntityLinkingBook.canLink() != updateImageButton.enabled) {
+			updateImageButton.enabled = !updateImageButton.enabled;
+		}
+	}
+	
+	@Override
 	protected void drawGuiContainerForegroundLayer() {
 		fontRenderer.drawString("Look of the linking table", 8, 10, 0x404040);
 		fontRenderer.drawString("Inventory", 8, ySize - 96 + 2, 0x404040);
@@ -93,7 +103,7 @@ public class GuiLookOfLinkingBook extends GuiContainer {
 	
 	@Override
 	protected void drawGuiContainerBackgroundLayer(float f, int i, int j) {
-		mc.renderEngine.bindTexture(mc.renderEngine.getTexture(Mod_MystLinkingBook.resourcesPath + "tempLookGUI.png"));
+		mc.renderEngine.bindTexture(mod_MLB.texture_tempLookGUI.textureId);
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 		int l = (width - xSize) / 2;
 		int i1 = (height - ySize) / 2;

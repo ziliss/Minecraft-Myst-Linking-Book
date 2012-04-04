@@ -7,10 +7,15 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Scanner;
+
+import net.minecraft.src.EntityPlayer;
+import net.minecraft.src.mystlinkingbook.RessourcesManager.PathEnd;
 
 /**
  * Manages the Ages of the currently loaded world.
@@ -25,19 +30,14 @@ public class AgesManager {
 	/* Example of format for the agesDataFile:
 	 * 
 	 * allowOutOfAgeAreasDimLinking=true
-	 * dim1.allowOutOfAgeAreasDimLinking=true
-	 * dim389.allowOutOfAgeAreasDimLinking=inherited
-	 * 
-	 * dim1.age1.name=My own Age
-	 * dim1.age1.pos1= -12 34 65
-	 * dim1.age1.pos2=12 90 7
-	 * dim1.age1.disabled=true
 	 */
 	
-	public File worldFolder;
+	public Settings settings;
+	
+	public PathEnd worldPath;
 	
 	public Properties props = new Properties();
-	public File agesDataFile = null;
+	public PathEnd agesDataPath = null;
 	public boolean unsavedModifications = false;
 	
 	public HashMap<Integer, DimensionAgeAreas> dimList = new HashMap<Integer, DimensionAgeAreas>();
@@ -46,16 +46,15 @@ public class AgesManager {
 	public DimensionAgeAreas overworld = null;
 	public DimensionAgeAreas theEnd = null;
 	
-	public boolean allowOutOfAgeAreasDimLinking = true;
+	public int updateCounter = 0;
 	
-	public AgesManager() {
-	}
+	public boolean allowOutOfAgeAreasDimLinking = false;
 	
-	public void changeWorld(File worldFolder) {
-		this.worldFolder = worldFolder;
-		// TODO: change the name of the file ?
-		this.agesDataFile = new File(worldFolder, "mystlinkingbook/agesDatas.props");
-		loadAges();
+	public AgesManager(Settings settings, PathEnd worldPath) {
+		this.settings = settings;
+		this.worldPath = worldPath;
+		
+		agesDataPath = new PathEnd(worldPath, "mystlinkingbook/agesDatas.properties");
 	}
 	
 	DimensionAgeAreas getDimensionAgeAreas(int dim) {
@@ -64,15 +63,23 @@ public class AgesManager {
 		switch (dim) {
 			case -1:
 				dimAgeAreas = theNether;
+				break;
 			case 0:
 				dimAgeAreas = overworld;
+				break;
 			case 1:
 				dimAgeAreas = theEnd;
+				break;
 			default:
 				dimAgeAreas = dimList.get(dim);
 		}
 		if (dimAgeAreas == null) {
-			dimAgeAreas = new DimensionAgeAreas(dim, worldFolder);
+			try {
+				dimAgeAreas = new DimensionAgeAreas(dim, worldPath);
+			}
+			catch (IOException e) {
+				throw new RuntimeException(e);
+			}
 			switch (dim) {
 				case -1:
 					theNether = dimAgeAreas;
@@ -85,7 +92,6 @@ public class AgesManager {
 					break;
 				default:
 					dimList.put(dim, dimAgeAreas);
-					break;
 			}
 			
 		}
@@ -94,26 +100,36 @@ public class AgesManager {
 	
 	public boolean linksToDifferentAge(int x1, int y1, int z1, int dim1, int x2, int y2, int z2, int dim2) {
 		// TODO: remove this to activate Age area:
-		if ("demo".equals("demo")) return true;
-		if (dim1 != dim2) return true;
-		DimensionAgeAreas dimAgeAreas = getDimensionAgeAreas(dim1);
-		if (dimAgeAreas == null || dimAgeAreas.readyAgeAreas.isEmpty()) return false;
-		for (AgeArea ageArea : dimAgeAreas.readyAgeAreas.values()) {
-			if (ageArea.isInAge(x1, y1, z1) && ageArea.isInAge(x2, y2, z2)) return false;
+		// if ("demo".equals("demo")) return true;
+		DimensionAgeAreas destDimAgeAreas = getDimensionAgeAreas(dim2);
+		if (destDimAgeAreas.readyAgeAreas.isEmpty()) return dim1 != dim2; // Destination dimension is an Age
+		if (dim1 == dim2) {
+			for (AgeArea ageArea : destDimAgeAreas.readyAgeAreas.values()) {
+				if (ageArea.isInAge(x1, y1, z1) && ageArea.isInAge(x2, y2, z2)) return false; // source and destination are in the same Age area.
+			}
 		}
-		return dimAgeAreas.allowOutOfAgeAreasDimLinking == null ? allowOutOfAgeAreasDimLinking : dimAgeAreas.allowOutOfAgeAreasDimLinking;
+		if (destDimAgeAreas.getFirstReadyAgeAreaContaining(x2, y2, z2) != null) return true; // You are outside of an Age are and want to link inside one.
+		// Here destination is outside an Age area:
+		return destDimAgeAreas.allowOutOfAgeAreasDimLinking == null ? allowOutOfAgeAreasDimLinking : destDimAgeAreas.allowOutOfAgeAreasDimLinking;
 	}
 	
-	public AgeArea getFirstReadyAgeContaining(int x, int y, int z, int dim) {
-		DimensionAgeAreas dimAgeAreas = getDimensionAgeAreas(dim);
-		if (dimAgeAreas == null) return null;
-		else return dimAgeAreas.getFirstReadyAgeAreaContaining(x, y, z);
+	public AgeArea getFirstReadyAgeAreaContaining(int x, int y, int z, int dim) {
+		return getDimensionAgeAreas(dim).getFirstReadyAgeAreaContaining(x, y, z);
+	}
+	
+	public List<AgeArea> getAllReadyAgeAreaContaining(int x, int y, int z, int dim) {
+		return addToListAllReadyAgeAreaContaining(x, y, z, dim, new ArrayList<AgeArea>());
+	}
+	
+	public List<AgeArea> addToListAllReadyAgeAreaContaining(int x, int y, int z, int dim, List<AgeArea> list) {
+		return getDimensionAgeAreas(dim).addToListAllReadyAgeAreaContaining(x, y, z, list);
 	}
 	
 	public void updated() {
 		String key = "allowOutOfAgeAreasDimLinking";
 		String value = allowOutOfAgeAreasDimLinking ? Boolean.TRUE.toString() : null;
-		if (!props.getProperty(key).equals(value)) {
+		String oldValue = props.getProperty(key);
+		if (oldValue == null || !oldValue.equals(value)) {
 			if (value == null) {
 				props.remove(key);
 			}
@@ -121,39 +137,52 @@ public class AgesManager {
 				props.setProperty(key, value);
 			}
 			unsavedModifications = true;
+			updateCounter++;
 		}
 	}
 	
 	public void updatedDimension(int dim) {
-		getDimensionAgeAreas(dim).updatedDimension();
+		if (getDimensionAgeAreas(dim).updatedDimension()) {
+			updateCounter++;
+		}
 	}
 	
-	public void updatedAgeArea(AgeArea ageArea) {
-		getDimensionAgeAreas(ageArea.dimension).updatedAgeArea(ageArea);
+	public AgeAreasModifications startEdition(EntityPlayer player, int dim) {
+		return getDimensionAgeAreas(dim).startEdition(player);
 	}
 	
-	public void loadAges() {
-		if (agesDataFile == null) return;
+	public boolean endEdition(EntityPlayer player, AgeAreasModifications mods) {
+		boolean modified = getDimensionAgeAreas(mods.dimension).endEdition(player, mods);
+		if (modified) {
+			updateCounter++;
+			try {
+				save();
+			}
+			catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		return modified;
+	}
+	
+	public void load() throws IOException {
+		props.clear();
+		
 		dimList.clear();
 		theNether = null;
 		overworld = null;
 		theEnd = null;
 		unsavedModifications = false;
 		
-		if (agesDataFile != null && agesDataFile.exists()) {
-			props.clear();
+		if (agesDataPath.exists()) {
 			FileInputStream in = null;
 			try {
-				in = new FileInputStream(agesDataFile);
+				in = new FileInputStream(agesDataPath.toString());
 				props.load(new BufferedInputStream(in));
+				System.out.println("Loaded file: " + agesDataPath.toString());
 			}
 			catch (FileNotFoundException e) {
 				e.printStackTrace();
-				return;
-			}
-			catch (IOException e) {
-				e.printStackTrace();
-				return;
 			}
 			finally {
 				try {
@@ -170,41 +199,31 @@ public class AgesManager {
 		String key, value;
 		Scanner sc;
 		for (Entry entry : props.entrySet()) {
-			try {
-				key = ((String)entry.getKey()).toUpperCase();
-				value = (String)entry.getValue();
-				
-				sc = new Scanner(key);
-				
-				key = sc.next();
-				if (key.equalsIgnoreCase("allowOutOfAgeAreasDimLinking")) {
-					allowOutOfAgeAreasDimLinking = Boolean.parseBoolean(value);
-				}
-			}
-			catch (Exception e) {
-				e.printStackTrace();
+			key = ((String)entry.getKey());
+			value = (String)entry.getValue();
+			
+			sc = new Scanner(key);
+			
+			key = sc.next();
+			if (key.equals("allowOutOfAgeAreasDimLinking")) {
+				allowOutOfAgeAreasDimLinking = Boolean.parseBoolean(value);
 			}
 		}
+		updateCounter++;
 	}
 	
-	public void saveAges() {
-		if (agesDataFile != null && unsavedModifications) {
+	public void save() throws IOException {
+		if (!worldPath.exists()) throw new RuntimeException("World folder does not exists: " + worldPath.toString());
+		if (unsavedModifications) {
 			FileOutputStream out = null;
 			try {
-				if (!agesDataFile.exists()) {
-					agesDataFile.getParentFile().mkdirs();
-					agesDataFile.createNewFile();
+				File dimAgesDatasFile = new File(agesDataPath.toString());
+				if (!dimAgesDatasFile.exists()) {
+					dimAgesDatasFile.getParentFile().mkdirs();
+					dimAgesDatasFile.createNewFile();
 				}
-				out = new FileOutputStream(agesDataFile);
+				out = new FileOutputStream(dimAgesDatasFile);
 				props.store(new BufferedOutputStream(out), "Myst Linking Book mod: Ages datas");
-			}
-			catch (FileNotFoundException e) {
-				e.printStackTrace();
-				return;
-			}
-			catch (IOException e) {
-				e.printStackTrace();
-				return;
 			}
 			finally {
 				try {
@@ -216,20 +235,20 @@ public class AgesManager {
 					e.printStackTrace();
 				}
 			}
+			unsavedModifications = false;
 		}
-		unsavedModifications = false;
 		
 		if (theNether != null) {
-			theNether.saveAgeAreas();
+			theNether.save();
 		}
 		if (overworld != null) {
-			overworld.saveAgeAreas();
+			overworld.save();
 		}
 		if (theEnd != null) {
-			theEnd.saveAgeAreas();
+			theEnd.save();
 		}
 		for (DimensionAgeAreas dimensionAges : dimList.values()) {
-			dimensionAges.saveAgeAreas();
+			dimensionAges.save();
 		}
 	}
 }

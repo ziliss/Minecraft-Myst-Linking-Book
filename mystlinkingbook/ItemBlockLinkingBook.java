@@ -9,6 +9,7 @@ import net.minecraft.src.ItemStack;
 import net.minecraft.src.ModLoader;
 import net.minecraft.src.NBTTagCompound;
 import net.minecraft.src.World;
+import net.minecraft.src.mystlinkingbook.RessourcesManager.SpriteRessource;
 
 import org.lwjgl.opengl.GL11;
 
@@ -32,18 +33,25 @@ public class ItemBlockLinkingBook extends ItemBlock {
 	 */
 	public Mod_MystLinkingBook mod_MLB;
 	
-	public int pagesIconIndex;
-	public int unwrittenIconIndex;
-	public int unwrittenPagesIconIndex;
+	public SpriteRessource icon;
+	public SpriteRessource pages;
+	public SpriteRessource unwritten;
+	public SpriteRessource unwrittenPages;
 	
 	public int itemsTexture = ModLoader.getMinecraftInstance().renderEngine.getTexture("/gui/items.png");
 	
-	public ItemBlockLinkingBook(int itemID, Mod_MystLinkingBook mod_MLB) {
+	public ItemBlockLinkingBook(int itemID, SpriteRessource icon, SpriteRessource unwritten, SpriteRessource pages, SpriteRessource unwrittenPages, Mod_MystLinkingBook mod_MLB) {
 		super(itemID);
+		
+		this.icon = icon;
+		this.pages = pages;
+		this.unwritten = unwritten;
+		this.unwrittenPages = unwrittenPages;
 		
 		this.mod_MLB = mod_MLB;
 		
 		setItemName("linkingBookItem");
+		setIconIndex(icon.spriteId); // Instead of the icon from the block set in the constructor of ItemBlock
 		setMaxStackSize(1);
 		setMaxDamage(0);
 	}
@@ -62,8 +70,8 @@ public class ItemBlockLinkingBook extends ItemBlock {
 		
 		//@formatter:off
 		return (i & 16) == 16 ? // Is it written ? Yes if the fourth bit is set.
-				j == 0 ? iconIndex : pagesIconIndex
-			   : j == 0 ? unwrittenIconIndex : unwrittenPagesIconIndex;
+				j == 0 ? iconIndex : pages.spriteId
+			   : j == 0 ? unwritten.spriteId : unwrittenPages.spriteId;
 		//@formatter:on
 	}
 	

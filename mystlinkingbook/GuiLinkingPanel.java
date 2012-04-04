@@ -20,27 +20,7 @@ public class GuiLinkingPanel extends GuiButton {
 	 */
 	GuiLinkingBook guiLinkingBook;
 	
-	/**
-	 * Does the linking book need power to ba able to link ?
-	 */
-	public boolean isUnstable;
-	
-	/**
-	 * Whether the Block of the linking book is powered.
-	 */
-	public boolean isPowered;
-	
 	public LinkingPanel linkingPanel = null;
-	
-	/**
-	 * True if the linking book links to another Age.
-	 */
-	public boolean linksToDifferentAge;
-	
-	/**
-	 * True if the linking book is ready to link.
-	 */
-	public boolean canLink;
 	
 	/**
 	 * True when the linking panel has been clicked and the linking has started.
@@ -59,39 +39,26 @@ public class GuiLinkingPanel extends GuiButton {
 	}
 	
 	public void initGui() {
-		updateCanLink();
 		prevShowLinkCursor = false;
 	}
 	
 	public void onGuiClosed() {
-		canLink = false;
 		ModLoader.getMinecraftInstance().mcCanvas.setCursor(originalCursor);
-	}
-	
-	public void notifyPowerStateChanged(boolean isPowered) {
-		this.isPowered = isPowered;
-		canLink = guiLinkingBook.missingPages == 0 && (isUnstable ? isPowered : true) && !linkingStarted;
 	}
 	
 	public void notifyLinkingPanelImageChanged(LinkingPanel linkingPanel) {
 		this.linkingPanel = linkingPanel;
 	}
 	
+	/**
+	 * True if the linking panel is ready to link.
+	 */
 	public boolean canLink() {
-		return canLink && linksToDifferentAge;
-	}
-	
-	public boolean updateCanLink() {
-		linksToDifferentAge = guiLinkingBook.mod_MLB.linkingBook.doLinkToDifferentAge(guiLinkingBook.tileEntityLinkingBook, guiLinkingBook.entityplayer);
-		isUnstable = guiLinkingBook.mod_MLB.linkingBook.isUnstable(guiLinkingBook.nbttagcompound_linkingBook);
-		isPowered = guiLinkingBook.tileEntityLinkingBook.isPowered;
-		canLink = guiLinkingBook.missingPages == 0 && (isUnstable ? isPowered : true) && !linkingStarted;
-		return canLink();
+		return guiLinkingBook.tileEntityLinkingBook.canLink() && !linkingStarted;
 	}
 	
 	public void startLinking() {
 		linkingStarted = true;
-		canLink = false;
 	}
 	
 	@Override
@@ -99,7 +66,7 @@ public class GuiLinkingPanel extends GuiButton {
 		if (!drawButton) return;
 		
 		boolean isCurrentlyHover = x >= xPosition && y >= yPosition && x < xPosition + width && y < yPosition + height;
-		boolean showLinkCursor = canLink && linksToDifferentAge && getHoverState(isCurrentlyHover) == 2;
+		boolean showLinkCursor = canLink() && getHoverState(isCurrentlyHover) == 2;
 		if (prevShowLinkCursor) {
 			if (!showLinkCursor) {
 				minecraft.mcCanvas.setCursor(originalCursor);

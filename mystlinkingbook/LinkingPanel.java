@@ -29,8 +29,6 @@ public class LinkingPanel {
 	
 	public Gui gui = new Gui();
 	
-	public boolean entityReady = false;
-	public boolean isUnstable;
 	public float noiseLevel;
 	
 	public ImageRef imageRef = null;
@@ -53,22 +51,14 @@ public class LinkingPanel {
 		});
 	}
 	
-	public void entityReady() {
-		entityReady = true;
-		isUnstable = entityLB.mod_MLB.linkingBook.isUnstable(entityLB.nbttagcompound_linkingBook);
-		updateNbMissingPages();
-		
-	}
-	
-	public void updateNbMissingPages() {
-		int nbPages = entityLB.mod_MLB.linkingBook.getNbPages(entityLB.nbttagcompound_linkingBook);
-		int maxPages = entityLB.mod_MLB.linkingBook.getMaxPages(entityLB.nbttagcompound_linkingBook);
+	public void notifyNbMissingPagesChanged() {
+		int nbPages = entityLB.nbPages;
+		int maxPages = entityLB.maxPages;
 		noiseLevel = maxPages == 0 ? maxPages : (float)(maxPages - nbPages) / maxPages;
 	}
 	
 	public void notifyLinkingPanelImageChanged() {
 		if (imageRef != null) {
-			unloadLinkingPanelImage();
 			loadLinkingPanelImage();
 		}
 	}
@@ -93,7 +83,7 @@ public class LinkingPanel {
 	
 	public void unloadLinkingPanelImage() {
 		if (imageRef != null) {
-			if (imageRef != entityLB.mod_MLB.missingLinkingPanelImageRef) {
+			if (imageRef != entityLB.mod_MLB.missingLinkingPanelImage.imageRef) {
 				imageRef.dispose();
 			}
 			imageRef = null;
@@ -102,7 +92,15 @@ public class LinkingPanel {
 	
 	public void loadLinkingPanelImage() {
 		BufferedImage linkingPanelImage = entityLB.mod_MLB.linkingBook.getLinkingPanelImage(entityLB.nbttagcompound_linkingBook);
-		imageRef = linkingPanelImage == null ? entityLB.mod_MLB.missingLinkingPanelImageRef : itm.registerImage(linkingPanelImage);
+		if (imageRef == entityLB.mod_MLB.missingLinkingPanelImage.imageRef && linkingPanelImage != null) {
+			unloadLinkingPanelImage();
+		}
+		if (imageRef == null) {
+			imageRef = linkingPanelImage == null ? entityLB.mod_MLB.missingLinkingPanelImage.imageRef : itm.registerImage(linkingPanelImage);
+		}
+		else {
+			itm.updateImage(imageRef, linkingPanelImage);
+		}
 	}
 	
 	public void invalidate() {
@@ -116,8 +114,11 @@ public class LinkingPanel {
 		
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 		
-		if (imageRef != null && (!isUnstable || entityLB.isPowered)) {
-			if (noiseLevel == 0f) {
+		if (imageRef != null && (!entityLB.isUnstable || entityLB.isPowered)) {
+			if (!entityLB.getLinksToDifferentAge()) {
+				// Ok, nothing to do.
+			}
+			else if (noiseLevel == 0f) {
 				drawImageRef = imageRef;
 			}
 			else {
@@ -153,8 +154,11 @@ public class LinkingPanel {
 		
 		entityLB.mod_MLB.mc.entityRenderer.disableLightmap(0);
 		
-		if (imageRef != null && (!isUnstable || entityLB.isPowered)) {
-			if (noiseLevel == 0f) {
+		if (imageRef != null && (!entityLB.isUnstable || entityLB.isPowered)) {
+			if (!entityLB.getLinksToDifferentAge()) {
+				// Ok, nothing to do.
+			}
+			else if (noiseLevel == 0f) {
 				drawImageRef = imageRef;
 			}
 			else {
@@ -188,7 +192,7 @@ public class LinkingPanel {
 		entityLB.mod_MLB.mc.entityRenderer.enableLightmap(0);
 	}
 	
-	public void drawNoise(int x, int y, int width, int height, float level, int pointSize, int color) {
+	public void drawNoise(int x, int y, int width, int height, float noiseLevel, int pointSize, int color) {
 		GL11.glEnable(GL11.GL_BLEND);
 		GL11.glDisable(GL11.GL_TEXTURE_2D);
 		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -201,10 +205,11 @@ public class LinkingPanel {
 		GL11.glColor4ub(r, g, b, a);
 		
 		int halfPointSize = pointSize / 2;
+		
+		/*
 		width /= pointSize;
 		height /= pointSize;
-		
-		int nbDots = (int)(level * (width * height));
+		int nbDots = (int)(noiseLevel * (width * height));
 		int dotX, dotY;
 		for (int i = 0; i < nbDots; i++) {
 			dotX = rand.nextInt(width) * pointSize + halfPointSize;
@@ -212,7 +217,19 @@ public class LinkingPanel {
 			GL11.glBegin(GL11.GL_POINTS);
 			GL11.glVertex3f(x + dotX, y + dotY, 0);
 			GL11.glEnd();
-		}
+		}/**/
+		
+		noiseLevel *= 0.9f;
+		int i, j;
+		for (i = halfPointSize; i < width; i += pointSize) {
+			for (j = halfPointSize; j < height; j += pointSize) {
+				if (rand.nextFloat() <= noiseLevel) {
+					GL11.glBegin(GL11.GL_POINTS);
+					GL11.glVertex3f(x + i, y + j, 0);
+					GL11.glEnd();
+				}
+			}
+		}/**/
 		
 		GL11.glPointSize(originalPointSize);
 		GL11.glEnable(GL11.GL_TEXTURE_2D);

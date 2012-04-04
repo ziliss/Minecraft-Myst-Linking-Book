@@ -1,11 +1,13 @@
 package net.minecraft.src.mystlinkingbook;
 
 import java.awt.Color;
+import java.util.List;
 
 import net.minecraft.src.EntitySheep;
 import net.minecraft.src.Item;
 import net.minecraft.src.ItemDye;
 import net.minecraft.src.ItemStack;
+import net.minecraft.src.mystlinkingbook.RessourcesManager.SpriteRessource;
 
 /**
  * Represents a Linking Book's page as an {@code Item} (ie. either dropped in the world or in the inventory).<br>
@@ -72,8 +74,13 @@ public class ItemPage extends Item {
 		}
 	}
 	
-	public ItemPage(int itemID) {
+	public SpriteRessource pageSprite;
+	
+	public ItemPage(int itemID, SpriteRessource pageTexture) {
 		super(itemID);
+		
+		this.pageSprite = pageTexture;
+		setIconIndex(pageTexture.spriteId);
 		
 		setItemName("linkingBookPage");
 		setHasSubtypes(true); // Prevents stacking items of different color in the same inventory slot.
@@ -100,6 +107,27 @@ public class ItemPage extends Item {
 	@Override
 	public String getItemDisplayName(ItemStack itemstack) {
 		return getLocalItemName(itemstack);
+	}
+	
+	/**
+	 * Returns the name of the linking book that is displayed on mouse hover in the inventory.
+	 */
+	@Override
+	public void addInformation(ItemStack itemstack, List list) {
+		String name = getLinkingBookName(itemstack);
+		if (!name.isEmpty()) {
+			list.add(name);
+		}
+	}
+	
+	public String getLinkingBookName(ItemStack itemstack) {
+		if (!itemstack.hasTagCompound()) return "";
+		return itemstack.getTagCompound().getString("name");
+	}
+	
+	public int getLinkingBookRandomId(ItemStack itemstack) {
+		if (!itemstack.hasTagCompound()) return 0;
+		return itemstack.getTagCompound().getInteger("randId");
 	}
 	
 	public static final Color getBrighterColor(Color color, float factor) {
