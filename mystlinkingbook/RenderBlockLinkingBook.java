@@ -1,7 +1,5 @@
 package net.minecraft.src.mystlinkingbook;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.src.ModLoader;
 import net.minecraft.src.TileEntity;
 import net.minecraft.src.TileEntitySpecialRenderer;
 
@@ -15,31 +13,28 @@ import org.lwjgl.opengl.GL11;
  * @author ziliss
  * @since 0.3a
  */
-public class RenderLinkingBook extends TileEntitySpecialRenderer {
+public class RenderBlockLinkingBook extends TileEntitySpecialRenderer {
 	
-	/**
-	 * Reference to the mod instance.
-	 */
-	public Mod_MystLinkingBook mod_MLB;
-	
-	private ModelLinkingBook field_40450_a;
-	
-	public RenderLinkingBook(Mod_MystLinkingBook mod_MLB) {
-		this.mod_MLB = mod_MLB;
-		field_40450_a = new ModelLinkingBook(mod_MLB.itm);
-	}
+	protected ModelLinkingBook modelLinkingBook = new ModelLinkingBook();
 	
 	@Override
-	public void renderTileEntityAt(TileEntity tileentity, double d, double d1, double d2, float f) {
+	public void renderTileEntityAt(TileEntity tileentity, double d, double d1, double d2, float partialTick) {
 		TileEntityLinkingBook tileEntityLinkingBook = (TileEntityLinkingBook)tileentity;
-		String bookName = mod_MLB.linkingBook.getName(tileEntityLinkingBook.nbttagcompound_linkingBook);
+		LinkingBook linkingBook = tileEntityLinkingBook.linkingBook;
 		
 		GL11.glPushMatrix();
 		
-		float bookSpread = tileEntityLinkingBook.bookSpreadPrev + (tileEntityLinkingBook.bookSpread - tileEntityLinkingBook.bookSpreadPrev) * f;
-		float inclination = 10f; // Angle in degrees.
+		float bookSpread = tileEntityLinkingBook.bookSpreadPrev + (tileEntityLinkingBook.bookSpread - tileEntityLinkingBook.bookSpreadPrev) * partialTick;
+		if (bookSpread < 0f) {
+			bookSpread = 0f;
+		}
+		else if (bookSpread > 1f) {
+			bookSpread = 1f;
+		}
+		linkingBook.notifyBookSpreadChanged(linkingBook.getBookSpreadState(), bookSpread);
+		
+		float inclination = bookSpread * 20; // Angle in degrees.
 		float recul = 0f;
-		inclination = bookSpread * 20;
 		
 		// Set the book position over the block:
 		GL11.glTranslatef((float)d + 0.5F, (float)d1 + 1F, (float)d2 + 0.5F);
@@ -54,10 +49,7 @@ public class RenderLinkingBook extends TileEntitySpecialRenderer {
 		GL11.glRotatef(inclination, 1F, 0, 0);
 		GL11.glTranslatef(0, -7 / 16f, 0 / 16f);
 		
-		// bindTextureByName("/item/book.png");
-		Minecraft mc = ModLoader.getMinecraftInstance();
-		mc.renderEngine.bindTexture(mod_MLB.texture_tempLinkingBook3D.textureId);
-		field_40450_a.render(bookSpread, tileEntityLinkingBook.color, bookName, tileEntityLinkingBook.linkingPanel, getFontRenderer());
+		modelLinkingBook.render(linkingBook, getFontRenderer());
 		
 		GL11.glPopMatrix();
 	}

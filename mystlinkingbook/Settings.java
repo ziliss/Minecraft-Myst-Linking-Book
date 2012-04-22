@@ -4,7 +4,6 @@ import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Properties;
 
 import net.minecraft.src.mystlinkingbook.RessourcesManager.PathEnd;
 
@@ -15,26 +14,31 @@ import net.minecraft.src.mystlinkingbook.RessourcesManager.PathEnd;
  */
 public class Settings {
 	
-	PathEnd basePropsPath;
-	PathEnd worldPropsPath;
+	protected PathEnd basePropsPath;
+	protected PathEnd worldPropsPath;
 	
-	Properties defaultsProps = new Properties();
-	Properties baseProps = new Properties(defaultsProps);
-	Properties worldProps = new Properties(baseProps);
+	protected Properties defaultsProps = new Properties();
+	protected Properties baseProps = new Properties(defaultsProps);
+	protected Properties worldProps = new Properties(baseProps);
 	
 	public boolean loaded = false;
 	
 	public boolean allowWorldAssets = true;
-	public boolean logAgeAreasModifications = false;
+	public boolean noDestinationPreloading = false;
+	public boolean showLoadingScreens = false;
+	public boolean logImportantWorldChanges = false;
 	
-	String[] worldForbiddenKeys = new String[] { "allowWorldAssets" };
+	// TODO: add logImportantWorldChanges ?
+	protected String[] keysSkippedInWorldFolders = new String[] { "allowWorldAssets" };
 	
 	public Settings(PathEnd basePropsPath, PathEnd worldPropsPath) {
 		this.basePropsPath = basePropsPath;
 		this.worldPropsPath = worldPropsPath;
 		
 		defaultsProps.setProperty("allowWorldAssets", Boolean.toString(allowWorldAssets));
-		defaultsProps.setProperty("logAgeAreasModifications", Boolean.toString(logAgeAreasModifications));
+		defaultsProps.setProperty("noDestinationPreloading", Boolean.toString(noDestinationPreloading));
+		defaultsProps.setProperty("showLoadingScreens", Boolean.toString(showLoadingScreens));
+		defaultsProps.setProperty("logImportantWorldChanges", Boolean.toString(logImportantWorldChanges));
 	}
 	
 	public void load() {
@@ -43,7 +47,7 @@ public class Settings {
 		}
 		loadProperties(baseProps, basePropsPath);
 		loadProperties(worldProps, worldPropsPath);
-		for (String prop : worldForbiddenKeys) {
+		for (String prop : keysSkippedInWorldFolders) {
 			worldProps.remove(prop);
 		}
 		loaded();
@@ -52,10 +56,12 @@ public class Settings {
 	
 	public void loaded() {
 		allowWorldAssets = Boolean.parseBoolean(worldProps.getProperty("allowWorldAssets"));
-		logAgeAreasModifications = Boolean.parseBoolean(worldProps.getProperty("logAgeAreasModifications"));
+		noDestinationPreloading = Boolean.parseBoolean(worldProps.getProperty("noDestinationPreloading"));
+		showLoadingScreens = Boolean.parseBoolean(worldProps.getProperty("showLoadingScreens"));
+		logImportantWorldChanges = Boolean.parseBoolean(worldProps.getProperty("logImportantWorldChanges"));
 	}
 	
-	void loadProperties(Properties props, PathEnd path) {
+	protected void loadProperties(Properties props, PathEnd path) {
 		if (path.exists()) {
 			BufferedInputStream in = null;
 			try {

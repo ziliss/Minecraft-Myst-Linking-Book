@@ -1,8 +1,8 @@
 package net.minecraft.src.mystlinkingbook;
 
 import net.minecraft.src.Entity;
-import net.minecraft.src.mystlinkingbook.ScheduledActionsManager.IScheduledAction;
 import net.minecraft.src.mystlinkingbook.ScheduledActionsManager.ScheduledActionRef;
+import net.minecraft.src.mystlinkingbook.ScheduledActionsManager.ScheduledFrameAction;
 
 /**
  * 
@@ -18,14 +18,14 @@ public class PositionKeeper {
 	
 	public Entity entity;
 	public boolean noclip;
-	boolean prevNoclip;
-	double x;
-	double y;
-	double z;
-	float rotYaw;
-	float rotPitch;
+	protected boolean prevNoclip;
+	protected double x;
+	protected double y;
+	protected double z;
+	protected float rotYaw;
+	protected float rotPitch;
 	
-	ScheduledActionRef actionRef;
+	protected ScheduledActionRef actionRef;
 	
 	public PositionKeeper(Entity entity, Mod_MystLinkingBook mod_MLB) {
 		this(entity, false, mod_MLB);
@@ -41,9 +41,9 @@ public class PositionKeeper {
 		rotYaw = entity.rotationYaw;
 		rotPitch = entity.rotationPitch;
 		
-		actionRef = mod_MLB.scheduledActionsManager.getNewReadyScheduledActionRef(new IScheduledAction() {
+		actionRef = mod_MLB.scheduledActionsManager.getNewReadyScheduledActionRef(new ScheduledFrameAction() {
 			@Override
-			public boolean execute(int nbTicksElapsed) {
+			public boolean execute(int nbTicksElapsed, float partialTick) {
 				keepPosition();
 				return true;
 			}

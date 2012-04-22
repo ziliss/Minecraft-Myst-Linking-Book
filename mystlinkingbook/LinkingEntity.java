@@ -20,20 +20,17 @@ public class LinkingEntity {
 	 */
 	public Entity entity;
 	
-	/**
-	 * The {@code TileEntity} of the linking book {@code Block}.
-	 */
-	public TileEntityLinkingBook tileEntityLinkingBook;
+	public LinkingBook linkingBook;
 	
 	public int ticksBeforeLinking = 0;
 	public int maxTicksBeforeLinking = 2 * 20;
-	ScheduledActionRef linkingActionRef;
+	protected ScheduledActionRef linkingActionRef;
 	public PositionKeeper positionKeeper;
 	
-	public LinkingEntity(Entity entity, TileEntityLinkingBook tileEntityLinkingBook, Mod_MystLinkingBook mod_MLB) {
+	public LinkingEntity(Entity entity, LinkingBook linkingBook, Mod_MystLinkingBook mod_MLB) {
 		this.entity = entity;
 		this.mod_MLB = mod_MLB;
-		this.tileEntityLinkingBook = tileEntityLinkingBook;
+		this.linkingBook = linkingBook;
 		
 		linkingActionRef = mod_MLB.scheduledActionsManager.getNewReadyScheduledActionRef(new ScheduledAction() {
 			@Override
@@ -47,10 +44,10 @@ public class LinkingEntity {
 		positionKeeper.start();
 	}
 	
-	void link() {
+	protected void link() {
 		positionKeeper.stop();
 		if (entity.worldObj == mod_MLB.mc.theWorld) { // TODO: is it a good test ? Is it enough ?
-			mod_MLB.linkingBook.link(tileEntityLinkingBook.nbttagcompound_linkingBook, entity);
+			linkingBook.link(entity);
 		}
 	}
 }

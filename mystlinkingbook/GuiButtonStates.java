@@ -49,8 +49,7 @@ public class GuiButtonStates extends GuiButton {
 	}
 	
 	public boolean setBooleanState(boolean b) {
-		setState(b ? 1 : 0);
-		return b;
+		return setState(b ? 1 : 0) != 0;
 	}
 	
 	public int setNextState() {
@@ -62,6 +61,5 @@ public class GuiButtonStates extends GuiButton {
 	}
 	
 	public void updateState() {
-		
 	}
 }

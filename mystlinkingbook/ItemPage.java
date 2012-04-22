@@ -80,7 +80,7 @@ public class ItemPage extends Item {
 		super(itemID);
 		
 		this.pageSprite = pageTexture;
-		setIconIndex(pageTexture.spriteId);
+		setIconIndex(pageTexture.getSpriteId());
 		
 		setItemName("linkingBookPage");
 		setHasSubtypes(true); // Prevents stacking items of different color in the same inventory slot.

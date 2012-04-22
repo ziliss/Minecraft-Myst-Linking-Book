@@ -8,8 +8,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -17,17 +15,12 @@ import java.util.Comparator;
 import javax.imageio.ImageIO;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.src.Gui;
-import net.minecraft.src.ModLoader;
 import net.minecraft.src.Tessellator;
 import net.minecraft.src.mystlinkingbook.ScheduledActionsManager.ScheduledAction;
 import net.minecraft.src.mystlinkingbook.ScheduledActionsManager.ScheduledActionRef;
 
 import org.lwjgl.BufferUtils;
-import org.lwjgl.opengl.ARBVertexBlend;
-import org.lwjgl.opengl.EXTFramebufferObject;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GLContext;
 
 /**
  * 
@@ -65,22 +58,24 @@ public class ImagesOnTextureManager {
 		}
 	};
 	
-	ScheduledActionRef optimizationActionRef;
-	int timeSinceSchedulingOptimization = 0;
-	int maxOptimizationDelay = 20 * 20;
+	protected ScheduledActionRef optimizationActionRef;
+	protected int timeSinceSchedulingOptimization = 0;
+	protected int maxOptimizationDelay = 20 * 20;
 	
-	public FBO fbo;
+	public FBO fbo = null;
+	public ImageRef fboImageRef = null;
+	public FBO screenShotFBO = null;
 	
-	ByteBuffer screenBuffer;
-	ByteBuffer captureBuffer;
+	protected ByteBuffer screenBuffer;
+	protected ByteBuffer captureBuffer;
 	
 	public ImagesOnTextureManager(int textureWidth, int textureHeight, int imagesWidth, int imagesHeight, Mod_MystLinkingBook mod_MLB) {
 		this.mod_MLB = mod_MLB;
 		mc = mod_MLB.mc;
-		this.imagesWidth = imagesWidth;
-		this.imagesHeight = imagesHeight;
 		this.textureWidth = textureWidth;
 		this.textureHeight = textureHeight;
+		this.imagesWidth = imagesWidth;
+		this.imagesHeight = imagesHeight;
 		nbImagesPerLine = textureWidth / imagesWidth;
 		nbImagesPerColumn = textureHeight / imagesHeight;
 		nbImagesPerTexture = nbImagesPerLine * nbImagesPerColumn;
@@ -92,37 +87,85 @@ public class ImagesOnTextureManager {
 			}
 		});
 		
-		fbo = new FBO(mod_MLB.getTextureId());
+		fbo = FBO.createTextureFBO(textureWidth, textureHeight, mod_MLB);
+		if (fbo != null) {
+			fboImageRef = new CustomImageRef(fbo.texId, 0, 0);
+			screenShotFBO = FBO.createTextureFBO(imagesWidth, imagesHeight, mod_MLB);
+		}
+		else {
+			System.out.println("FBO (OpenGL Frame Buffer Objects) are unsupported !");
+		}
 	}
 	
 	public BufferedImage takeImageFromScreen() {
-		return takeImageFromScreen(imagesWidth, imagesHeight);
+		if (screenShotFBO == null) return takeImageFromScreen(imagesWidth, imagesHeight);
+		
+		Minecraft mc = mod_MLB.mc;
+		int orig_displayWidth = mc.displayWidth;
+		int orig_displayHeight = mc.displayHeight;
+		int captureWidth = imagesWidth;
+		int captureHeight = imagesHeight;
+		
+		screenShotFBO.startDrawing();
+		screenShotFBO.clear();
+		
+		// Re-render the last render without gui so that we can take a screenshot of the screen:
+		mc.displayWidth = captureWidth;
+		mc.displayHeight = captureHeight;
+		boolean orig_hideGui = mc.gameSettings.hideGUI;
+		mc.gameSettings.hideGUI = true;
+		
+		mc.entityRenderer.renderWorld(PrivateAccesses.Minecraft_timer.getFrom(mc).renderPartialTicks, 0); // 0 prevents the renderers from being updated.
+		GL11.glFlush();
+		
+		// Inspired by ScreenShotHelper:
+		captureBuffer = readRGBTexToByteBuffer(screenShotFBO.texId, screenShotFBO.width, screenShotFBO.height, captureBuffer);
+		
+		mc.gameSettings.hideGUI = orig_hideGui;
+		mc.displayWidth = orig_displayWidth;
+		mc.displayHeight = orig_displayHeight;
+		GL11.glViewport(0, 0, mc.displayWidth, mc.displayHeight);
+		
+		screenShotFBO.endDrawing();
+		
+		BufferedImage bufferedimage = new BufferedImage(captureWidth, captureHeight, BufferedImage.TYPE_INT_RGB);
+		
+		int x, y, r, g, b;
+		for (y = 0; y < captureHeight; y++) {
+			for (x = 0; x < captureWidth; x++) {
+				r = captureBuffer.get() & 0xff;
+				g = captureBuffer.get() & 0xff;
+				b = captureBuffer.get() & 0xff;
+				bufferedimage.setRGB(x, captureHeight - y - 1, 0xff000000 | r << 16 | g << 8 | b);
+			}
+		}
+		return bufferedimage;
 	}
 	
 	public BufferedImage takeImageFromScreen(int width, int height) {
-		Minecraft mc = ModLoader.getMinecraftInstance();
+		Minecraft mc = mod_MLB.mc;
 		
 		boolean scaleDownAfterRender = false;
 		
-		int screenWidth = mc.displayWidth;
-		int screenHeight = mc.displayHeight;
+		int orig_displayWidth = mc.displayWidth;
+		int orig_displayHeight = mc.displayHeight;
 		
 		int captureWidth, captureHeight, captureLeft, captureTop;
 		
 		if (scaleDownAfterRender) {
-			float screenAspectRatio = (float)screenWidth / (float)screenHeight;
+			float screenAspectRatio = (float)orig_displayWidth / (float)orig_displayHeight;
 			float captureAspectRatio = (float)width / (float)height;
 			
 			if (screenAspectRatio < captureAspectRatio) {
-				captureWidth = screenWidth;
+				captureWidth = orig_displayWidth;
 				captureHeight = (int)(captureWidth / captureAspectRatio);
 			}
 			else {
-				captureHeight = screenHeight;
+				captureHeight = orig_displayHeight;
 				captureWidth = (int)(captureHeight * captureAspectRatio);
 			}
-			captureLeft = (screenWidth - captureWidth) / 2;
-			captureTop = (screenHeight - captureHeight) / 2;
+			captureLeft = (orig_displayWidth - captureWidth) / 2;
+			captureTop = (orig_displayHeight - captureHeight) / 2;
 		}
 		else {
 			captureLeft = 0;
@@ -131,29 +174,29 @@ public class ImagesOnTextureManager {
 			captureHeight = height;
 		}
 		
-		screenBuffer = readRGBPixelsToByteBuffer(screenBuffer, 0, 0, screenWidth, screenHeight);
+		screenBuffer = readRGBPixelsToByteBuffer(0, 0, orig_displayWidth, orig_displayHeight, screenBuffer);
 		
 		// Re-render the last render without gui so that we can take a screenshot of the screen:
-		boolean guiHidden = mc.gameSettings.hideGUI;
+		boolean orig_hideGUI = mc.gameSettings.hideGUI;
 		mc.gameSettings.hideGUI = true;
 		if (!scaleDownAfterRender) {
 			mc.displayWidth = width;
 			mc.displayHeight = height;
 		}
-		mc.entityRenderer.renderWorld(PrivateAccesses.Minecraft_timer.getFrom(mc).renderPartialTicks, 0);
+		mc.entityRenderer.renderWorld(PrivateAccesses.Minecraft_timer.getFrom(mc).renderPartialTicks, 0); // 0 prevents the renderers from being updated.
 		GL11.glFlush();
 		
 		// Inspired by ScreenShotHelper:
-		captureBuffer = readRGBPixelsToByteBuffer(captureBuffer, captureLeft, captureTop, captureWidth, captureHeight);
+		captureBuffer = readRGBPixelsToByteBuffer(captureLeft, captureTop, captureWidth, captureHeight, captureBuffer);
 		
 		if (!scaleDownAfterRender) {
-			mc.displayWidth = screenWidth;
-			mc.displayHeight = screenHeight;
+			mc.displayWidth = orig_displayWidth;
+			mc.displayHeight = orig_displayHeight;
 			GL11.glViewport(0, 0, mc.displayWidth, mc.displayHeight);
 		}
-		mc.gameSettings.hideGUI = guiHidden;
+		mc.gameSettings.hideGUI = orig_hideGUI;
 		
-		GL11.glDrawPixels(screenWidth, screenHeight, GL11.GL_RGB, GL11.GL_UNSIGNED_BYTE, screenBuffer);
+		GL11.glDrawPixels(orig_displayWidth, orig_displayHeight, GL11.GL_RGB, GL11.GL_UNSIGNED_BYTE, screenBuffer);
 		GL11.glFlush();
 		
 		BufferedImage bufferedimage = new BufferedImage(captureWidth, captureHeight, BufferedImage.TYPE_INT_RGB);
@@ -174,14 +217,27 @@ public class ImagesOnTextureManager {
 		return bufferedimage;
 	}
 	
-	public ByteBuffer readRGBPixelsToByteBuffer(ByteBuffer buffer, int left, int top, int width, int height) {
+	public ByteBuffer readRGBPixelsToByteBuffer(int left, int top, int width, int height, ByteBuffer buffer) {
 		if (buffer == null || buffer.capacity() < width * height * 3) {
 			buffer = BufferUtils.createByteBuffer(width * height * 3);
 		}
+		buffer.clear();
 		GL11.glPixelStorei(GL11.GL_PACK_ALIGNMENT, 1);
 		GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 1);
-		buffer.clear();
 		GL11.glReadPixels(left, top, width, height, GL11.GL_RGB, GL11.GL_UNSIGNED_BYTE, buffer);
+		buffer.clear();
+		return buffer;
+	}
+	
+	public ByteBuffer readRGBTexToByteBuffer(int texId, int texWidth, int texHeight, ByteBuffer buffer) {
+		if (buffer == null || buffer.capacity() < texWidth * texHeight * 3) {
+			buffer = BufferUtils.createByteBuffer(texWidth * texHeight * 3);
+		}
+		buffer.clear();
+		GL11.glBindTexture(GL11.GL_TEXTURE_2D, texId);
+		GL11.glPixelStorei(GL11.GL_PACK_ALIGNMENT, 1);
+		GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 1);
+		GL11.glGetTexImage(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGB, GL11.GL_UNSIGNED_BYTE, buffer);
 		buffer.clear();
 		return buffer;
 	}
@@ -299,15 +355,6 @@ public class ImagesOnTextureManager {
 		return imageRef;
 	}
 	
-	public void updateImage(ImageRef imageRef, BufferedImage image) {
-		imageRef.texture.updateImage(imageRef.pos, image);
-	}
-	
-	public void disposeImage(ImageRef imageRef) {
-		imageRef.texture.removeImage(imageRef);
-		scheduleTexturesOptimization();
-	}
-	
 	public void scheduleTexturesOptimization() {
 		if (incompleteTextures.size() > maxIncompleteTextures) {
 			int remainingTime = optimizationActionRef.getTimeBeforeNextExecution();
@@ -361,65 +408,15 @@ public class ImagesOnTextureManager {
 		}
 	}
 	
-	void moveImageTo(ImageRef srcImageRef, TextureContainer destTexture) {
+	protected void moveImageTo(MovableImageRef srcImageRef, TextureContainer destTexture) {
 		TextureContainer srcTexture = srcImageRef.texture;
 		int srcPos = srcImageRef.pos;
 		BufferedImage image = srcTexture.textureImage.getSubimage(srcTexture.getLeft(srcPos), srcTexture.getTop(srcPos), imagesWidth, imagesHeight);
 		
-		ImageRef destImageRef = destTexture.addImage(image);
+		MovableImageRef destImageRef = destTexture.addImage(image);
 		srcImageRef.texture.removeImage(srcImageRef);
 		destImageRef.copyRefTo(srcImageRef);
 		destTexture.images[destImageRef.pos] = srcImageRef;
-	}
-	
-	public void drawImage(ImageRef imageRef, int x, int y) {
-		drawImage(imageRef, x, y, imagesWidth, imagesHeight);
-	}
-	
-	public void drawImage(ImageRef imageRef, int x, int y, int destWidth, int destHeight) {
-		mc.renderEngine.bindTexture(imageRef.texture.glId);
-		float srcLeft = imageRef.texture.getLeft(imageRef.pos);
-		float srcTop = imageRef.texture.getTop(imageRef.pos);
-		float srcRight = (srcLeft + imagesWidth) / 256f;
-		float srcBottom = (srcTop + imagesHeight) / 256f;
-		srcLeft /= 256f;
-		srcTop /= 256f;
-		tessellator.startDrawingQuads();
-		tessellator.addVertexWithUV(x, y + destHeight, 0, srcLeft, srcBottom);
-		tessellator.addVertexWithUV(x + destWidth, y + destHeight, 0, srcRight, srcBottom);
-		tessellator.addVertexWithUV(x + destWidth, y, 0, srcRight, srcTop);
-		tessellator.addVertexWithUV(x, y, 0, srcLeft, srcTop);
-		tessellator.draw();
-	}
-	
-	public void drawImage2(ImageRef imageRef, int x, int y) {
-		drawImage2(imageRef, x, y, imagesWidth, imagesHeight);
-	}
-	
-	public void drawImage2(ImageRef imageRef, int x, int y, int destWidth, int destHeight) {
-		mc.renderEngine.bindTexture(imageRef.texture.glId);
-		float srcLeft = imageRef.texture.getLeft(imageRef.pos);
-		float srcTop = imageRef.texture.getTop(imageRef.pos);
-		float srcRight = (srcLeft + imagesWidth) / 256f;
-		float srcBottom = (srcTop + imagesHeight) / 256f;
-		srcLeft /= 256f;
-		srcTop /= 256f;
-		tessellator.startDrawingQuads();
-		tessellator.addVertexWithUV(x + destWidth, y + destHeight, 0, srcRight, srcBottom);
-		tessellator.addVertexWithUV(x, y + destHeight, 0, srcLeft, srcBottom);
-		tessellator.addVertexWithUV(x, y, 0, srcLeft, srcTop);
-		tessellator.addVertexWithUV(x + destWidth, y, 0, srcRight, srcTop);
-		tessellator.draw();
-	}
-	
-	public void drawImage(ImageRef imageRef, int x, int y, Gui gui) {
-		drawImage(imageRef, x, y, imagesWidth, imagesHeight, gui);
-	}
-	
-	public void drawImage(ImageRef imageRef, int x, int y, int width, int height, Gui gui) {
-		mc.renderEngine.bindTexture(imageRef.texture.glId);
-		gui.drawTexturedModalRect(x, y, imageRef.texture.getLeft(imageRef.pos), imageRef.texture.getTop(imageRef.pos), width, height);
-		// gui.drawTexturedModalRect(0, 0, 0, 0, textureWidth, textureHeight);
 	}
 	
 	public class TextureContainer implements Comparable<TextureContainer> {
@@ -429,32 +426,30 @@ public class ImagesOnTextureManager {
 		 */
 		public Mod_MystLinkingBook mod_MLB;
 		
-		public final int glId;
+		public final int texId;
 		
 		public BufferedImage textureImage = new BufferedImage(textureWidth, textureHeight, BufferedImage.TYPE_INT_ARGB);
-		Graphics2D graphics2D = textureImage.createGraphics();
+		protected Graphics2D graphics2D = textureImage.createGraphics();
 		
-		public final ImageRef[] images = new ImageRef[nbImagesPerTexture];
+		public final MovableImageRef[] images = new MovableImageRef[nbImagesPerTexture];
 		public int free = nbImagesPerTexture;
 		
-		TextureContainer(Mod_MystLinkingBook mod_MLB) {
-			this(mod_MLB.getTextureId(), mod_MLB);
-		}
-		
-		TextureContainer(int textureId, Mod_MystLinkingBook mod_MLB) {
+		protected TextureContainer(Mod_MystLinkingBook mod_MLB) {
 			this.mod_MLB = mod_MLB;
-			glId = textureId;
+			texId = mod_MLB.allocateTextureId();
 			
 			graphics2D.setColor(new Color(255, 255, 255, 0)); // Set transparent color as default color for any operation (like fillRect())
+			
+			mc.renderEngine.setupTexture(textureImage, texId);
 		}
 		
-		public ImageRef addImage(BufferedImage image) {
+		public MovableImageRef addImage(BufferedImage image) {
 			int pos = 0;
 			for (; pos < images.length && images[pos] != null; pos++) {
 			}
 			if (pos == nbImagesPerTexture) throw new RuntimeException("No free position in texture.");
 			
-			images[pos] = new ImageRef(this, pos);
+			images[pos] = new MovableImageRef(this, pos);
 			free--;
 			
 			updateImage(pos, image);
@@ -470,12 +465,11 @@ public class ImagesOnTextureManager {
 			
 			if (image != null) {
 				graphics2D.drawImage(image, left, top, imagesWidth, imagesHeight, null);
-				
-				mod_MLB.mc.renderEngine.setupTexture(textureImage, glId);
 			}
+			mod_MLB.mc.renderEngine.setupTexture(textureImage, texId);
 		}
 		
-		public void removeImage(ImageRef imageRef) {
+		public void removeImage(MovableImageRef imageRef) {
 			images[imageRef.pos] = null;
 			free++;
 			imageRef.texture = null;
@@ -492,8 +486,8 @@ public class ImagesOnTextureManager {
 		
 		public void release() {
 			graphics2D.dispose();
-			mod_MLB.mc.renderEngine.deleteTexture(glId);
-			mod_MLB.addReleasedTextureId(glId);
+			graphics2D = null;
+			mod_MLB.releasedTextureId(texId);
 		}
 		
 		@Override
@@ -502,40 +496,29 @@ public class ImagesOnTextureManager {
 			if (obj == null) return false;
 			if (obj instanceof ImagesOnTextureManager) {
 				TextureContainer other = (TextureContainer)obj;
-				return glId == other.glId;
+				return texId == other.texId;
 			}
 			return false;
 		}
 		
 		@Override
 		public int hashCode() {
-			return glId;
+			return texId;
 		}
 		
 		@Override
 		public int compareTo(TextureContainer o) {
-			return this.glId - o.glId;
+			return this.texId - o.texId;
 		}
 	}
 	
-	public class ImageRef {
+	public abstract class ImageRef {
 		
-		public TextureContainer texture;
+		public abstract int getTextureId();
 		
-		public int pos;
+		public abstract int getLeft();
 		
-		ImageRef(TextureContainer texture, int pos) {
-			this.texture = texture;
-			this.pos = pos;
-		}
-		
-		public int getLeft() {
-			return texture.getLeft(pos);
-		}
-		
-		public int getTop() {
-			return texture.getTop(pos);
-		}
+		public abstract int getTop();
 		
 		public int getWidth() {
 			return imagesWidth;
@@ -545,127 +528,125 @@ public class ImagesOnTextureManager {
 			return imagesHeight;
 		}
 		
-		public int getTextureId() {
-			return texture.glId;
+		public abstract void updateImage(BufferedImage image);
+		
+		public void dispose() {
 		}
 		
-		void copyRefTo(ImageRef dest) {
+		public void drawImage(int x, int y) {
+			drawImage(x, y, getWidth(), getHeight());
+		}
+		
+		public void drawImage(int x, int y, int destWidth, int destHeight) {
+			mc.renderEngine.bindTexture(getTextureId());
+			float srcLeft = getLeft();
+			float srcTop = getTop();
+			float srcRight = (srcLeft + getWidth()) / 256f;
+			float srcBottom = (srcTop + getHeight()) / 256f;
+			srcLeft /= 256f;
+			srcTop /= 256f;
+			tessellator.startDrawingQuads();
+			tessellator.addVertexWithUV(x, y + destHeight, 0, srcLeft, srcBottom);
+			tessellator.addVertexWithUV(x + destWidth, y + destHeight, 0, srcRight, srcBottom);
+			tessellator.addVertexWithUV(x + destWidth, y, 0, srcRight, srcTop);
+			tessellator.addVertexWithUV(x, y, 0, srcLeft, srcTop);
+			tessellator.draw();
+		}
+		
+		public void drawImage2(int x, int y) {
+			drawImage2(x, y, getWidth(), getHeight());
+		}
+		
+		public void drawImage2(int x, int y, int destWidth, int destHeight) {
+			mc.renderEngine.bindTexture(getTextureId());
+			float srcLeft = getLeft();
+			float srcTop = getTop();
+			float srcRight = (srcLeft + getWidth()) / 256f;
+			float srcBottom = (srcTop + getHeight()) / 256f;
+			srcLeft /= 256f;
+			srcTop /= 256f;
+			tessellator.startDrawingQuads();
+			tessellator.addVertexWithUV(x + destWidth, y + destHeight, 0, srcRight, srcBottom);
+			tessellator.addVertexWithUV(x, y + destHeight, 0, srcLeft, srcBottom);
+			tessellator.addVertexWithUV(x, y, 0, srcLeft, srcTop);
+			tessellator.addVertexWithUV(x + destWidth, y, 0, srcRight, srcTop);
+			tessellator.draw();
+		}
+	}
+	
+	protected class MovableImageRef extends ImageRef {
+		
+		public TextureContainer texture;
+		
+		public int pos;
+		
+		protected MovableImageRef(TextureContainer texture, int pos) {
+			this.texture = texture;
+			this.pos = pos;
+		}
+		
+		@Override
+		public int getTextureId() {
+			return texture.texId;
+		}
+		
+		@Override
+		public int getLeft() {
+			return texture.getLeft(pos);
+		}
+		
+		@Override
+		public int getTop() {
+			return texture.getTop(pos);
+		}
+		
+		@Override
+		public void updateImage(BufferedImage image) {
+			texture.updateImage(pos, image);
+		}
+		
+		protected void copyRefTo(MovableImageRef dest) {
 			dest.texture = texture;
 			dest.pos = pos;
 		}
 		
+		@Override
 		public void dispose() {
-			disposeImage(this);
+			texture.removeImage(this);
+			scheduleTexturesOptimization();
 		}
 	}
 	
-	// http://lwjgl.org/wiki/index.php?title=Using_Frame_Buffer_Objects_%28FBO%29
-	public class FBO {
+	public class CustomImageRef extends ImageRef {
 		
-		public boolean FBOEnabled;
+		protected int left;
+		protected int top;
+		protected int texId;
 		
-		int fboId = -1;
-		int fboTexId = -1;
-		public ImageRef fboImageRef;
-		
-		public FBO(int myFBOTexId) {
-			this.fboTexId = myFBOTexId;
-			
-			FBOEnabled = GLContext.getCapabilities().GL_EXT_framebuffer_object;
-			
-			if (FBOEnabled) {
-				IntBuffer buffer = ByteBuffer.allocateDirect(256 * 256 * 4).order(ByteOrder.nativeOrder()).asIntBuffer(); // allocate a 256*256 int byte buffer
-				EXTFramebufferObject.glGenFramebuffersEXT(buffer); // generate
-				fboId = buffer.get();
-				
-				BufferedImage emptyImage = new BufferedImage(256, 256, BufferedImage.TYPE_INT_RGB);
-				mod_MLB.mc.renderEngine.setupTexture(emptyImage, 50788);
-				mc.renderEngine.setupTexture(emptyImage, myFBOTexId);
-				
-				EXTFramebufferObject.glBindFramebufferEXT(EXTFramebufferObject.GL_FRAMEBUFFER_EXT, fboId);
-				EXTFramebufferObject.glFramebufferTexture2DEXT(EXTFramebufferObject.GL_FRAMEBUFFER_EXT, EXTFramebufferObject.GL_COLOR_ATTACHMENT0_EXT, GL11.GL_TEXTURE_2D, myFBOTexId, 0);
-				
-				int framebuffer = EXTFramebufferObject.glCheckFramebufferStatusEXT(EXTFramebufferObject.GL_FRAMEBUFFER_EXT);
-				if (framebuffer != EXTFramebufferObject.GL_FRAMEBUFFER_COMPLETE_EXT) {
-					String msg = "FrameBuffer: " + fboId;
-					fboId = -1;
-					switch (framebuffer) {
-						case EXTFramebufferObject.GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT:
-							throw new RuntimeException(msg + ", has caused a GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT exception");
-						case EXTFramebufferObject.GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT:
-							throw new RuntimeException(msg + ", has caused a GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT exception");
-						case EXTFramebufferObject.GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT:
-							throw new RuntimeException(msg + ", has caused a GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT exception");
-						case EXTFramebufferObject.GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER_EXT:
-							throw new RuntimeException(msg + ", has caused a GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER_EXT exception");
-						case EXTFramebufferObject.GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT:
-							throw new RuntimeException(msg + ", has caused a GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT exception");
-						case EXTFramebufferObject.GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT:
-							throw new RuntimeException(msg + ", has caused a GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT exception");
-						default:
-							throw new RuntimeException(msg + ", unexpected reply from glCheckFramebufferStatusEXT: " + framebuffer);
-					}
-				}
-				
-				fboImageRef = new TextureContainer(myFBOTexId, mod_MLB).addImage(null);
-				
-				EXTFramebufferObject.glBindFramebufferEXT(EXTFramebufferObject.GL_FRAMEBUFFER_EXT, 0);
-			}
-			else {
-				System.out.println("FBO (OpenGL FrameBuffer Objects) are unsupported !");
-			}
+		protected CustomImageRef(int texId, int left, int top) {
+			this.left = left;
+			this.top = top;
+			this.texId = texId;
 		}
 		
-		public void startDrawingTexture() {
-			// if (EXTFramebufferObject.glIsFramebufferEXT(myFBOId)) return;
-			
-			// Store the current state:
-			GL11.glMatrixMode(ARBVertexBlend.GL_MODELVIEW0_ARB);
-			GL11.glPushMatrix();
-			GL11.glMatrixMode(GL11.GL_PROJECTION);
-			GL11.glPushMatrix();
-			GL11.glMatrixMode(ARBVertexBlend.GL_MODELVIEW0_ARB);
-			GL11.glDisable(GL11.GL_DEPTH_TEST);
-			GL11.glDisable(GL11.GL_LIGHTING);
-			
-			// Inspired by http://lwjgl.org/wiki/index.php?title=Using_Frame_Buffer_Objects_%28FBO%29:
-			// Bind the FBO instead of the screen:
-			EXTFramebufferObject.glBindFramebufferEXT(EXTFramebufferObject.GL_FRAMEBUFFER_EXT, fboId);
-			GL11.glPushAttrib(GL11.GL_VIEWPORT_BIT);
-			GL11.glViewport(0, 0, textureWidth, textureHeight);
-			GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
-			
-			// Inspired by EntityRenderer.setupOverlayRendering()
-			// Setup GUI-like rendering for the FBO:
-			GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT);
-			GL11.glMatrixMode(GL11.GL_PROJECTION);
-			GL11.glLoadIdentity();
-			GL11.glOrtho(0.0D, textureWidth, 0.0D, textureHeight, -1D, 1D);
-			GL11.glMatrixMode(ARBVertexBlend.GL_MODELVIEW0_ARB);
-			GL11.glLoadIdentity();
+		@Override
+		public int getTextureId() {
+			return texId;
 		}
 		
-		public void endDrawingTexture() {
-			// if (!EXTFramebufferObject.glIsFramebufferEXT(myFBOId)) return;
-			
-			// Bind the screen, unbinding the FBO:
-			GL11.glPopAttrib();
-			EXTFramebufferObject.glBindFramebufferEXT(EXTFramebufferObject.GL_FRAMEBUFFER_EXT, 0);
-			
-			// Reset to the previous state:
-			GL11.glEnable(GL11.GL_LIGHTING);
-			GL11.glEnable(GL11.GL_DEPTH_TEST);
-			GL11.glMatrixMode(GL11.GL_PROJECTION);
-			GL11.glPopMatrix();
-			GL11.glMatrixMode(ARBVertexBlend.GL_MODELVIEW0_ARB);
-			GL11.glPopMatrix();
-			// GL11.glMatrixMode(ARBVertexBlend.GL_MODELVIEW0_ARB); // Is this necessary ?
+		@Override
+		public int getLeft() {
+			return left;
 		}
 		
-		public void clear() {
-			// if (!EXTFramebufferObject.glIsFramebufferEXT(myFBOId)) return;
-			
-			GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+		@Override
+		public int getTop() {
+			return top;
+		}
+		
+		@Override
+		public void updateImage(BufferedImage image) {
+			throw new UnsupportedOperationException();
 		}
 	}
 }

@@ -3,7 +3,8 @@ package net.minecraft.src.mystlinkingbook;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.TreeSet;
+import java.util.HashMap;
+import java.util.regex.Pattern;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.src.BaseMod;
@@ -43,30 +44,35 @@ public class Mod_MystLinkingBook extends BaseMod {
 	public ArrayList<Ressource> ressources = new ArrayList<Ressource>();
 	
 	// Contains methods to interact with the datas of the Linking Books:
-	public LinkingBook linkingBook;
+	public LinkingBookUtils linkingBookUtils;
 	
 	public BlockLinkingBook blockLinkingBook;
 	public ItemBlockLinkingBook itemBlockLinkingBook;
 	public ItemPage itemPage;
 	
-	TreeSet<Integer> texturesPool = new TreeSet<Integer>();
-	int lastUsedTextureId = 3233 - 1;
+	public TextureRessource texture_guiLinkingBook;
+	public TextureRessource texture_guiWriteLinkingBook;
+	public TextureRessource texture_guiLookOfLinkingBook;
+	public TextureRessource texture_modelLinkingBookCover;
+	public TextureRessource texture_modelLinkingBookPages;
 	
-	public TextureRessource texture_tempLinkGUI;
-	public TextureRessource texture_tempWriteGUI;
-	public TextureRessource texture_tempLookGUI;
-	public TextureRessource texture_tempLinkingBook3D;
-	
-	public ImageRefRessource missingLinkingPanelImage;
+	public ImageRefRessource linkingPanelImageMissing;
 	
 	public SoundRessource linkingsound;
+	
+	public static Pattern coverNameFilterPattern = Pattern.compile("[^a-zA-Z0-9\\-_\\.]");
+	public HashMap<String, TextureRessource> covers = new HashMap<String, TextureRessource>();
+	
+	public PathEnd logAgesAreasModsPath;
+	
+	public AgeAreaOutline outlineAgeArea;
 	
 	public Mod_MystLinkingBook() {
 	}
 	
 	@Override
 	public String getVersion() {
-		return "0.8b";
+		return "0.9b";
 	}
 	
 	/**
@@ -76,23 +82,26 @@ public class Mod_MystLinkingBook extends BaseMod {
 	 */
 	@Override
 	public void load() {
-		if (PrivateAccesses.hasFieldsNotFound) throw new RuntimeException("Some private fields could not be found.");
+		if (PrivateAccesses.hasMembersNotFound()) throw new RuntimeException("Some private members could not be found.");
 		
 		mc = ModLoader.getMinecraftInstance();
 		
 		scheduledActionsManager = new ScheduledActionsManager(this);
 		ressourcesManager.init();
+		logAgesAreasModsPath = new PathEnd(ressourcesManager.worldMLB, "/importantChanges.log");
 		itm = new ImagesOnTextureManager(256, 256, 80, 60, this);
 		
 		PathEnd basePropsPath = new PathEnd(ressourcesManager.configMLB, "options.properties");
 		PathEnd worldPropsPath = new PathEnd(ressourcesManager.worldMLB, "options.properties");
 		settings = new Settings(basePropsPath, worldPropsPath);
 		
-		linkingBook = new LinkingBook(settings, this);
+		linkingBookUtils = new LinkingBookUtils(this);
 		
-		SpriteRessource top = ressourcesManager.new SpriteRessource("blockLinkingBookSide.png", RessourcesManager.TERRAIN_SPRITE);
+		outlineAgeArea = new AgeAreaOutline(this);
+		
+		SpriteRessource top = ressourcesManager.new SpriteRessource("blockLinkingBookTop.png", RessourcesManager.TERRAIN_SPRITE);
 		SpriteRessource side = ressourcesManager.new SpriteRessource("blockLinkingBookSide.png", RessourcesManager.TERRAIN_SPRITE);
-		SpriteRessource bottom = ressourcesManager.new SpriteRessource("blockLinkingBookSide.png", RessourcesManager.TERRAIN_SPRITE);
+		SpriteRessource bottom = ressourcesManager.new SpriteRessource("blockLinkingBookBottom.png", RessourcesManager.TERRAIN_SPRITE);
 		blockLinkingBook = new BlockLinkingBook(233, 233, top, side, bottom, this);
 		blockLinkingBook.renderType = ModLoader.getUniqueBlockModelID(this, false);
 		
@@ -110,17 +119,18 @@ public class Mod_MystLinkingBook extends BaseMod {
 		SpriteRessource page = ressourcesManager.new SpriteRessource("iconPage.png", RessourcesManager.ITEMS_SPRITE);
 		itemPage = new ItemPage(3233, page);
 		
-		texture_tempLinkGUI = ressourcesManager.new TextureRessource("tempLinkGUI-BW.png");
-		texture_tempWriteGUI = ressourcesManager.new TextureRessource("tempWriteGUI.png");
-		texture_tempLookGUI = ressourcesManager.new TextureRessource("tempLookGUI.png");
-		texture_tempLinkingBook3D = ressourcesManager.new TextureRessource("tempLinkingBook3D.png");
+		texture_guiLinkingBook = ressourcesManager.new TextureRessource("guiLinkingBook.png");
+		texture_guiWriteLinkingBook = ressourcesManager.new TextureRessource("guiWriteLinkingBook.png");
+		texture_guiLookOfLinkingBook = ressourcesManager.new TextureRessource("guiLookOfLinkingBook.png");
+		texture_modelLinkingBookCover = ressourcesManager.new TextureRessource("modelLinkingBookCover.png");
+		texture_modelLinkingBookPages = ressourcesManager.new TextureRessource("modelLinkingBookPages.png");
 		
-		missingLinkingPanelImage = ressourcesManager.new ImageRefRessource("missingLinkingPanelImage.png", itm.registerImage(null));
+		linkingPanelImageMissing = ressourcesManager.new ImageRefRessource("linkingPanelImageMissing.png", itm.registerImage(null));
 		
 		ModLoader.addName(blockLinkingBook, "Linking Book");
 		ModLoader.addName(itemBlockLinkingBook, "Linking Book");
 		
-		ModLoader.registerTileEntity(TileEntityLinkingBook.class, "LinkingBook", new RenderLinkingBook(this));
+		ModLoader.registerTileEntity(TileEntityLinkingBook.class, "LinkingBook", new RenderBlockLinkingBook());
 		
 		ModLoader.addRecipe(new ItemStack(itemBlockLinkingBook, 1, 0), new Object[] { "#", "#", Character.valueOf('#'), Item.paper });
 		
@@ -137,11 +147,12 @@ public class Mod_MystLinkingBook extends BaseMod {
 		ressources.add(blockLinkingBook.topSprite);
 		ressources.add(blockLinkingBook.sideSprite);
 		ressources.add(blockLinkingBook.bottomSprite);
-		ressources.add(texture_tempLinkGUI);
-		ressources.add(texture_tempWriteGUI);
-		ressources.add(texture_tempLookGUI);
-		ressources.add(texture_tempLinkingBook3D);
-		ressources.add(missingLinkingPanelImage);
+		ressources.add(texture_guiLinkingBook);
+		ressources.add(texture_guiWriteLinkingBook);
+		ressources.add(texture_guiLookOfLinkingBook);
+		ressources.add(texture_modelLinkingBookCover);
+		ressources.add(texture_modelLinkingBookPages);
+		ressources.add(linkingPanelImageMissing);
 		ressources.add(linkingsound);
 		for (Ressource ressource : ressources) {
 			ressource.load();
@@ -164,6 +175,11 @@ public class Mod_MystLinkingBook extends BaseMod {
 	 * @see SaveFormat#getSaveLoader
 	 */
 	public void onWorldStarting(String worldFolderName) {
+		for (TextureRessource cover : covers.values()) {
+			cover.clear();
+		}
+		covers.clear();
+		
 		File worldFolder = new File(Minecraft.getMinecraftDir(), "saves/" + worldFolderName);
 		File worldMLBFolder = new File(worldFolder, "mystlinkingbook");
 		
@@ -179,8 +195,10 @@ public class Mod_MystLinkingBook extends BaseMod {
 			ressource.load();
 		}
 		
+		linkingBookUtils.startNewWorld();
+		
 		try {
-			linkingBook.agesManager.load();
+			linkingBookUtils.agesManager.startNewWorld(ressourcesManager.world);
 		}
 		catch (IOException e) {
 			throw new RuntimeException(e);
@@ -188,8 +206,8 @@ public class Mod_MystLinkingBook extends BaseMod {
 	}
 	
 	@Override
-	public boolean onTickInGame(float tick, Minecraft mc) {
-		return scheduledActionsManager.OnTickInGame(tick, mc);
+	public boolean onTickInGame(float partialTick, Minecraft mc) {
+		return scheduledActionsManager.OnTickInGame(partialTick, mc);
 	}
 	
 	@Override
@@ -200,23 +218,31 @@ public class Mod_MystLinkingBook extends BaseMod {
 		return true;
 	}
 	
-	public int getTextureId() {
-		if (texturesPool.isEmpty()) {
-			while (GL11.glIsTexture(++lastUsedTextureId)) {
-			}
-			return lastUsedTextureId;
-		}
-		else {
-			Integer id = texturesPool.first();
-			texturesPool.remove(id);
-			return id;
+	public int allocateTextureId() {
+		// Also see Minecraft's GLAllocation class
+		return GL11.glGenTextures();
+	}
+	
+	public void releasedTextureId(int texId) {
+		if (texId > 0) {
+			GL11.glDeleteTextures(texId);
 		}
 	}
 	
-	public void addReleasedTextureId(int id) {
-		if (id > 0) {
-			texturesPool.add(id);
+	public TextureRessource getCover(String name) {
+		if (!name.isEmpty()) {
+			name = coverNameFilterPattern.matcher(name).replaceAll("");
 		}
+		if (name.isEmpty()) return texture_modelLinkingBookCover;
+		
+		TextureRessource cover = covers.get(name);
+		if (cover == null) {
+			cover = ressourcesManager.new TextureRessource("modelLinkingBookCover-" + name + ".png");
+			cover.setDefault(texture_modelLinkingBookCover);
+			cover.load();
+			covers.put(name, cover);
+		}
+		return cover;
 	}
 	
 	/**
@@ -253,5 +279,11 @@ public class Mod_MystLinkingBook extends BaseMod {
 			sndSystem.play(s1);
 		}
 		// End of the part from SoundManager.playSoundFX(...).
+	}
+	
+	public void logImportantWorldChanges(String msg) {
+		if (!settings.logImportantWorldChanges) return;
+		
+		// TODO: to be implemented
 	}
 }

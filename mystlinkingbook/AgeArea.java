@@ -99,7 +99,10 @@ public class AgeArea implements Cloneable {
 			pos1Set = true;
 			return true;
 		}
-		else return false;
+		else {
+			pos1Set = false;
+			return false;
+		}
 	}
 	
 	public boolean setPos2(String value) {
@@ -112,7 +115,10 @@ public class AgeArea implements Cloneable {
 			pos2Set = true;
 			return true;
 		}
-		else return false;
+		else {
+			pos2Set = false;
+			return false;
+		}
 	}
 	
 	public String getPos1() {
@@ -197,8 +203,8 @@ public class AgeArea implements Cloneable {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder("AgeArea [dim=");
-		builder.append(dimension).append(",id=").append(id).append(",name=\"").append(name).append("\",");
-		builder.append(",pos1=").append(getPos1()).append(",pos2=").append(getPos2());
+		builder.append(dimension).append(",id=").append(id).append(",name=\"").append(name);
+		builder.append("\",pos1=").append(getPos1()).append(",pos2=").append(getPos2());
 		if (disabled) {
 			builder.append(",disabled");
 		}

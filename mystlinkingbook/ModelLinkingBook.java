@@ -21,7 +21,6 @@ import org.lwjgl.opengl.GL11;
  * @since 0.3a
  */
 public class ModelLinkingBook extends ModelBase {
-	ImagesOnTextureManager itm;
 	
 	public Tessellator tessellator = Tessellator.instance;
 	
@@ -39,16 +38,15 @@ public class ModelLinkingBook extends ModelBase {
 	public static final float PI = (float)Math.PI;
 	public static final float halfPI = PI / 2f;
 	
-	public ModelLinkingBook(ImagesOnTextureManager itm) {
-		this.itm = itm;
-		coverLeft = new ModelRenderer(this).setTextureOffset(0, 0).addBox(-6F, -3F, 0.0F, 6, 10, 0);
-		coverRight = new ModelRenderer(this).setTextureOffset(16, 0).addBox(0.0F, -3F, 0.0F, 6, 10, 0);
-		bookSpine = new ModelRenderer(this).setTextureOffset(12, 0).addBox(-2F, -3F, 0.0F, 2, 10, 0);
-		pagesLeft = new ModelRenderer(this).setTextureOffset(0, 10).addBox(0.0F, -3F, -1F, 6, 10, 1);
-		pagesRight = new ModelRenderer(this).setTextureOffset(14, 10).addBox(0.0F, -3F, 0F, 6, 10, 1);
+	public ModelLinkingBook() {
+		coverLeft = new ModelRenderer(this).setTextureSize(28, 10).setTextureOffset(0, 0).addBox(-6F, -3F, 0.0F, 6, 10, 0);
+		coverRight = new ModelRenderer(this).setTextureSize(28, 10).setTextureOffset(16, 0).addBox(0.0F, -3F, 0.0F, 6, 10, 0);
+		bookSpine = new ModelRenderer(this).setTextureSize(28, 10).setTextureOffset(12, 0).addBox(-2F, -3F, 0.0F, 2, 10, 0);
+		pagesLeft = new ModelRenderer(this).setTextureSize(28, 22).setTextureOffset(0, 0).addBox(0.0F, -3F, -1F, 6, 10, 1);
+		pagesRight = new ModelRenderer(this).setTextureSize(28, 22).setTextureOffset(14, 0).addBox(0.0F, -3F, 0F, 6, 10, 1);
 		
-		pagesLeftTransparent = new ModelRenderer(this).setTextureOffset(0, 21).addBox(0.0F, -3F, -1F, 6, 10, 1);
-		pagesRightTransparent = new ModelRenderer(this).setTextureOffset(14, 21).addBox(0.0F, -3F, 0F, 6, 10, 1);
+		pagesLeftTransparent = new ModelRenderer(this).setTextureSize(28, 22).setTextureOffset(0, 11).addBox(0.0F, -3F, -1F, 6, 10, 1);
+		pagesRightTransparent = new ModelRenderer(this).setTextureSize(28, 22).setTextureOffset(14, 11).addBox(0.0F, -3F, 0F, 6, 10, 1);
 		
 		coverLeft.rotationPointX = -1;
 		coverRight.rotationPointX = 1;
@@ -77,9 +75,9 @@ public class ModelLinkingBook extends ModelBase {
 		pagesRightTransparent.rotationPointX -= 1;
 	}
 	
-	private float count = 0;
-	
-	public void render(float bookSpread, Color color, String bookName, LinkingPanel linkingPanel, FontRenderer fontrenderer) {
+	public void render(LinkingBook linkingBook, FontRenderer fontrenderer) {
+		float bookSpread = linkingBook.getBookSpread();
+		
 		float renderScale = 1 / 16f; // The float f5 = 0.0625F value.
 		GL11.glPushMatrix();
 		
@@ -94,11 +92,16 @@ public class ModelLinkingBook extends ModelBase {
 		// Make the right cover stay in place:
 		GL11.glRotatef(90 * (bookSpread - 1), 0, 1, 0);
 		
+		linkingBook.bindModelCoverTexture();
+		
 		coverLeft.render(renderScale);
 		coverRight.render(renderScale);
 		bookSpine.render(renderScale);
 		
-		GL11.glColor3ub((byte)color.getRed(), (byte)color.getGreen(), (byte)color.getBlue());
+		linkingBook.bindModelPagesTexture();
+		
+		Color colorObj = linkingBook.getColorObj();
+		GL11.glColor3ub((byte)colorObj.getRed(), (byte)colorObj.getGreen(), (byte)colorObj.getBlue());
 		if (bookSpread <= 0.01f || bookSpread >= 0.99f) {
 			pagesLeftTransparent.rotateAngleY = pagesLeft.rotateAngleY;
 			pagesLeftTransparent.rotationPointZ = pagesLeft.rotationPointZ;
@@ -132,7 +135,7 @@ public class ModelLinkingBook extends ModelBase {
 			// Set at the right place on the right page:
 			GL11.glTranslatef(1f, 0, 0);
 			
-			linkingPanel.draw(0, 0, 4, 3);
+			linkingBook.linkingPanel.drawInGame(0, 0, 4, 3);
 			
 			GL11.glPopMatrix();
 			
@@ -142,6 +145,7 @@ public class ModelLinkingBook extends ModelBase {
 			GL11.glTranslatef(-3f, 0.5f, 0);
 			// Set the size of the font:
 			GL11.glScalef(1 / 16f, 1 / 16f, 1 / 16f);
+			String bookName = linkingBook.getName();
 			fontrenderer.drawString(bookName, -fontrenderer.getStringWidth(bookName) / 2, 0, 0x000000);
 		}
 		

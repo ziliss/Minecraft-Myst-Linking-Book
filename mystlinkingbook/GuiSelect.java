@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.src.GuiButton;
 import net.minecraft.src.Tessellator;
 
+import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
 /**
@@ -19,11 +20,11 @@ public abstract class GuiSelect extends GuiButton {
 	/** Amount scrolled (0 = top, 1 = bottom) */
 	protected float currentScroll = 0f;
 	
+	/** True if the was within the element last time drawButton was called. */
+	protected boolean wasWithin = false;
+	
 	/** True if the scrollbar is being dragged */
 	protected boolean isScrolling = false;
-	
-	/** True if the left mouse button was held down last time drawScreen was called. */
-	protected boolean wasClicking = false;
 	
 	/** Height of 1 line */
 	public int lineHeight;
@@ -40,18 +41,10 @@ public abstract class GuiSelect extends GuiButton {
 	/** Hides the select completely if false. */
 	public boolean draw = true;
 	
-	// TODO: remove the following temporary fields:
-	public int width;
-	public int height;
-	
 	public GuiSelect(int id, int xPosition, int yPosition, int width, int nbVisibleLines, int lineHeight) {
 		super(id, xPosition, yPosition, width, nbVisibleLines * lineHeight, null);
 		this.lineHeight = lineHeight;
 		this.nbVisibleLines = nbVisibleLines;
-		
-		// The following is a quick fix for unnamed fields in mcp:
-		this.width = field_52008_a;
-		this.height = field_52007_b;
 	}
 	
 	public int getWidth() {
@@ -99,8 +92,15 @@ public abstract class GuiSelect extends GuiButton {
 		currentScroll = scroll;
 	}
 	
+	public void changeCurrentScrollBy(int deltaLines) {
+		if (deltaLines == 0) return;
+		int nbLines = getNbLines();
+		int firstVisibleLine = getFirstVisibleLine(currentScroll, nbLines, nbVisibleLines);
+		setCurrentScroll(getScroll(firstVisibleLine + deltaLines, nbLines, nbVisibleLines));
+	}
+	
 	public static int getFirstVisibleLine(float scroll, int nbLines, int nbVisibleLines) {
-		int firstVisibleLine = Math.round(scroll * (nbLines - nbVisibleLines + 1));
+		int firstVisibleLine = Math.round(scroll * (nbLines - nbVisibleLines));
 		if (firstVisibleLine > nbLines - nbVisibleLines) {
 			firstVisibleLine = nbLines - nbVisibleLines;
 		}
@@ -111,7 +111,7 @@ public abstract class GuiSelect extends GuiButton {
 	}
 	
 	public static float getScroll(int firstVisibleLine, int nbLines, int nbVisibleLines) {
-		float scroll = firstVisibleLine / (float)(nbLines - nbVisibleLines + 1);
+		float scroll = firstVisibleLine / (float)(nbLines - nbVisibleLines);
 		if (scroll < 0f) {
 			scroll = 0f;
 		}
@@ -138,17 +138,26 @@ public abstract class GuiSelect extends GuiButton {
 	 */
 	@Override
 	public boolean mousePressed(Minecraft mc, int mouseX, int mouseY) {
-		boolean pressed = enabled && draw && mouseX >= xPosition && mouseY >= yPosition && mouseX < xPosition + width && mouseY < yPosition + height;
-		if (pressed) {
+		isScrolling = false;
+		boolean isMouseWithin = enabled && draw && mouseX >= xPosition && mouseY >= yPosition && mouseX < xPosition + width && mouseY < yPosition + height;
+		if (isMouseWithin) {
 			int line = getLineAt(mouseX, mouseY, getNbLines());
 			if (line != -2) {
 				selectedLine = lineSelected(line, selectedLine);
 			}
 			else if (mouseX >= xPosition + width - scrollbarWidth) {
+				isScrolling = true;
 				setCurrentScroll((mouseY - yPosition) / (float)height);
 			}
 		}
-		return pressed;
+		return isMouseWithin;
+	}
+	
+	@Override
+	protected void mouseDragged(Minecraft mc, int mouseX, int mouseY) {
+		if (isScrolling && mouseX >= xPosition + width - scrollbarWidth && Mouse.isButtonDown(0)) {
+			setCurrentScroll((mouseY - yPosition) / (float)height);
+		}
 	}
 	
 	/**
@@ -176,26 +185,42 @@ public abstract class GuiSelect extends GuiButton {
 	}
 	
 	public void drawScrollbar(int left, int top, int right, int bottom, float scroll, float viewed, boolean enabled, Tessellator tessellator) {
+		drawRect(left, top, right, bottom, 0xff000000);
+		
 		if (viewed >= 1f) return;
+		
 		int height = bottom - top;
 		int scrollHeight = (int)(height * viewed);
 		if (scrollHeight < 5) {
 			scrollHeight = 5;
 		}
-		int scrollTop = top + (int)(height * scroll) - scrollHeight / 2;
-		if (scrollTop + scrollHeight > top + height) {
-			scrollTop = top + height - scrollHeight;
+		int scrollTop = top + (int)((height - scrollHeight) * scroll);
+		drawRect(left, scrollTop, right, scrollTop + scrollHeight, 0xff808080);
+		if (enabled) {
+			drawRect(left, scrollTop, right - 1, scrollTop + scrollHeight - 1, 0xffc0c0c0);
 		}
-		if (scrollTop < top) {
-			scrollTop = top;
-		}
-		drawRect(left, scrollTop, right, scrollTop + scrollHeight, enabled ? 0xff808080 : 0xff404040);
 	}
 	
 	@Override
 	public void drawButton(Minecraft mc, int mouseX, int mouseY) {
+		boolean isMouseWithin = enabled && draw && mouseX >= xPosition && mouseY >= yPosition && mouseX < xPosition + width && mouseY < yPosition + height;
+		if (isMouseWithin) {
+			mouseDragged(mc, mouseX, mouseY);
+			
+			if (!wasWithin) {
+				Mouse.getDWheel(); // Remove any Wheel movement done before mouse entered this element.
+			}
+			int amountScrolled = Mouse.getDWheel();
+			if (amountScrolled > 0) {
+				changeCurrentScrollBy(-1);
+			}
+			else if (amountScrolled < 0) {
+				changeCurrentScrollBy(1);
+			}
+		}
+		
 		draw(mc, mouseX, mouseY);
-		mouseDragged(mc, mouseX, mouseY);
+		wasWithin = isMouseWithin;
 	}
 	
 	/**

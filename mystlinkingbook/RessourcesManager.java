@@ -2,6 +2,7 @@ package net.minecraft.src.mystlinkingbook;
 
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.imageio.ImageIO;
+import javax.naming.OperationNotSupportedException;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.src.ModLoader;
@@ -59,95 +61,118 @@ public class RessourcesManager {
 		}
 	}
 	
-	public abstract class HierarchicalRessource {
-		public ArrayList<PathEnd> paths = new ArrayList<PathEnd>();
-		public ArrayList<PathEnd> currentPaths = new ArrayList<PathEnd>();
-		
-		public boolean load() {
-			for (PathEnd path : paths) {
-				path = path.copyFlatten();
-				if (path.exists() && (!currentPaths.contains(path) || path.isForceReload())) {
-					boolean loaded = false;
-					try {
-						loaded = load(path);
-					}
-					catch (Exception e) {
-						e.printStackTrace();
-					}
-					if (!loaded) {
-						if (currentPaths.contains(path)) {
-							unload(path);
-						}
-						continue;
-					}
-					currentPaths.add(path);
-					logLoaded(path);
-				}
-				else if (!path.exists()) {
-					unload(path);
-				}
-			}
-			
-			return !currentPaths.isEmpty();
-		}
-		
-		public abstract boolean load(PathEnd path) throws Exception;
-		
-		public void unload() {
-			while (!currentPaths.isEmpty()) {
-				unload(currentPaths.get(currentPaths.size() - 1));
-			}
-		}
-		
-		public void unload(PathEnd path) {
-			logUnloaded(path);
-			currentPaths.remove(path);
-		}
-		
-		public void logLoaded(PathEnd path) {
-			System.out.println("Loaded " + this.getClass().getSimpleName() + ": " + path.toString());
-		}
-		
-		public void logUnloaded(PathEnd path) {
-			System.out.println("Unloaded " + this.getClass().getSimpleName() + ": " + path.toString());
-		}
-	}
-	
 	public abstract class Ressource {
+		protected ArrayList<PathEnd> paths = new ArrayList<PathEnd>(4);
+		protected PathEnd currentPath = null;
+		protected Ressource def = null;
+		protected boolean usesDefault = false;
+		protected boolean isLoaded = false;
 		
-		public ArrayList<PathEnd> paths = new ArrayList<PathEnd>();
-		public PathEnd currentPath = null;
+		public Ressource() {
+		}
 		
-		public boolean load() {
+		public Ressource(Ressource def) {
+			setDefault(def);
+		}
+		
+		public Ressource setDefault(Ressource def) {
+			if (!this.getClass().isAssignableFrom(def.getClass())) throw new RuntimeException("The default Ressource must be of the same kind than the Ressource !");
+			this.def = def;
+			return this;
+		}
+		
+		public boolean isLoaded() {
+			return isLoaded;
+		}
+		
+		public boolean isReady() {
+			return isLoaded || usesDefault;
+		}
+		
+		public boolean exists() {
 			for (PathEnd path : paths) {
-				path = path.copyFlatten();
-				if (path.exists() && (!path.equals(currentPath) || path.isForceReload())) {
-					boolean loaded = false;
-					try {
-						loaded = load(path);
-					}
-					catch (Exception e) {
-						e.printStackTrace();
-					}
-					if (!loaded) {
-						continue;
-					}
-					currentPath = path;
-					logLoaded();
-					return true;
-				}
-			}
-			if (currentPath != null && !currentPath.exists()) {
-				unload();
+				if (path.exists()) return true;
 			}
 			return false;
 		}
 		
+		public boolean load() {
+			if (usesDefault) {
+				stopUsingDefault();
+			}
+			for (PathEnd path : paths) {
+				path = path.copyFlatten();
+				if (path.exists()) {
+					if (!path.equals(currentPath) || path.isForceReload()) {
+						boolean loaded = false;
+						try {
+							loaded = load(path);
+						}
+						catch (Exception e) {
+							e.printStackTrace();
+						}
+						if (!loaded) {
+							continue;
+						}
+						currentPath = path;
+						isLoaded = true;
+						logLoaded();
+					}
+					return true;
+				}
+			}
+			
+			if (isLoaded) {
+				clear();
+			}
+			
+			startUsingDefault();
+			
+			if (isReady()) return true;
+			else {
+				logNotFound();
+				return false;
+			}
+		}
+		
 		public abstract boolean load(PathEnd path) throws Exception;
+		
+		public boolean startUsingDefault() {
+			usesDefault = def != null;
+			return usesDefault;
+		}
+		
+		public void clear() {
+			if (usesDefault) {
+				stopUsingDefault();
+			}
+			if (isLoaded) {
+				unload();
+			}
+		}
 		
 		public void unload() {
 			logUnloaded();
 			currentPath = null;
+			isLoaded = false;
+		}
+		
+		public void stopUsingDefault() {
+			usesDefault = false;
+		}
+		
+		public boolean loadFromDatas(byte[] datas) throws Exception {
+			if (loadFromDatas_do(datas)) {
+				if (usesDefault) {
+					stopUsingDefault();
+				}
+				return true;
+			}
+			return false;
+		}
+		
+		public boolean loadFromDatas_do(byte[] datas) throws Exception {
+			throw new OperationNotSupportedException("Class " + this.getClass().getSimpleName() + " cannot load datas directly.");
 		}
 		
 		public void logLoaded() {
@@ -156,6 +181,17 @@ public class RessourcesManager {
 		
 		public void logUnloaded() {
 			System.out.println("Unloaded " + this.getClass().getSimpleName() + ": " + currentPath.toString());
+		}
+		
+		public void logNotFound() {
+			System.out.print("Not found " + this.getClass().getSimpleName() + ":");
+			for (PathEnd path : paths) {
+				System.out.print(" \"" + path + "\"");
+			}
+			if (def != null) {
+				System.out.print(" And could not use default !");
+			}
+			System.out.println();
 		}
 	}
 	
@@ -168,30 +204,47 @@ public class RessourcesManager {
 			paths.add(new PathEnd(assets_ressources, name));
 			paths.add(new PathEnd(assets_package, name));
 		}
+		
+		@Override
+		public boolean load(PathEnd path) throws FileNotFoundException, IOException, Exception {
+			return loadImage(loadBufferedImage(path)); // bufferedimage cannot be null here
+		}
+		
+		@Override
+		public boolean loadFromDatas_do(byte[] datas) throws Exception {
+			return loadImage(loadBufferedImage(datas));
+		}
+		
+		public abstract boolean loadImage(BufferedImage bufferedimage);
 	}
 	
+	// Careful, it does never release the UniqueSpriteIndex !
 	public class SpriteRessource extends ImageRessource {
-		public int spriteType;
-		public int spriteId;
-		public TextureFX currentTextureFX = null;
+		protected int spriteType;
+		protected int spriteId;
+		protected TextureFX currentTextureFX = null;
 		
 		public SpriteRessource(String name, int spriteType) {
 			super(name);
 			this.spriteType = spriteType;
-			
 			spriteId = ModLoader.getUniqueSpriteIndex(spriteTypesPaths[spriteType]);
 			System.out.println("Overriding " + spriteTypesPaths[spriteType] + " with a SpriteRessource named \"" + name + "\" @ " + spriteId + ".");
 		}
 		
+		public int getSpriteType() {
+			return usesDefault ? ((SpriteRessource)def).getSpriteType() : spriteType;
+		}
+		
+		public int getSpriteId() {
+			return usesDefault ? ((SpriteRessource)def).getSpriteId() : spriteId;
+		}
+		
 		@Override
-		public boolean load(PathEnd path) throws FileNotFoundException, IOException, Exception {
-			BufferedImage bufferedimage = loadBufferedImage(path); // bufferedimage cannot be null here
-			
+		public boolean loadImage(BufferedImage bufferedimage) {
 			ModTextureStatic modtexturestatic = new ModTextureStatic(spriteId, spriteType, bufferedimage);
 			PrivateAccesses.RenderEngine_textureList.getFrom(mod_MLB.mc.renderEngine).remove(currentTextureFX);
 			mod_MLB.mc.renderEngine.registerTextureFX(modtexturestatic);
 			currentTextureFX = modtexturestatic;
-			
 			return true;
 		}
 		
@@ -208,20 +261,21 @@ public class RessourcesManager {
 	}
 	
 	public class TextureRessource extends ImageRessource {
-		public int textureId = -1;
+		protected int textureId = -1;
 		
 		public TextureRessource(String name) {
 			super(name);
 		}
 		
+		public int getTextureId() {
+			return usesDefault ? ((TextureRessource)def).getTextureId() : textureId;
+		}
+		
 		@Override
-		public boolean load(PathEnd path) throws FileNotFoundException, IOException, Exception {
-			BufferedImage bufferedimage = loadBufferedImage(path); // bufferedimage cannot be null here
-			
+		public boolean loadImage(BufferedImage bufferedimage) {
 			if (textureId == -1) {
-				textureId = mod_MLB.getTextureId();
+				textureId = mod_MLB.allocateTextureId();
 			}
-			
 			mod_MLB.mc.renderEngine.setupTexture(bufferedimage, textureId);
 			return true;
 		}
@@ -230,7 +284,7 @@ public class RessourcesManager {
 		public void unload() {
 			if (textureId != -1) {
 				mod_MLB.mc.renderEngine.deleteTexture(textureId);
-				mod_MLB.addReleasedTextureId(textureId);
+				mod_MLB.releasedTextureId(textureId);
 				textureId = -1;
 			}
 			super.unload();
@@ -245,27 +299,28 @@ public class RessourcesManager {
 			this.imageRef = imageRef;
 		}
 		
+		public ImageRef getImageRef() {
+			return usesDefault ? ((ImageRefRessource)def).getImageRef() : imageRef;
+		}
+		
 		@Override
-		public boolean load(PathEnd path) throws FileNotFoundException, IOException, Exception {
-			BufferedImage bufferedimage = loadBufferedImage(path); // bufferedimage cannot be null here
-			
-			mod_MLB.itm.updateImage(imageRef, bufferedimage);
-			
+		public boolean loadImage(BufferedImage bufferedimage) {
+			imageRef.updateImage(bufferedimage);
 			return true;
 		}
 		
 		@Override
 		public void unload() {
-			mod_MLB.itm.updateImage(imageRef, null);
+			imageRef.updateImage(null);
 			super.unload();
 		}
 	}
 	
 	public class SoundRessource extends Ressource {
-		public String idRoot;
-		public String srcId;
-		public String soundId;
-		public URL loadedURL = null;
+		protected String idRoot;
+		protected String srcId;
+		protected String soundId;
+		protected URL loadedURL = null;
 		
 		public SoundRessource(String idRoot, String nameWithoutExt) {
 			this.idRoot = idRoot;
@@ -283,6 +338,10 @@ public class RessourcesManager {
 			for (String name : names) {
 				paths.add(new PathEnd(assets_package, name));
 			}
+		}
+		
+		public String getSoundId() {
+			return usesDefault ? ((SoundRessource)def).getSoundId() : soundId;
 		}
 		
 		@Override
@@ -333,11 +392,11 @@ public class RessourcesManager {
 		
 		public String piece = ""; // Never null !
 		
-		boolean inPackage = false; // Considered final
+		protected boolean inPackage = false; // Considered final
 		
-		boolean forceReload = false; // Can be changed at anytime
+		protected boolean forceReload = false; // Can be changed at anytime
 		
-		boolean disabled = false; // Can be changed at anytime
+		protected boolean disabled = false; // Can be changed at anytime
 		
 		public PathEnd(PathEnd parent, String piece) {
 			this.parent = parent;
@@ -426,6 +485,11 @@ public class RessourcesManager {
 			InputStream in = new FileInputStream(path.toString());
 			return ImageIO.read(in);
 		}
+	}
+	
+	public BufferedImage loadBufferedImage(byte[] datas) throws IOException {
+		InputStream in = new ByteArrayInputStream(datas);
+		return ImageIO.read(in);
 	}
 	
 	public SoundPoolEntry addSound(String par1Str, URL url) {

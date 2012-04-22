@@ -4,7 +4,6 @@ import java.awt.Cursor;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.src.GuiButton;
-import net.minecraft.src.ModLoader;
 
 /**
  * Represents and manages the state of a linking panel.
@@ -18,7 +17,7 @@ public class GuiLinkingPanel extends GuiButton {
 	/**
 	 * The linking book of this linking panel.
 	 */
-	GuiLinkingBook guiLinkingBook;
+	protected GuiLinkingBook guiLinkingBook;
 	
 	public LinkingPanel linkingPanel = null;
 	
@@ -28,22 +27,14 @@ public class GuiLinkingPanel extends GuiButton {
 	public boolean linkingStarted = false;
 	
 	// The following fields are used to manage the mouse cursor:
-	boolean prevShowLinkCursor;
-	Cursor originalCursor;
-	static Cursor linkCursor = new Cursor(Cursor.HAND_CURSOR);
-	
-	// TODO: remove the following temporary fields:
-	public int width;
-	public int height;
+	protected boolean prevShowLinkCursor;
+	protected Cursor originalCursor;
+	protected static Cursor linkCursor = new Cursor(Cursor.HAND_CURSOR);
 	
 	public GuiLinkingPanel(int id, int xPosition, int yPosition, int width, int height, LinkingPanel linkingPanel, GuiLinkingBook guiLinkingBook) {
 		super(id, xPosition, yPosition, width, height, "");
 		this.linkingPanel = linkingPanel;
 		this.guiLinkingBook = guiLinkingBook;
-		
-		// The following is a quick fix for unnamed fields in mcp:
-		this.width = field_52008_a;
-		this.height = field_52007_b;
 	}
 	
 	public void initGui() {
@@ -51,18 +42,14 @@ public class GuiLinkingPanel extends GuiButton {
 	}
 	
 	public void onGuiClosed() {
-		ModLoader.getMinecraftInstance().mcCanvas.setCursor(originalCursor);
-	}
-	
-	public void notifyLinkingPanelImageChanged(LinkingPanel linkingPanel) {
-		this.linkingPanel = linkingPanel;
+		guiLinkingBook.mod_MLB.mc.mcCanvas.setCursor(originalCursor);
 	}
 	
 	/**
 	 * True if the linking panel is ready to link.
 	 */
 	public boolean canLink() {
-		return guiLinkingBook.tileEntityLinkingBook.canLink() && !linkingStarted;
+		return guiLinkingBook.linkingBook.canLink() && !linkingStarted;
 	}
 	
 	public void startLinking() {

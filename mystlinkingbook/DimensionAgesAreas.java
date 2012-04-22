@@ -12,7 +12,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.Scanner;
 import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
@@ -28,18 +27,22 @@ import net.minecraft.src.mystlinkingbook.RessourcesManager.PathEnd;
  * @see AgesManager
  * @since 0.5a
  */
-public class DimensionAgeAreas {
+public class DimensionAgesAreas {
 	
 	/* Example of format for the agesDataFile:
 	 * 
-	 * allowOutOfAgeAreasDimLinking=true
-	 * allowOutOfAgeAreasDimLinking=inherited
+	 * allowOutOfAgeAreaDimLinking=true
+	 * allowOutOfAgeAreaDimLinking=inherited
 	 * 
 	 * age1.name=My own Age
 	 * age1.pos1= -12 34 65
 	 * age1.pos2=12 90 7
 	 * age1.disabled=true
 	 */
+	/**
+	 * Reference to the mod instance.
+	 */
+	public Mod_MystLinkingBook mod_MLB;
 	
 	public int dimension;
 	
@@ -49,7 +52,7 @@ public class DimensionAgeAreas {
 	public EntityPlayer playerEditing = null;
 	public boolean unsavedModifications;
 	
-	public Boolean allowOutOfAgeAreasDimLinking = null; // Three possible values: true, false or inherited if equals to null.
+	public Boolean allowOutOfAgeAreaDimLinking = null; // Three possible values: true, false or inherited if equals to null.
 	
 	public ArrayList<AgeArea> allAgeAreas = new ArrayList<AgeArea>();
 	
@@ -59,10 +62,11 @@ public class DimensionAgeAreas {
 	
 	public static Pattern agePattern = Pattern.compile("^age(-?\\d+)\\.");
 	
-	public DimensionAgeAreas(int dim, PathEnd worldPath) throws IOException {
+	public DimensionAgesAreas(int dim, PathEnd worldPath, Mod_MystLinkingBook mod_MLB) throws IOException {
 		this.dimension = dim;
+		this.mod_MLB = mod_MLB;
 		String dimFolderName = dim == 0 ? "region" : "DIM" + dim;
-		this.dimAgesDatasPath = new PathEnd(worldPath, dimFolderName + "/mystlinkingbook/dimAgesDatas.properties").copyFlatten();
+		dimAgesDatasPath = new PathEnd(worldPath, dimFolderName + "/mystlinkingbook/dimAgesDatas.properties").copyFlatten();
 		
 		load();
 	}
@@ -89,11 +93,15 @@ public class DimensionAgeAreas {
 		//@formatter:on
 		boolean modified = false;
 		for (String[] entry : entries) {
-			modified &= updatePropsWith(entry[0], entry[1]);
+			modified |= AgesManager.updatePropsWith(props, entry[0], entry[1]);
 		}
 		if (modified) {
 			unsavedModifications = true;
 		}
+	}
+	
+	public AgeArea getAgeAreaWithId(int id) {
+		return allAgeAreas.get(id);
 	}
 	
 	public AgeArea getFirstReadyAgeAreaContaining(int x, int y, int z) {
@@ -130,8 +138,8 @@ public class DimensionAgeAreas {
 	}
 	
 	public boolean updatedDimension() {
-		String key = "allowOutOfAgeAreasDimLinking";
-		String value = allowOutOfAgeAreasDimLinking == null ? null : Boolean.toString(allowOutOfAgeAreasDimLinking);
+		String key = "allowOutOfAgeAreaDimLinking";
+		String value = allowOutOfAgeAreaDimLinking == null ? null : Boolean.toString(allowOutOfAgeAreaDimLinking);
 		if (!props.getProperty(key).equals(value)) {
 			if (value == null) {
 				props.remove(key);
@@ -159,7 +167,7 @@ public class DimensionAgeAreas {
 		//@formatter:on
 		boolean modified = false;
 		for (String[] entry : entries) {
-			modified &= updatePropsWith(entry[0], entry[1]);
+			modified |= AgesManager.updatePropsWith(props, entry[0], entry[1]);
 		}
 		if (modified) {
 			unsavedModifications = true;
@@ -167,38 +175,33 @@ public class DimensionAgeAreas {
 		return modified;
 	}
 	
-	public boolean updatePropsWith(String key, String value) {
-		String oldValue = props.getProperty(key);
-		if (oldValue == null || oldValue != value || !oldValue.equals(value)) {
-			if (value == null) {
-				props.remove(key);
-			}
-			else {
-				props.setProperty(key, value);
-			}
-			return true;
-		}
-		return false;
-	}
-	
-	public AgeAreasModifications startEdition(EntityPlayer player) {
+	public AgeAreasList getAgesAreasList(EntityPlayer player) {
 		ArrayList<AgeArea> ageAreas = new ArrayList<AgeArea>();
 		for (AgeArea ageArea : allAgeAreas) {
 			ageAreas.add(ageArea == null ? null : ageArea.clone());
 		}
-		
-		if (playerEditing == null || playerEditing.equals(player)) {
-			playerEditing = player;
-			return new AgeAreasModifications(ageAreas, dimension);
-		}
-		else return new AgeAreasModifications(ageAreas, dimension, playerEditing.username);
+		return new AgeAreasList(ageAreas, dimension, false, playerEditing == null ? null : playerEditing.username);
 	}
 	
-	public boolean endEdition(EntityPlayer player, AgeAreasModifications mods) {
-		if (playerEditing == null || !playerEditing.equals(player) || !mods.canEdit) return false;
-		if (mods.ageAreas.size() != mods.ageAreasOldIds.size()) throw new IllegalArgumentException();
+	public AgeAreasList getAgesAreasListWithEdition(EntityPlayer player) {
+		ArrayList<AgeArea> ageAreas = new ArrayList<AgeArea>();
+		for (AgeArea ageArea : allAgeAreas) {
+			ageAreas.add(ageArea == null ? null : ageArea.clone());
+		}
+		if (playerEditing == null) {
+			playerEditing = player;
+		}
+		boolean canEdit = playerEditing.equals(player);
+		String playerEditingName = playerEditing == null || playerEditing.equals(player) ? null : playerEditing.username;
 		
-		boolean isCancelled = mods.cancel;
+		return new AgeAreasList(ageAreas, dimension, playerEditing.equals(player), playerEditingName);
+	}
+	
+	public boolean endEdition(EntityPlayer player, AgeAreasList modsList) {
+		if (playerEditing == null || !playerEditing.equals(player) || !modsList.canEdit) return false;
+		if (modsList.ageAreas.size() != modsList.agesAreasOldIds.size()) throw new IllegalArgumentException();
+		
+		boolean isCancelled = modsList.cancel;
 		boolean hasRemovedAges = false;
 		boolean hasIdModifiedAges = false;
 		boolean hasModifiedAges = false;
@@ -211,10 +214,10 @@ public class DimensionAgeAreas {
 		StringBuilder log = new StringBuilder("Player ").append(player.username);
 		
 		if (!isCancelled) {
-			hasRemovedAges = !mods.removedAgesAreaIds.isEmpty();
+			hasRemovedAges = !modsList.removedAgesAreasIds.isEmpty();
 			if (hasRemovedAges) {
 				logRemovedAges = new StringBuilder(" Removing Age areas: ");
-				for (int removedId : mods.removedAgesAreaIds) {
+				for (int removedId : modsList.removedAgesAreasIds) {
 					logRemovedAges.append(allAgeAreas.get(removedId).name + " (" + removedId + "), ");
 					removeAgeArea(removedId);
 				}
@@ -224,11 +227,11 @@ public class DimensionAgeAreas {
 			logIdModifiedAges = new StringBuilder(" Changing Age area Ids: ");
 			ArrayList<AgeArea> newAgeAreas = new ArrayList<AgeArea>();
 			HashMap<Integer, Integer> oldToNewIds = new HashMap<Integer, Integer>();
-			for (int i = 0; i < mods.ageAreas.size(); i++) {
-				if (mods.ageAreas.get(i) != null) {
-					int oldId = mods.ageAreasOldIds.get(i);
+			for (int i = 0; i < modsList.ageAreas.size(); i++) {
+				if (modsList.ageAreas.get(i) != null) {
+					int oldId = modsList.agesAreasOldIds.get(i);
 					if (oldId == -1) {
-						newAgeAreas.add(mods.ageAreas.set(i, null));
+						newAgeAreas.add(modsList.ageAreas.set(i, null));
 						hasNewAges = true;
 					}
 					else if (oldId != i) {
@@ -245,7 +248,7 @@ public class DimensionAgeAreas {
 			
 			logModifiedAges = new StringBuilder(" Modified Age area datas:");
 			AgeArea ageArea;
-			for (AgeArea ageMod : mods.ageAreas) {
+			for (AgeArea ageMod : modsList.ageAreas) {
 				if (ageMod != null) {
 					ageArea = allAgeAreas.get(ageMod.id);
 					if (!ageMod.sameData(ageArea)) {
@@ -295,13 +298,14 @@ public class DimensionAgeAreas {
 				log.append("\n").append(logNewAges);
 			}
 			unsavedModifications = true;
+			mod_MLB.logImportantWorldChanges(log.toString());
 		}
 		else {
 			if (isCancelled) {
-				log.append(" has finished reading the Ages areas for this dimension (" + dimension + ").");
+				log.append(" has made no modification to the Ages areas for this dimension (" + dimension + ").");
 			}
 			else {
-				log.append(" has finished reading the Ages areas for this dimension (" + dimension + ").");
+				log.append(" has made no modification to the Ages areas for this dimension (" + dimension + ").");
 			}
 		}
 		System.out.println(log);
@@ -336,8 +340,8 @@ public class DimensionAgeAreas {
 		}
 	}
 	
-	public void load() throws IOException {
-		unsavedModifications = false;
+	public void reset() {
+		playerEditing = null;
 		
 		props.clear();
 		
@@ -346,8 +350,12 @@ public class DimensionAgeAreas {
 		disabledAgeAreas.clear();
 		invalidAgeAreas.clear();
 		
-		allowOutOfAgeAreasDimLinking = false;
+		allowOutOfAgeAreaDimLinking = null;
 		
+		unsavedModifications = false;
+	}
+	
+	public void load() throws IOException {
 		if (dimAgesDatasPath.exists()) {
 			FileInputStream in = null;
 			try {
@@ -410,15 +418,15 @@ public class DimensionAgeAreas {
 			}
 			else {
 				key = sc.next();
-				if (key.equals("allowOutOfAgeAreasDimLinking")) {
+				if (key.equals("allowOutOfAgeAreaDimLinking")) {
 					if (value.equals("true")) {
-						allowOutOfAgeAreasDimLinking = true;
+						allowOutOfAgeAreaDimLinking = true;
 					}
 					else if (value.equals("false")) {
-						allowOutOfAgeAreasDimLinking = false;
+						allowOutOfAgeAreaDimLinking = false;
 					}
 					else {
-						allowOutOfAgeAreasDimLinking = null;
+						allowOutOfAgeAreaDimLinking = null;
 					}
 				}
 			}
@@ -441,7 +449,8 @@ public class DimensionAgeAreas {
 					dimAgesDatasFile.createNewFile();
 				}
 				out = new FileOutputStream(dimAgesDatasFile);
-				props.store(new BufferedOutputStream(out), "Myst Linking Book mod: Age areas datas for a dimension");
+				props.setSorted(true);
+				props.store(new BufferedOutputStream(out), "Myst Linking Book mod: Ages areas datas for a dimension");
 			}
 			finally {
 				try {
@@ -452,6 +461,7 @@ public class DimensionAgeAreas {
 				catch (IOException e) {
 					e.printStackTrace();
 				}
+				props.setSorted(false);
 			}
 		}
 		unsavedModifications = false;

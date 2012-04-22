@@ -118,11 +118,11 @@ public class BlockLinkingBook extends BlockContainer {
 	public int getBlockTextureFromSide(int i) {
 		switch (i) {
 			case 0:
-				return topSprite.spriteId;
+				return bottomSprite.getSpriteId();
 			case 1:
-				return bottomSprite.spriteId;
+				return topSprite.getSpriteId();
 			default:
-				return sideSprite.spriteId;
+				return sideSprite.getSpriteId();
 		}
 	}
 	
@@ -158,7 +158,7 @@ public class BlockLinkingBook extends BlockContainer {
 	@Override
 	public boolean blockActivated(World world, int i, int j, int k, EntityPlayer entityplayer) {
 		TileEntityLinkingBook tileEntityLinkingBook = (TileEntityLinkingBook)world.getBlockTileEntity(i, j, k);
-		NBTTagCompound nbttagcompound_linkingBook = tileEntityLinkingBook.nbttagcompound_linkingBook;
+		LinkingBook linkingBook = tileEntityLinkingBook.linkingBook;
 		
 		ItemStack currentItem = entityplayer.inventory.getCurrentItem();
 		boolean canUseBook = tileEntityLinkingBook.bookSpread >= 1f && tileEntityLinkingBook.isInRange(entityplayer);
@@ -171,16 +171,15 @@ public class BlockLinkingBook extends BlockContainer {
 		}
 		else if (currentItem.itemID == mod_MLB.itemPage.shiftedIndex) {
 			if (currentItem.stackSize > 0) {
-				if (mod_MLB.linkingBook.addPages(nbttagcompound_linkingBook, currentItem, 1) != 0) {
+				if (linkingBook.addPages(currentItem, 1) != 0) {
 					if (currentItem.stackSize == 0) {
 						entityplayer.inventory.mainInventory[entityplayer.inventory.currentItem] = null;
 					}
-					tileEntityLinkingBook.notifyNbMissingPagesChanged();
 				}
 			}
 		}
 		else if (currentItem.itemID == Item.shears.shiftedIndex) {
-			ItemStack itemstack = mod_MLB.linkingBook.removePages(nbttagcompound_linkingBook);
+			ItemStack itemstack = linkingBook.removePages();
 			if (itemstack != null) {
 				// The following part is taken from BlockChest.onBlockRemoval(...):
 				EntityItem entityitem = new EntityItem(world, i + 0.5, j + 1, k + 0.5, itemstack);
@@ -193,11 +192,10 @@ public class BlockLinkingBook extends BlockContainer {
 				// End of the part from BlockChest.onBlockRemoval(...).
 				
 				currentItem.damageItem(1, entityplayer);
-				tileEntityLinkingBook.notifyNbMissingPagesChanged();
 			}
 		}
 		else if (currentItem.itemID == Item.feather.shiftedIndex) {
-			if (mod_MLB.linkingBook.setName(nbttagcompound_linkingBook, "")) {
+			if (!linkingBook.getName().isEmpty() && linkingBook.setName("")) {
 				currentItem.stackSize--;
 				if (currentItem.stackSize == 0) {
 					entityplayer.inventory.mainInventory[entityplayer.inventory.currentItem] = null;
@@ -210,11 +208,10 @@ public class BlockLinkingBook extends BlockContainer {
 			openGui = GuiLookOfLinkingBook.class;
 		}
 		else if (currentItem.itemID == Item.map.shiftedIndex) {
-			openGui = GuiAgesArea.class;
+			openGui = GuiAgesAreas.class;
 		}
 		else if (currentItem.itemID == Item.dyePowder.shiftedIndex) { // TODO: remove for 1.0
-			mod_MLB.linkingBook.setPagesColorFromDye(nbttagcompound_linkingBook, currentItem.getItemDamage());
-			tileEntityLinkingBook.notifyColorChanged();
+			linkingBook.setPagesColorFromDye(currentItem.getItemDamage());
 		}
 		else if (currentItem.itemID == Item.stick.shiftedIndex) { // For debugging only
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.pickaxeDiamond, 1, 0));
@@ -233,25 +230,27 @@ public class BlockLinkingBook extends BlockContainer {
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Block.snow, 64, 0));
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.monsterPlacer, 64, 93)); // Chickens spawners
 			// entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.dyePowder, 64, 14));
-			for (int d = 0; d < 0; d++) {
+			for (int d = 0; d < 0; d++) { // To activate, increment until 16
 				entityplayer.inventory.addItemStackToInventory(new ItemStack(Item.dyePowder, 64, d));
 			}
-			// mod_MLB.mc.theWorld.getWorldInfo().setWorldTime(5000); // A bit before noon
+			long worldTime = mod_MLB.mc.theWorld.getWorldInfo().getWorldTime();
+			worldTime = worldTime > 5000 && worldTime < 6000 ? 17000 : 5000;// A bit before midnight or a bit before noon.
+			// mod_MLB.mc.theWorld.getWorldInfo().setWorldTime(worldTime);
 			// mod_MLB.mc.theWorld.getWorldInfo().setRaining(false);
-			// nbttagcompound_linkingBook.setInteger("nbPages", nbttagcompound_linkingBook.getInteger("nbPages") + 1);
+			// linkingBook.addPages(1);
 		}
 		else {
 			openGui = GuiLinkingBook.class;
 		}
 		
 		if (openGui == GuiLinkingBook.class) {
-			ModLoader.openGUI(entityplayer, new GuiLinkingBook(entityplayer, tileEntityLinkingBook, mod_MLB));
+			ModLoader.openGUI(entityplayer, new GuiLinkingBook(entityplayer, tileEntityLinkingBook.linkingBook, tileEntityLinkingBook, mod_MLB));
 		}
 		else if (openGui == GuiLookOfLinkingBook.class) {
-			ModLoader.openGUI(entityplayer, new GuiLookOfLinkingBook(entityplayer, tileEntityLinkingBook, mod_MLB));
+			ModLoader.openGUI(entityplayer, new GuiLookOfLinkingBook(entityplayer, tileEntityLinkingBook.linkingBook, tileEntityLinkingBook, mod_MLB));
 		}
-		else if (openGui == GuiAgesArea.class) {
-			ModLoader.openGUI(entityplayer, new GuiAgesArea(entityplayer, mod_MLB));
+		else if (openGui == GuiAgesAreas.class) {
+			ModLoader.openGUI(entityplayer, new GuiAgesAreas(entityplayer, mod_MLB));
 		}
 		return true;
 	}
@@ -273,9 +272,9 @@ public class BlockLinkingBook extends BlockContainer {
 			World world = entity.worldObj;
 			TileEntityLinkingBook tileEntityLinkingBook = (TileEntityLinkingBook)world.getBlockTileEntity(i, j, k);
 			if (tileEntityLinkingBook.bookSpread >= 1f) {
-				world.playSoundAtEntity(entity, mod_MLB.linkingsound.soundId, 1.0F, 1.0F);
+				world.playSoundAtEntity(entity, mod_MLB.linkingsound.getSoundId(), 1.0F, 1.0F);
 				// world.playSoundEffect(i + 0.5D, j + 1.1D, k + 0.5D, "mystlinkingbook.linkingsound", 1.0F, 1.0F);
-				new LinkingEntity(entity, tileEntityLinkingBook, mod_MLB);
+				new LinkingEntity(entity, tileEntityLinkingBook.linkingBook, mod_MLB);
 			}
 		}
 	}
@@ -294,7 +293,7 @@ public class BlockLinkingBook extends BlockContainer {
 	public void onBlockRemoval(World world, int i, int j, int k) {
 		TileEntityLinkingBook tileEntityLinkingBook = (TileEntityLinkingBook)world.getBlockTileEntity(i, j, k);
 		
-		int color = mod_MLB.linkingBook.getPagesColor(tileEntityLinkingBook.nbttagcompound_linkingBook);
+		int colorCode = tileEntityLinkingBook.linkingBook.getColorCode();
 		
 		// Drop nothing if it was burnt:
 		if (isNeighborFire(world, i, j, k)) {
@@ -303,9 +302,9 @@ public class BlockLinkingBook extends BlockContainer {
 		}
 		
 		// Prepare our ItemStack, giving it a new NBTTagCompound to store the datas:
-		int written = (true ? 1 : 0) << 4;
-		ItemStack itemstack = new ItemStack(blockID, 1, color | written);
-		itemstack.setTagCompound(tileEntityLinkingBook.nbttagcompound_linkingBook);
+		int written = (tileEntityLinkingBook.linkingBook.isWritten() ? 1 : 0) << 4;
+		ItemStack itemstack = new ItemStack(blockID, 1, colorCode | written);
+		itemstack.setTagCompound(tileEntityLinkingBook.linkingBook.getNBTTagCompound());
 		dropItemStack(world, i, j, k, itemstack);
 		
 		for (int z = 0; z < tileEntityLinkingBook.inventoryLinkingBook.getSizeInventory(); z++) {
@@ -350,7 +349,7 @@ public class BlockLinkingBook extends BlockContainer {
 		return 0;
 	}
 	
-	private boolean isNeighborFire(World world, int i, int j, int k) {
+	protected boolean isNeighborFire(World world, int i, int j, int k) {
 		int fireID = Block.fire.blockID;
 		//@formatter:off
 		return world.getBlockId(i + 1, j, k) == fireID || world.getBlockId(i - 1, j, k) == fireID

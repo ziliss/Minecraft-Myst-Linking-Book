@@ -21,27 +21,28 @@ public class LinkingPanel {
 	/**
 	 * Reference to the mod instance.
 	 */
-	public TileEntityLinkingBook entityLB;
+	public LinkingBook linkingBook;
 	
 	public ImagesOnTextureManager itm;
 	
-	public final static Random rand = new Random();
-	
 	public Gui gui = new Gui();
 	
-	public float noiseLevel;
+	public State state;
+	
+	public float staticLevel;
 	
 	public ImageRef imageRef = null;
 	public int linkingPanelImageRefUses = 0;
-	ScheduledActionRef releaseLinkingPanelImageActionRef;
+	protected ScheduledActionRef releaseLinkingPanelImageActionRef;
 	
+	public final static Random rand = new Random();
 	public static final Tessellator tessellator = Tessellator.instance;
 	
-	public LinkingPanel(TileEntityLinkingBook entityLB) {
-		this.entityLB = entityLB;
-		itm = entityLB.mod_MLB.itm;
+	public LinkingPanel(LinkingBook linkingBook) {
+		this.linkingBook = linkingBook;
+		itm = linkingBook.mod_MLB.itm;
 		
-		releaseLinkingPanelImageActionRef = entityLB.mod_MLB.scheduledActionsManager.getNewReadyScheduledActionRef(new ScheduledAction() {
+		releaseLinkingPanelImageActionRef = linkingBook.mod_MLB.scheduledActionsManager.getNewReadyScheduledActionRef(new ScheduledAction() {
 			@Override
 			public void executeOnce() {
 				if (linkingPanelImageRefUses == 0) {
@@ -49,12 +50,14 @@ public class LinkingPanel {
 				}
 			}
 		});
+		notifyNbMissingPagesChanged();
 	}
 	
 	public void notifyNbMissingPagesChanged() {
-		int nbPages = entityLB.nbPages;
-		int maxPages = entityLB.maxPages;
-		noiseLevel = maxPages == 0 ? maxPages : (float)(maxPages - nbPages) / maxPages;
+		int nbPages = linkingBook.nbPages;
+		int maxPages = linkingBook.maxPages;
+		staticLevel = maxPages == 0 ? maxPages : (float)(maxPages - nbPages) / maxPages;
+		updateState();
 	}
 	
 	public void notifyLinkingPanelImageChanged() {
@@ -63,7 +66,30 @@ public class LinkingPanel {
 		}
 	}
 	
-	public LinkingPanel acquireLinkingPanel() {
+	public void updateState() {
+		State prev = state;
+		if (!linkingBook.isWritten()) {
+			state = State.unwritten;
+		}
+		else if (!linkingBook.doLinkToDifferentAge()) {
+			state = State.disabled;
+		}
+		else if (linkingBook.isUnstable && !linkingBook.isPowered) {
+			state = State.unpowered;
+		}
+		else if (linkingBook.getNbMissingPages() > 0) {
+			state = State.pagesMissing;
+		}
+		else {
+			state = State.ready;
+		}
+		
+		if (state != prev) {
+			linkingBook.fireLinkingPanelStateChanged(state);
+		}
+	}
+	
+	public LinkingPanel acquireImage() {
 		if (imageRef == null) {
 			loadLinkingPanelImage();
 		}
@@ -74,7 +100,7 @@ public class LinkingPanel {
 		return this;
 	}
 	
-	public void releaseLinkingPanel() {
+	public void releaseImage() {
 		linkingPanelImageRefUses--;
 		if (linkingPanelImageRefUses == 0) {
 			releaseLinkingPanelImageActionRef.reschedule(20 * 20);
@@ -83,7 +109,7 @@ public class LinkingPanel {
 	
 	public void unloadLinkingPanelImage() {
 		if (imageRef != null) {
-			if (imageRef != entityLB.mod_MLB.missingLinkingPanelImage.imageRef) {
+			if (imageRef != linkingBook.mod_MLB.linkingPanelImageMissing.getImageRef()) {
 				imageRef.dispose();
 			}
 			imageRef = null;
@@ -91,15 +117,15 @@ public class LinkingPanel {
 	}
 	
 	public void loadLinkingPanelImage() {
-		BufferedImage linkingPanelImage = entityLB.mod_MLB.linkingBook.getLinkingPanelImage(entityLB.nbttagcompound_linkingBook);
-		if (imageRef == entityLB.mod_MLB.missingLinkingPanelImage.imageRef) {
+		BufferedImage linkingPanelImage = linkingBook.getLinkingPanelImage();
+		if (imageRef == linkingBook.mod_MLB.linkingPanelImageMissing.getImageRef()) {
 			unloadLinkingPanelImage();
 		}
 		if (imageRef == null) {
-			imageRef = linkingPanelImage == null ? entityLB.mod_MLB.missingLinkingPanelImage.imageRef : itm.registerImage(linkingPanelImage);
+			imageRef = linkingPanelImage == null ? linkingBook.mod_MLB.linkingPanelImageMissing.getImageRef() : itm.registerImage(linkingPanelImage);
 		}
 		else {
-			itm.updateImage(imageRef, linkingPanelImage);
+			imageRef.updateImage(linkingPanelImage);
 		}
 	}
 	
@@ -109,90 +135,65 @@ public class LinkingPanel {
 	}
 	
 	public void drawOnGui(int x, int y, int width, int height) {
-		int color = 0xff000000; // black
-		ImageRef drawImageRef = null;
-		
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-		
-		if (imageRef != null && (!entityLB.isUnstable || entityLB.isPowered)) {
-			if (!entityLB.getLinksToDifferentAge()) {
-				// Ok, nothing to do.
-			}
-			else if (noiseLevel == 0f) {
-				drawImageRef = imageRef;
-			}
-			else {
-				if (itm.fbo.FBOEnabled) {
-					itm.fbo.startDrawingTexture();
-					
-					itm.fbo.clear();
-					itm.drawImage2(imageRef, 0, 0);
-					drawNoise(0, 0, imageRef.getWidth(), imageRef.getHeight(), noiseLevel, 2, 0xffffffff);
-					
-					itm.fbo.endDrawingTexture();
-					GL11.glDisable(GL11.GL_LIGHTING);
-					
-					drawImageRef = itm.fbo.fboImageRef;
-				}
-				else {
-					drawImageRef = imageRef;
-				}
-			}
+		draw(x, y, width, height, 2);
+	}
+	
+	public void drawInGame(int x, int y, int width, int height) {
+		if (state.emitsLight()) {
+			linkingBook.mod_MLB.mc.entityRenderer.disableLightmap(0);
 		}
-		
-		if (drawImageRef == null) {
-			drawRect(x, y, width, height, color);
-		}
-		else {
-			itm.drawImage(drawImageRef, x, y, width, height);
+		draw(x, y, width, height, 5);
+		if (state.emitsLight()) {
+			linkingBook.mod_MLB.mc.entityRenderer.enableLightmap(0);
 		}
 	}
 	
-	public void draw(int x, int y, int width, int height) {
+	protected void draw(int x, int y, int width, int height, int staticPointSize) {
 		int color = 0xff000000; // black
 		ImageRef drawImageRef = null;
 		
-		entityLB.mod_MLB.mc.entityRenderer.disableLightmap(0);
-		
-		if (imageRef != null && (!entityLB.isUnstable || entityLB.isPowered)) {
-			if (!entityLB.getLinksToDifferentAge()) {
+		switch (state) {
+			case unwritten:
+				color = 0xffffffff; // white
+				break;
+			case disabled:
 				// Ok, nothing to do.
-			}
-			else if (noiseLevel == 0f) {
-				drawImageRef = imageRef;
-			}
-			else {
-				if (itm.fbo.FBOEnabled) {
+				break;
+			case unpowered:
+				// Ok, nothing to do.
+				break;
+			case pagesMissing:
+				if (itm.fbo != null) {
 					itm.fbo.startDrawingTexture();
-					
 					itm.fbo.clear();
-					itm.drawImage2(imageRef, 0, 0);
-					drawNoise(0, 0, imageRef.getWidth(), imageRef.getHeight(), noiseLevel, 5, 0xffffffff);
+					
+					imageRef.drawImage2(0, 0);
+					drawStatic(0, 0, imageRef.getWidth(), imageRef.getHeight(), staticLevel, staticPointSize, 0xffffffff);
 					
 					itm.fbo.endDrawingTexture();
+					GL11.glDisable(GL11.GL_LIGHTING); // Because it is enabled in endDrawingTexture().
 					
-					drawImageRef = itm.fbo.fboImageRef;
+					drawImageRef = itm.fboImageRef;
 				}
 				else {
 					drawImageRef = imageRef;
 				}
-			}
+				break;
+			case ready:
+				drawImageRef = imageRef;
+				break;
 		}
-		
-		GL11.glDisable(GL11.GL_LIGHTING);
 		
 		if (drawImageRef == null) {
 			drawRect(x, y, width, height, color);
 		}
 		else {
-			itm.drawImage(drawImageRef, x, y, width, height);
+			drawImageRef.drawImage(x, y, width, height);
 		}
-		
-		GL11.glEnable(GL11.GL_LIGHTING);
-		entityLB.mod_MLB.mc.entityRenderer.enableLightmap(0);
 	}
 	
-	public void drawNoise(int x, int y, int width, int height, float noiseLevel, int pointSize, int color) {
+	public void drawStatic(int x, int y, int width, int height, float staticLevel, int pointSize, int color) {
 		GL11.glEnable(GL11.GL_BLEND);
 		GL11.glDisable(GL11.GL_TEXTURE_2D);
 		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -209,7 +210,7 @@ public class LinkingPanel {
 		/*
 		width /= pointSize;
 		height /= pointSize;
-		int nbDots = (int)(noiseLevel * (width * height));
+		int nbDots = (int)(staticLevel * (width * height));
 		int dotX, dotY;
 		for (int i = 0; i < nbDots; i++) {
 			dotX = rand.nextInt(width) * pointSize + halfPointSize;
@@ -219,11 +220,11 @@ public class LinkingPanel {
 			GL11.glEnd();
 		}/**/
 		
-		noiseLevel *= 0.9f;
+		staticLevel *= 0.9f;
 		int i, j;
 		for (i = halfPointSize; i < width; i += pointSize) {
 			for (j = halfPointSize; j < height; j += pointSize) {
-				if (rand.nextFloat() <= noiseLevel) {
+				if (rand.nextFloat() <= staticLevel) {
 					GL11.glBegin(GL11.GL_POINTS);
 					GL11.glVertex3f(x + i, y + j, 0);
 					GL11.glEnd();
@@ -241,9 +242,9 @@ public class LinkingPanel {
 	 */
 	// Taken from GUI.drawRect():
 	public void drawRect(int x, int y, int width, int height, int color) {
-		GL11.glEnable(GL11.GL_BLEND);
+		// GL11.glEnable(GL11.GL_BLEND);
 		GL11.glDisable(GL11.GL_TEXTURE_2D);
-		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+		// GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 		byte a = (byte)(color >> 24 & 0xff);
 		byte r = (byte)(color >> 16 & 0xff);
 		byte g = (byte)(color >> 8 & 0xff);
@@ -256,7 +257,7 @@ public class LinkingPanel {
 		tessellator.addVertex(x, y, 0.0D);
 		tessellator.draw();
 		GL11.glEnable(GL11.GL_TEXTURE_2D);
-		GL11.glDisable(GL11.GL_BLEND);
+		// GL11.glDisable(GL11.GL_BLEND);
 	}
 	
 	/**
@@ -264,9 +265,9 @@ public class LinkingPanel {
 	 */
 	// Taken from GUI.drawRect():
 	public void drawRect2(int x, int y, int width, int height, int color) {
-		GL11.glEnable(GL11.GL_BLEND);
+		// GL11.glEnable(GL11.GL_BLEND);
 		GL11.glDisable(GL11.GL_TEXTURE_2D);
-		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+		// GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 		byte a = (byte)(color >> 24 & 0xff);
 		byte r = (byte)(color >> 16 & 0xff);
 		byte g = (byte)(color >> 8 & 0xff);
@@ -280,7 +281,28 @@ public class LinkingPanel {
 		tessellator.draw();
 		GL11.glColor4f(1, 1, 1, 1);
 		GL11.glEnable(GL11.GL_TEXTURE_2D);
-		GL11.glDisable(GL11.GL_BLEND);
+		// GL11.glDisable(GL11.GL_BLEND);
 	}
 	
+	public static enum State {
+		
+		/** When linking has not yet been written. Panel is white. */
+		unwritten,
+		
+		/** When linking to the same Age. Panel is black. */
+		disabled,
+		
+		/** When the book is unstable and is not powered by redstone power. Panel is black. */
+		unpowered,
+		
+		/** When pages are missing from the book. Static is shown on the panel. */
+		pagesMissing,
+		
+		/** Ready to link. Shows the images of the destination. */
+		ready;
+		
+		public boolean emitsLight() {
+			return this == pagesMissing || this == ready;
+		}
+	}
 }

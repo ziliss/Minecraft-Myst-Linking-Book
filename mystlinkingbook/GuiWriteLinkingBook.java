@@ -27,18 +27,18 @@ public class GuiWriteLinkingBook extends GuiContainer {
 	
 	public ContainerWriteLinkingBook container;
 	
-	GuiTextField nameTextfield;
-	GuiButton writeButton;
+	protected GuiTextField nameTextfield;
+	protected GuiButton writeButton;
 	
-	boolean canWrite;
+	protected boolean canWrite;
 	
-	int timePassing = 0;
+	protected int timePassing = 0;
 	
 	public Color pagesColor;
-	int pagesLeft = 75;
-	int pagesTop = 26;
-	int pagesWidth = 63;
-	int pagesHeight = 45;
+	protected int pagesLeft = 75;
+	protected int pagesTop = 26;
+	protected int pagesWidth = 63;
+	protected int pagesHeight = 45;
 	
 	public GuiWriteLinkingBook(EntityPlayer entityplayer, NBTTagCompound nbttagcompound_linkingBook, Mod_MystLinkingBook mod_MLB) {
 		super(new ContainerWriteLinkingBook(entityplayer.inventory, mod_MLB));
@@ -54,6 +54,7 @@ public class GuiWriteLinkingBook extends GuiContainer {
 		
 		controlList.clear();
 		nameTextfield = new GuiTextField(fontRenderer, guiLeft + 40, guiTop + 6, 120, 14);
+		nameTextfield.setText(mod_MLB.linkingBookUtils.getName(nbttagcompound_linkingBook));
 		nameTextfield.setMaxStringLength(16);
 		nameTextfield.setFocused(true);
 		writeButton = new GuiButton(1, guiLeft + 86, guiTop + 46, 40, 20, "Write");
@@ -130,18 +131,18 @@ public class GuiWriteLinkingBook extends GuiContainer {
 			
 			boolean hasDyeColor = container.colorSlot.getHasStack() && container.colorSlot.getStack().stackSize == 1;
 			if (hasDyeColor) {
-				mod_MLB.linkingBook.setPagesColorFromDye(nbttagcompound_linkingBook, container.colorSlot.getStack().getItemDamage());
+				mod_MLB.linkingBookUtils.setPagesColorCodeFromDye(nbttagcompound_linkingBook, container.colorSlot.getStack().getItemDamage());
 				container.colorSlot.putStack(null);
 			}
 			updateCanWrite();
 			
-			mod_MLB.linkingBook.write(nbttagcompound_linkingBook, entityplayer, nbPaper, unstable);
+			mod_MLB.linkingBookUtils.write(nbttagcompound_linkingBook, entityplayer, nbPaper, unstable);
 			
-			mod_MLB.linkingBook.setLinkingPanelImage(nbttagcompound_linkingBook, mod_MLB.itm.takeImageFromScreen());
+			mod_MLB.linkingBookUtils.setLinkingPanelImage(nbttagcompound_linkingBook, mod_MLB.itm.takeImageFromScreen());
 			
 			String name = nameTextfield.getText();
 			if (!name.isEmpty()) {
-				mod_MLB.linkingBook.setName(nbttagcompound_linkingBook, name);
+				mod_MLB.linkingBookUtils.setName(nbttagcompound_linkingBook, name);
 			}
 			
 			mc.displayGuiScreen(null);
@@ -154,7 +155,7 @@ public class GuiWriteLinkingBook extends GuiContainer {
 			pagesColor = ItemPage.brighterColorTable[BlockCloth.getBlockFromDye(dyeColor)];
 		}
 		else {
-			pagesColor = ItemPage.brighterColorTable[mod_MLB.linkingBook.getPagesColor(nbttagcompound_linkingBook)];
+			pagesColor = ItemPage.brighterColorTable[mod_MLB.linkingBookUtils.getColorCode(nbttagcompound_linkingBook)];
 		}
 	}
 	
@@ -171,7 +172,7 @@ public class GuiWriteLinkingBook extends GuiContainer {
 	
 	@Override
 	protected void drawGuiContainerBackgroundLayer(float f, int i, int j) {
-		mc.renderEngine.bindTexture(mod_MLB.texture_tempWriteGUI.textureId);
+		mc.renderEngine.bindTexture(mod_MLB.texture_guiWriteLinkingBook.getTextureId());
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 		drawTexturedModalRect(guiLeft, guiTop, 0, 0, xSize, ySize);
 		

@@ -87,5 +87,4 @@ public class SaveFormat implements ISaveFormat {
 	public boolean convertMapFormat(String s, IProgressUpdate iprogressupdate) {
 		return originalSaveLoader.convertMapFormat(s, iprogressupdate);
 	}
-	
 }

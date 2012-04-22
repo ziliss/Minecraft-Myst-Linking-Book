@@ -38,21 +38,23 @@ public class ItemBlockLinkingBook extends ItemBlock {
 	public SpriteRessource unwritten;
 	public SpriteRessource unwrittenPages;
 	
-	public int itemsTexture = ModLoader.getMinecraftInstance().renderEngine.getTexture("/gui/items.png");
+	public int itemsTexture; // For texture /gui/items.png
 	
 	public ItemBlockLinkingBook(int itemID, SpriteRessource icon, SpriteRessource unwritten, SpriteRessource pages, SpriteRessource unwrittenPages, Mod_MystLinkingBook mod_MLB) {
 		super(itemID);
+		
+		this.mod_MLB = mod_MLB;
 		
 		this.icon = icon;
 		this.pages = pages;
 		this.unwritten = unwritten;
 		this.unwrittenPages = unwrittenPages;
 		
-		this.mod_MLB = mod_MLB;
+		itemsTexture = mod_MLB.mc.renderEngine.getTexture("/gui/items.png");
 		
 		setItemName("linkingBookItem");
-		setIconIndex(icon.spriteId); // Instead of the icon from the block set in the constructor of ItemBlock
-		setMaxStackSize(1);
+		setIconIndex(icon.getSpriteId()); // Instead of the icon from the block set in the constructor of ItemBlock
+		// setMaxStackSize(1);
 		setMaxDamage(0);
 	}
 	
@@ -70,8 +72,8 @@ public class ItemBlockLinkingBook extends ItemBlock {
 		
 		//@formatter:off
 		return (i & 16) == 16 ? // Is it written ? Yes if the fourth bit is set.
-				j == 0 ? iconIndex : pages.spriteId
-			   : j == 0 ? unwritten.spriteId : unwrittenPages.spriteId;
+				j == 0 ? iconIndex : pages.getSpriteId()
+			   : j == 0 ? unwritten.getSpriteId() : unwrittenPages.getSpriteId();
 		//@formatter:on
 	}
 	
@@ -87,7 +89,7 @@ public class ItemBlockLinkingBook extends ItemBlock {
 	 */
 	@Override
 	public void onCreated(ItemStack itemstack, World world, EntityPlayer entityplayer) {
-		itemstack.setTagCompound(mod_MLB.linkingBook.createNew());
+		itemstack.setTagCompound(mod_MLB.linkingBookUtils.createNew());
 	}
 	
 	/**
@@ -100,13 +102,13 @@ public class ItemBlockLinkingBook extends ItemBlock {
 	 */
 	@Override
 	public boolean onItemUse(ItemStack itemstack, EntityPlayer entityplayer, World world, int i, int j, int k, int l) {
-		NBTTagCompound nbttagcompound = mod_MLB.linkingBook.checkAndUpdateOldFormat(itemstack.getTagCompound());
+		NBTTagCompound nbttagcompound = mod_MLB.linkingBookUtils.checkAndUpdateOldFormat(itemstack.getTagCompound());
 		// In case onCreated() was not called on this item:
 		if (nbttagcompound == null) {
 			onCreated(itemstack, world, entityplayer);
 			nbttagcompound = itemstack.getTagCompound();
 		}
-		if (mod_MLB.linkingBook.isWritten(nbttagcompound)) {
+		if (mod_MLB.linkingBookUtils.isWritten(nbttagcompound)) {
 			
 			int x = i, y = j, z = k, side = l;
 			
@@ -156,7 +158,7 @@ public class ItemBlockLinkingBook extends ItemBlock {
 	}
 	
 	/**
-	 * Opens the linking GUI.
+	 * Opens the writing GUI.
 	 * 
 	 * @see onItemUse
 	 */
@@ -168,7 +170,7 @@ public class ItemBlockLinkingBook extends ItemBlock {
 			onCreated(itemstack, world, entityplayer);
 			nbttagcompound = itemstack.getTagCompound();
 		}
-		if (!mod_MLB.linkingBook.isWritten(nbttagcompound)) {
+		if (!mod_MLB.linkingBookUtils.isWritten(nbttagcompound)) {
 			ModLoader.openGUI(entityplayer, new GuiWriteLinkingBook(entityplayer, nbttagcompound, mod_MLB));
 		}
 		return itemstack;
@@ -179,7 +181,7 @@ public class ItemBlockLinkingBook extends ItemBlock {
 	 */
 	@Override
 	public void addInformation(ItemStack itemstack, List list) {
-		String name = mod_MLB.linkingBook.getName(itemstack.getTagCompound());
+		String name = mod_MLB.linkingBookUtils.getName(itemstack.getTagCompound());
 		if (!name.isEmpty()) {
 			list.add(name);
 		}

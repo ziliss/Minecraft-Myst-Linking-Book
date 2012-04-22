@@ -1,6 +1,5 @@
 package net.minecraft.src.mystlinkingbook;
 
-import java.awt.Color;
 import java.util.List;
 
 import net.minecraft.src.BaseMod;
@@ -12,6 +11,7 @@ import net.minecraft.src.ModLoader;
 import net.minecraft.src.NBTTagCompound;
 import net.minecraft.src.NBTTagList;
 import net.minecraft.src.TileEntity;
+import net.minecraft.src.mystlinkingbook.LinkingBook.SpreadState;
 
 /**
  * Manages the datas associated with {@code BlockLinkingBook}s.<br>
@@ -33,11 +33,6 @@ public class TileEntityLinkingBook extends TileEntity {
 	public Mod_MystLinkingBook mod_MLB;
 	
 	/**
-	 * The datas for this Linking Book Block.
-	 */
-	public NBTTagCompound nbttagcompound_linkingBook;
-	
-	/**
 	 * The inventory contained by the Linking Book Block.
 	 */
 	public InventoryBasic inventoryLinkingBook = new InventoryBasic("InventoryLinkingBook", 1) {
@@ -52,33 +47,18 @@ public class TileEntityLinkingBook extends TileEntity {
 	public double rangeCenterHoriz = 0.60D;
 	public double rangeCenterVert = 1.8D;
 	
-	/**
-	 * True if the linking book links to another Age.
-	 */
-	boolean linksToDifferentAge;
-	int lastUpdateCounter = -1;
-	
 	public boolean isTopBlocked;
-	
-	/**
-	 * Does the linking book need power to be able to link ?
-	 */
-	public boolean isUnstable;
 	
 	/**
 	 * Whether the Block of the linking book is powered.
 	 */
 	public boolean isPowered;
 	
-	public int nbPages;
-	public int maxPages;
-	public int missingPages;
+	public float bookSpread = 0;
+	public float bookSpreadPrev = 0;
 	
-	public Color color;
-	
-	public boolean stayOpen;
-	
-	public LinkingPanel linkingPanel;
+	protected NBTTagCompound nbttagcompound_linkingBookTemp = null;
+	public LinkingBook linkingBook;
 	
 	public GuiLinkingBook guiLinkingBook = null;
 	
@@ -88,7 +68,6 @@ public class TileEntityLinkingBook extends TileEntity {
 	
 	public TileEntityLinkingBook(Mod_MystLinkingBook mod_MLB) {
 		this.mod_MLB = mod_MLB;
-		linkingPanel = new LinkingPanel(this);
 	}
 	
 	private static final Mod_MystLinkingBook getMod_MLB() {
@@ -118,81 +97,37 @@ public class TileEntityLinkingBook extends TileEntity {
 			default:
 				isTopBlocked = true;
 				if (guiLinkingBook != null) {
-					ModLoader.getMinecraftInstance().displayGuiScreen(null);
+					mod_MLB.mc.displayGuiScreen(null);
 				}
 		}
 		
 		if (id == 0 || id > 0 && Block.blocksList[id].canProvidePower()) {
 			isPowered = worldObj.isBlockIndirectlyGettingPowered(xCoord, yCoord, zCoord);
+			linkingBook.notifyPoweredChanged(isPowered);
 		}
-	}
-	
-	public void notifyNbMissingPagesChanged() {
-		nbPages = mod_MLB.linkingBook.getNbPages(nbttagcompound_linkingBook);
-		maxPages = mod_MLB.linkingBook.getMaxPages(nbttagcompound_linkingBook);
-		missingPages = maxPages - nbPages;
-		linkingPanel.notifyNbMissingPagesChanged();
-		if (guiLinkingBook != null) {
-			guiLinkingBook.notifyNbMissingPagesChanged();
-		}
-	}
-	
-	public void notifyColorChanged() {
-		color = ItemPage.colorTable[mod_MLB.linkingBook.getPagesColor(nbttagcompound_linkingBook)];
-		if (guiLinkingBook != null) {
-			guiLinkingBook.notifyColorChanged();
-		}
-	}
-	
-	public void notifyLinkingPanelImageChanged() {
-		linkingPanel.notifyLinkingPanelImageChanged();
-		if (guiLinkingBook != null) {
-			guiLinkingBook.notifyLinkingPanelImageChanged(linkingPanel);
-		}
-	}
-	
-	public void notifyStayOpenChanged() {
-		stayOpen = mod_MLB.linkingBook.getStayOpen(nbttagcompound_linkingBook);
-	}
-	
-	public boolean getLinksToDifferentAge() {
-		if (lastUpdateCounter != mod_MLB.linkingBook.agesManager.updateCounter) {
-			linksToDifferentAge = mod_MLB.linkingBook.doLinkToDifferentAge(this);
-			lastUpdateCounter = mod_MLB.linkingBook.agesManager.updateCounter;
-		}
-		return linksToDifferentAge;
-	}
-	
-	public boolean canLink() {
-		return missingPages == 0 && (isUnstable ? isPowered : true) && getLinksToDifferentAge();
 	}
 	
 	@Override
 	public void invalidate() {
 		if (guiLinkingBook != null) {
-			ModLoader.getMinecraftInstance().displayGuiScreen(null);
+			mod_MLB.mc.displayGuiScreen(null);
 		}
-		linkingPanel.invalidate();
-		lastUpdateCounter = -1;
+		linkingBook.invalidate();
 		super.invalidate();
 	}
 	
-	public void onPlacedInWorld(NBTTagCompound nbttagcompound_linkingBook) {
-		this.nbttagcompound_linkingBook = mod_MLB.linkingBook.checkAndUpdateOldFormat(nbttagcompound_linkingBook);
-		onNeighborBlockChange(Block.redstoneWire.blockID);
-		initBookState();
-	}
-	
-	public void initBookState() {
-		isUnstable = mod_MLB.linkingBook.isUnstable(nbttagcompound_linkingBook);
+	public void initBookState(NBTTagCompound nbttagcompound_linkingBook) {
+		nbttagcompound_linkingBook = mod_MLB.linkingBookUtils.checkAndUpdateOldFormat(nbttagcompound_linkingBook);
+		linkingBook = new LinkingBook(nbttagcompound_linkingBook, this, isPowered, bookSpread, mod_MLB);
 		
-		notifyNbMissingPagesChanged();
-		notifyColorChanged();
-		notifyStayOpenChanged();
-		if (stayOpen) {
+		if (linkingBook.getStayOpen()) {
 			setBookSpread(1F);
 		}
-		notifyLinkingPanelImageChanged();
+	}
+	
+	public void onPlacedInWorld(NBTTagCompound nbttagcompound_linkingBook) {
+		initBookState(nbttagcompound_linkingBook);
+		onNeighborBlockChange(Block.redstoneWire.blockID);
 	}
 	
 	/**
@@ -203,8 +138,12 @@ public class TileEntityLinkingBook extends TileEntity {
 		super.readFromNBT(nbttagcompound);
 		isTopBlocked = nbttagcompound.getBoolean("topBlocked");
 		isPowered = nbttagcompound.getBoolean("powered");
-		nbttagcompound_linkingBook = mod_MLB.linkingBook.checkAndUpdateOldFormat(nbttagcompound.getCompoundTag("tag"));
-		initBookState();
+		if (nbttagcompound.hasKey("mlb")) {
+			nbttagcompound_linkingBookTemp = nbttagcompound.getCompoundTag("mlb");
+		}
+		else {
+			nbttagcompound_linkingBookTemp = nbttagcompound.getCompoundTag("tag");
+		}
 		
 		int slotNb;
 		NBTTagCompound nbttagcompound1;
@@ -221,6 +160,16 @@ public class TileEntityLinkingBook extends TileEntity {
 		}
 	}
 	
+	@Override
+	public void validate() {
+		super.validate();
+		
+		if (nbttagcompound_linkingBookTemp != null) {
+			initBookState(nbttagcompound_linkingBookTemp);
+			nbttagcompound_linkingBookTemp = null;
+		}
+	}
+	
 	/**
 	 * Saves the datas to the disk. (Called by Minecraft)
 	 */
@@ -229,7 +178,7 @@ public class TileEntityLinkingBook extends TileEntity {
 		super.writeToNBT(nbttagcompound);
 		nbttagcompound.setBoolean("topBlocked", isTopBlocked);
 		nbttagcompound.setBoolean("powered", isPowered);
-		nbttagcompound.setTag("tag", this.nbttagcompound_linkingBook);
+		nbttagcompound.setTag("mlb", linkingBook.getNBTTagCompound());
 		
 		ItemStack itemstack;
 		NBTTagCompound nbttagcompound1;
@@ -246,14 +195,9 @@ public class TileEntityLinkingBook extends TileEntity {
 		nbttagcompound.setTag("Inventory", nbttaglist);
 	}
 	
-	// Everything below comes from TileEntityEnchantmentTable:
-	public float bookSpread = 0;
-	public float bookSpreadPrev = 0;
-	
 	@Override
 	public void updateEntity() {
 		super.updateEntity();
-		bookSpreadPrev = bookSpread;
 		
 		EntityPlayer closestPlayer = null;
 		if (!isTopBlocked) {
@@ -277,55 +221,50 @@ public class TileEntityLinkingBook extends TileEntity {
 			closestPlayer = worldObj.getClosestPlayer(xCoord + dX, yCoord + rangeCenterVert, zCoord + dZ, playerRange);
 		}
 		
-		boolean wasClosed = bookSpread == 0f;
-		if (closestPlayer != null || stayOpen) {
-			if (bookSpread < 1.0F) {
-				bookSpread += 0.1F;
-				if (bookSpread > 1F) {
-					bookSpread = 1F;
-				}
-			}
+		if (closestPlayer != null || linkingBook.getStayOpen()) {
+			setBookSpread(bookSpread + 0.1f);
 		}
 		else {
-			if (bookSpread > 0) {
-				bookSpread -= 0.1F;
-				if (bookSpread < 0F) {
-					bookSpread = 0F;
-				}
-			}
-		}
-		boolean isClosed = bookSpread == 0f;
-		
-		if (isClosed != wasClosed) {
-			if (isClosed) {
-				linkingPanel.releaseLinkingPanel();
-			}
-			else {
-				linkingPanel.acquireLinkingPanel();
-			}
+			setBookSpread(bookSpread - 0.1f);
 		}
 	}
 	
 	public void setBookSpread(float newBookSpread) {
-		if (newBookSpread < 0) {
-			newBookSpread = 0F;
+		if (newBookSpread < 0f) {
+			newBookSpread = 0f;
 		}
-		else if (newBookSpread > 1) {
-			newBookSpread = 1F;
+		else if (newBookSpread > 1f) {
+			newBookSpread = 1f;
 		}
 		
+		bookSpreadPrev = bookSpread;
 		boolean wasClosed = bookSpread == 0f;
 		bookSpread = newBookSpread;
 		boolean isClosed = bookSpread == 0f;
 		
 		if (isClosed != wasClosed) {
 			if (isClosed) {
-				linkingPanel.releaseLinkingPanel();
+				linkingBook.linkingPanel.releaseImage();
 			}
 			else {
-				linkingPanel.acquireLinkingPanel();
+				linkingBook.linkingPanel.acquireImage();
 			}
 		}
+		
+		SpreadState spreadState;
+		if (isClosed) {
+			spreadState = SpreadState.closed;
+		}
+		else if (bookSpread > bookSpreadPrev) {
+			spreadState = SpreadState.opening;
+		}
+		else if (bookSpread < bookSpreadPrev) {
+			spreadState = SpreadState.closing;
+		}
+		else {
+			spreadState = SpreadState.open;
+		}
+		linkingBook.notifyBookSpreadChanged(spreadState, bookSpread);
 	}
 	
 	public boolean isInRange(EntityPlayer entityPlayer) {

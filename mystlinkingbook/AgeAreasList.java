@@ -1,48 +1,46 @@
 package net.minecraft.src.mystlinkingbook;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * 
  * @author ziliss
  * @since 0.8b
  */
-public class AgeAreasModifications {
+public class AgeAreasList {
 	
 	public final int dimension;
-	final ArrayList<AgeArea> ageAreas;
+	protected final ArrayList<AgeArea> ageAreas;
 	
-	final ArrayList<Integer> ageAreasOldIds = new ArrayList<Integer>();
-	final ArrayList<Integer> removedAgesAreaIds = new ArrayList<Integer>();
+	protected final ArrayList<Integer> agesAreasOldIds = new ArrayList<Integer>();
+	protected final ArrayList<Integer> removedAgesAreasIds = new ArrayList<Integer>();
 	
-	public final ArrayList<AgeArea> displayAgeAreas = new ArrayList<AgeArea>();
+	public final ArrayList<AgeArea> displayAgesAreas = new ArrayList<AgeArea>();
 	
 	public final boolean canEdit;
-	public final String playerEditingName;
+	public final String playerEditingName; // Can be null
 	
 	public boolean cancel = false;
 	
-	public AgeAreasModifications(ArrayList<AgeArea> ageAreas, int dimension) {
-		this(ageAreas, dimension, true, null);
-	}
-	
-	public AgeAreasModifications(ArrayList<AgeArea> ageAreas, int dimension, String playerEditingName) {
-		this(ageAreas, dimension, false, playerEditingName);
-	}
-	
-	AgeAreasModifications(ArrayList<AgeArea> ageAreas, int dimension, boolean canEdit, String playerEditingName) {
+	protected AgeAreasList(ArrayList<AgeArea> ageAreas, int dimension, boolean canEdit, String playerEditingName) {
 		this.dimension = dimension;
 		this.ageAreas = ageAreas;
 		this.canEdit = canEdit;
 		this.playerEditingName = playerEditingName;
 		
+		if (!canEdit) {
+			cancel = true;
+		}
+		
 		for (AgeArea ageArea : ageAreas) {
 			if (ageArea == null) {
-				ageAreasOldIds.add(null);
+				agesAreasOldIds.add(null);
 			}
 			else {
-				ageAreasOldIds.add(ageArea.id);
-				displayAgeAreas.add(ageArea);
+				agesAreasOldIds.add(ageArea.id);
+				displayAgesAreas.add(ageArea);
 			}
 		}
 	}
@@ -50,17 +48,17 @@ public class AgeAreasModifications {
 	public int addNewDisplayedAgeArea() {
 		AgeArea ageArea = new AgeArea(dimension, ageAreas.size());
 		ageAreas.add(ageArea);
-		ageAreasOldIds.add(-1);
-		displayAgeAreas.add(ageArea);
-		return displayAgeAreas.size() - 1;
+		agesAreasOldIds.add(-1);
+		displayAgesAreas.add(ageArea);
+		return displayAgesAreas.size() - 1;
 	}
 	
 	public void removeDisplayedAgeArea(int index) {
-		AgeArea ageArea = displayAgeAreas.remove(index);
+		AgeArea ageArea = displayAgesAreas.remove(index);
 		ageAreas.set(ageArea.id, null);
-		int oldId = ageAreasOldIds.set(ageArea.id, null);
+		int oldId = agesAreasOldIds.set(ageArea.id, null);
 		if (oldId != -1) {
-			removedAgesAreaIds.add(oldId);
+			removedAgesAreasIds.add(oldId);
 		}
 	}
 	
@@ -68,27 +66,27 @@ public class AgeAreasModifications {
 		if (index + delta < 0) {
 			delta = -index;
 		}
-		else if (index + delta > displayAgeAreas.size() - 1) {
-			delta = displayAgeAreas.size() - 1 - index;
+		else if (index + delta > displayAgesAreas.size() - 1) {
+			delta = displayAgesAreas.size() - 1 - index;
 		}
 		if (delta == 0) return;
 		
 		// Ensure there is an empty slot at the end. (Makes moving objects easier):
 		if (ageAreas.get(ageAreas.size() - 1) != null) {
 			ageAreas.add(null);
-			ageAreasOldIds.add(null);
+			agesAreasOldIds.add(null);
 		}
 		
 		// Remove current:
-		AgeArea ageArea = ageAreas.set(displayAgeAreas.remove(index).id, null);
-		int oldId = ageAreasOldIds.set(ageArea.id, null);
+		AgeArea ageArea = ageAreas.set(displayAgesAreas.remove(index).id, null);
+		int oldId = agesAreasOldIds.set(ageArea.id, null);
 		
 		// Move until we pass a number delta of AgesArea:
 		int destIsBefore; // New destination for the AgeArea. During research, destination is between (destIsBefore) and (destIsBefore-1).
 		if (index + delta == 0) {
 			destIsBefore = 0;
 		}
-		else if (index + delta == displayAgeAreas.size() - 1) {
+		else if (index + delta == displayAgesAreas.size() - 1) {
 			destIsBefore = ageAreas.size() - 1;
 		}
 		else {
@@ -115,17 +113,30 @@ public class AgeAreasModifications {
 		if (ageAreas.get(destIsBefore) != null) {
 			int i = destIsBefore;
 			AgeArea tempAgeArea = ageAreas.set(i, null);
-			int tempOldId = ageAreasOldIds.set(i, null);
+			int tempOldId = agesAreasOldIds.set(i, null);
 			while (tempAgeArea != null) {
 				tempAgeArea.id++;
 				tempAgeArea = ageAreas.set(i, tempAgeArea);
-				tempOldId = ageAreasOldIds.set(i, tempOldId);
+				tempOldId = agesAreasOldIds.set(i, tempOldId);
 			}
 		}
 		
 		// Put the AgeArea in place:
 		ageAreas.set(destIsBefore, ageArea);
-		ageAreasOldIds.set(ageArea.id, oldId);
-		displayAgeAreas.add(index + delta, ageArea);
+		agesAreasOldIds.set(ageArea.id, oldId);
+		displayAgesAreas.add(index + delta, ageArea);
+	}
+	
+	public List<AgeArea> getIntersectingAgesAreasForDisplayedAgeArea(AgeArea ageArea) {
+		if (ageArea.isValid()) {
+			List<AgeArea> intersectings = new ArrayList<AgeArea>();
+			for (AgeArea other : displayAgesAreas) {
+				if (ageArea.dimension == other.dimension && ageArea.id != other.id && ageArea.intersects(other)) {
+					intersectings.add(other);
+				}
+			}
+			return intersectings;
+		}
+		else return Collections.<AgeArea> emptyList();
 	}
 }
