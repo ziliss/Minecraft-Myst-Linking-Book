@@ -7,7 +7,7 @@ import net.minecraft.src.EntitySheep;
 import net.minecraft.src.Item;
 import net.minecraft.src.ItemDye;
 import net.minecraft.src.ItemStack;
-import net.minecraft.src.mystlinkingbook.RessourcesManager.SpriteRessource;
+import net.minecraft.src.mystlinkingbook.ResourcesManager.SpriteResource;
 
 /**
  * Represents a Linking Book's page as an {@code Item} (ie. either dropped in the world or in the inventory).<br>
@@ -21,7 +21,7 @@ import net.minecraft.src.mystlinkingbook.RessourcesManager.SpriteRessource;
  */
 public class ItemPage extends Item {
 	
-	// A pair of: internal name for colors/display name for color. (the internal names are the same as the ones in ItemDye):
+	// A pair of: internal/displayed names for colors. (The internal names are the same as the ones in ItemDye):
 	//@formatter:off
 	public static String[][] colorNames = {
 		{ "white", "White" },
@@ -61,6 +61,8 @@ public class ItemPage extends Item {
 		new Color( 0x262626 ) };// Black ( 0.1F, 0.1F, 0.1F )
 	//@formatter:on
 	
+	// The brighter colors are used when blending the color with a texture that is not fully white.
+	// This way it keeps approximatively the same visual color.
 	public static final Color[] brighterColorTable = new Color[16];
 	public static final int[] colorInts = new int[16];
 	public static final int[] brighterColorInts = new int[16];
@@ -74,9 +76,9 @@ public class ItemPage extends Item {
 		}
 	}
 	
-	public SpriteRessource pageSprite;
+	public SpriteResource pageSprite;
 	
-	public ItemPage(int itemID, SpriteRessource pageTexture) {
+	public ItemPage(int itemID, SpriteResource pageTexture) {
 		super(itemID);
 		
 		this.pageSprite = pageTexture;
@@ -110,7 +112,7 @@ public class ItemPage extends Item {
 	}
 	
 	/**
-	 * Returns the name of the linking book that is displayed on mouse hover in the inventory.
+	 * Adds the name of the linking book to the tooltip displayed on mouse hover in the inventory.
 	 */
 	@Override
 	public void addInformation(ItemStack itemstack, List list) {

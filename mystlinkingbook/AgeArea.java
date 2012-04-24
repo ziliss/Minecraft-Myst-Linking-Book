@@ -5,10 +5,13 @@ import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
 
 /**
- * Represents and stores the informations about an Age area in a dimension.<br>
+ * Represents and keeps the informations about an Age area in a dimension.<br>
  * <br>
- * This class should only be instantiated by {@code LinkingBookDimensionAge}s.<br>
- * When an Age area is modified, don't forget to call the method {@link AgesManager#updatedAgeArea}
+ * An Age area may be partially defined, if pos1 and/or pos2 are not defined. To be valid, an Age area must have both pos1 and pos2 defined.<br>
+ * <br>
+ * Direct access to public fields is authorized only if there is no method access. Methods are provided to work with text representations.<br>
+ * <br>
+ * Modifications of Ages areas should always be done through {@code AgesManager}, never directly on the original AgeArea.
  * 
  * @author ziliss
  * @since 0.5a
@@ -61,32 +64,22 @@ public class AgeArea implements Cloneable {
 		pos2Set = true;
 	}
 	
-	public boolean isInAge(int x, int y, int z) {
-		//@formatter:off
-		return isValid()
-			&& x >= Math.min(pos1X, pos2X)
-			&& x <= Math.max(pos1X, pos2X)
-			&& y >= Math.min(pos1Y, pos2Y)
-			&& y <= Math.max(pos1Y, pos2Y)
-			&& z >= Math.min(pos1Z, pos2Z)
-			&& z <= Math.max(pos1Z, pos2Z);
-		//@formatter:on
-	}
-	
-	public boolean intersects(AgeArea o) {
-		//@formatter:off
-		return isValid() && o.isValid()
-			&& Math.max(o.pos1X, o.pos2X) >= Math.min(pos1X, pos2X)
-			&& Math.min(o.pos1X, o.pos2X) <= Math.max(pos1X, pos2X)
-			&& Math.max(o.pos1Y, o.pos2Y) >= Math.min(pos1Y, pos2Y)
-			&& Math.min(o.pos1Y, o.pos2Y) <= Math.max(pos1Y, pos2Y)
-			&& Math.max(o.pos1Z, o.pos2Z) >= Math.min(pos1Z, pos2Z)
-			&& Math.min(o.pos1Z, o.pos2Z) <= Math.max(pos1Z, pos2Z);
-		//@formatter:on
-	}
-	
 	public boolean isValid() {
 		return pos1Set && pos2Set;
+	}
+	
+	public void setPos1(int x, int y, int z) {
+		pos1X = x;
+		pos1Y = y;
+		pos1Z = z;
+		pos1Set = true;
+	}
+	
+	public void setPos2(int x, int y, int z) {
+		pos2X = x;
+		pos2Y = y;
+		pos2Z = z;
+		pos2Set = true;
 	}
 	
 	public boolean setPos1(String value) {
@@ -129,20 +122,6 @@ public class AgeArea implements Cloneable {
 		return pos2Set ? pos2X + " " + pos2Y + " " + pos2Z : "";
 	}
 	
-	public void setPos1(int x, int y, int z) {
-		pos1X = x;
-		pos1Y = y;
-		pos1Z = z;
-		pos1Set = true;
-	}
-	
-	public void setPos2(int x, int y, int z) {
-		pos2X = x;
-		pos2Y = y;
-		pos2Z = z;
-		pos2Set = true;
-	}
-	
 	public void unsetPos1() {
 		pos1Set = false;
 	}
@@ -153,6 +132,30 @@ public class AgeArea implements Cloneable {
 	
 	public void setDisabled(boolean disabled) {
 		this.disabled = disabled;
+	}
+	
+	public boolean isInAge(int x, int y, int z) {
+		//@formatter:off
+		return isValid()
+			&& x >= Math.min(pos1X, pos2X)
+			&& x <= Math.max(pos1X, pos2X)
+			&& y >= Math.min(pos1Y, pos2Y)
+			&& y <= Math.max(pos1Y, pos2Y)
+			&& z >= Math.min(pos1Z, pos2Z)
+			&& z <= Math.max(pos1Z, pos2Z);
+		//@formatter:on
+	}
+	
+	public boolean intersects(AgeArea o) {
+		//@formatter:off
+		return isValid() && o.isValid()
+			&& Math.max(o.pos1X, o.pos2X) >= Math.min(pos1X, pos2X)
+			&& Math.min(o.pos1X, o.pos2X) <= Math.max(pos1X, pos2X)
+			&& Math.max(o.pos1Y, o.pos2Y) >= Math.min(pos1Y, pos2Y)
+			&& Math.min(o.pos1Y, o.pos2Y) <= Math.max(pos1Y, pos2Y)
+			&& Math.max(o.pos1Z, o.pos2Z) >= Math.min(pos1Z, pos2Z)
+			&& Math.min(o.pos1Z, o.pos2Z) <= Math.max(pos1Z, pos2Z);
+		//@formatter:on
 	}
 	
 	public boolean same(AgeArea other) {

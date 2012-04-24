@@ -1,6 +1,5 @@
 package net.minecraft.src.mystlinkingbook;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,12 +18,11 @@ import net.minecraft.src.RenderBlocks;
 import net.minecraft.src.SoundManager;
 import net.minecraft.src.SoundPool;
 import net.minecraft.src.SoundPoolEntry;
-import net.minecraft.src.mystlinkingbook.RessourcesManager.ImageRefRessource;
-import net.minecraft.src.mystlinkingbook.RessourcesManager.PathEnd;
-import net.minecraft.src.mystlinkingbook.RessourcesManager.Ressource;
-import net.minecraft.src.mystlinkingbook.RessourcesManager.SoundRessource;
-import net.minecraft.src.mystlinkingbook.RessourcesManager.SpriteRessource;
-import net.minecraft.src.mystlinkingbook.RessourcesManager.TextureRessource;
+import net.minecraft.src.mystlinkingbook.ResourcesManager.ImageRefResource;
+import net.minecraft.src.mystlinkingbook.ResourcesManager.Resource;
+import net.minecraft.src.mystlinkingbook.ResourcesManager.SoundRessource;
+import net.minecraft.src.mystlinkingbook.ResourcesManager.SpriteResource;
+import net.minecraft.src.mystlinkingbook.ResourcesManager.TextureResource;
 
 import org.lwjgl.opengl.GL11;
 
@@ -40,8 +38,8 @@ public class Mod_MystLinkingBook extends BaseMod {
 	
 	public ImagesOnTextureManager itm;
 	
-	public RessourcesManager ressourcesManager = new RessourcesManager(this);
-	public ArrayList<Ressource> ressources = new ArrayList<Ressource>();
+	public ResourcesManager ressourcesManager = new ResourcesManager(this);
+	public ArrayList<Resource> ressources = new ArrayList<Resource>();
 	
 	// Contains methods to interact with the datas of the Linking Books:
 	public LinkingBookUtils linkingBookUtils;
@@ -50,20 +48,20 @@ public class Mod_MystLinkingBook extends BaseMod {
 	public ItemBlockLinkingBook itemBlockLinkingBook;
 	public ItemPage itemPage;
 	
-	public TextureRessource texture_guiLinkingBook;
-	public TextureRessource texture_guiWriteLinkingBook;
-	public TextureRessource texture_guiLookOfLinkingBook;
-	public TextureRessource texture_modelLinkingBookCover;
-	public TextureRessource texture_modelLinkingBookPages;
+	public TextureResource texture_guiLinkingBook;
+	public TextureResource texture_guiWriteLinkingBook;
+	public TextureResource texture_guiLookOfLinkingBook;
+	public TextureResource texture_modelLinkingBookCover;
+	public TextureResource texture_modelLinkingBookPages;
 	
-	public ImageRefRessource linkingPanelImageMissing;
+	public ImageRefResource linkingPanelImageMissing;
 	
 	public SoundRessource linkingsound;
 	
 	public static Pattern coverNameFilterPattern = Pattern.compile("[^a-zA-Z0-9\\-_\\.]");
-	public HashMap<String, TextureRessource> covers = new HashMap<String, TextureRessource>();
+	public HashMap<String, TextureResource> covers = new HashMap<String, TextureResource>();
 	
-	public PathEnd logAgesAreasModsPath;
+	public ResourcePath logAgesAreasModsPath;
 	
 	public AgeAreaOutline outlineAgeArea;
 	
@@ -72,7 +70,7 @@ public class Mod_MystLinkingBook extends BaseMod {
 	
 	@Override
 	public String getVersion() {
-		return "0.9b";
+		return "0.9.1b";
 	}
 	
 	/**
@@ -88,44 +86,45 @@ public class Mod_MystLinkingBook extends BaseMod {
 		
 		scheduledActionsManager = new ScheduledActionsManager(this);
 		ressourcesManager.init();
-		logAgesAreasModsPath = new PathEnd(ressourcesManager.worldMLB, "/importantChanges.log");
+		logAgesAreasModsPath = new ResourcePath(ressourcesManager.worldMLB, "/importantChanges.log");
+		FBO.load();
 		itm = new ImagesOnTextureManager(256, 256, 80, 60, this);
 		
-		PathEnd basePropsPath = new PathEnd(ressourcesManager.configMLB, "options.properties");
-		PathEnd worldPropsPath = new PathEnd(ressourcesManager.worldMLB, "options.properties");
+		ResourcePath basePropsPath = new ResourcePath(ressourcesManager.configMLB, "options.properties");
+		ResourcePath worldPropsPath = new ResourcePath(ressourcesManager.worldMLB, "options.properties");
 		settings = new Settings(basePropsPath, worldPropsPath);
 		
 		linkingBookUtils = new LinkingBookUtils(this);
 		
 		outlineAgeArea = new AgeAreaOutline(this);
 		
-		SpriteRessource top = ressourcesManager.new SpriteRessource("blockLinkingBookTop.png", RessourcesManager.TERRAIN_SPRITE);
-		SpriteRessource side = ressourcesManager.new SpriteRessource("blockLinkingBookSide.png", RessourcesManager.TERRAIN_SPRITE);
-		SpriteRessource bottom = ressourcesManager.new SpriteRessource("blockLinkingBookBottom.png", RessourcesManager.TERRAIN_SPRITE);
-		blockLinkingBook = new BlockLinkingBook(233, 233, top, side, bottom, this);
-		blockLinkingBook.renderType = ModLoader.getUniqueBlockModelID(this, false);
+		SpriteResource top = ressourcesManager.new SpriteResource("blockLinkingBookTop.png", ResourcesManager.TERRAIN_SPRITE);
+		SpriteResource side = ressourcesManager.new SpriteResource("blockLinkingBookSide.png", ResourcesManager.TERRAIN_SPRITE);
+		SpriteResource bottom = ressourcesManager.new SpriteResource("blockLinkingBookBottom.png", ResourcesManager.TERRAIN_SPRITE);
+		int renderType = ModLoader.getUniqueBlockModelID(this, false); // full3DItem = false: the item is not rendered as a 3D block, but as a flat image.
+		blockLinkingBook = new BlockLinkingBook(233, 233, top, side, bottom, renderType, this);
 		
 		// Execute the following private method:
 		// Block.fire.setBurnRate(Block.bookShelf.blockID, 70, 100);
 		PrivateAccesses.BlockFire_chanceToEncourageFire.getFrom(Block.fire)[blockLinkingBook.blockID] = 70;
 		PrivateAccesses.BlockFire_abilityToCatchFire.getFrom(Block.fire)[blockLinkingBook.blockID] = 100;
 		
-		SpriteRessource icon = ressourcesManager.new SpriteRessource("iconLinkingBook.png", RessourcesManager.ITEMS_SPRITE);
-		SpriteRessource unwritten = ressourcesManager.new SpriteRessource("iconLinkingBookUnwritten.png", RessourcesManager.ITEMS_SPRITE);
-		SpriteRessource pages = ressourcesManager.new SpriteRessource("iconLinkingBookPages.png", RessourcesManager.ITEMS_SPRITE);
-		SpriteRessource unwrittenPages = ressourcesManager.new SpriteRessource("iconLinkingBookUnwrittenPages.png", RessourcesManager.ITEMS_SPRITE);
+		SpriteResource icon = ressourcesManager.new SpriteResource("iconLinkingBook.png", ResourcesManager.ITEMS_SPRITE);
+		SpriteResource unwritten = ressourcesManager.new SpriteResource("iconLinkingBookUnwritten.png", ResourcesManager.ITEMS_SPRITE);
+		SpriteResource pages = ressourcesManager.new SpriteResource("iconLinkingBookPages.png", ResourcesManager.ITEMS_SPRITE);
+		SpriteResource unwrittenPages = ressourcesManager.new SpriteResource("iconLinkingBookUnwrittenPages.png", ResourcesManager.ITEMS_SPRITE);
 		itemBlockLinkingBook = new ItemBlockLinkingBook(233 - 256, icon, unwritten, pages, unwrittenPages, this);
 		
-		SpriteRessource page = ressourcesManager.new SpriteRessource("iconPage.png", RessourcesManager.ITEMS_SPRITE);
+		SpriteResource page = ressourcesManager.new SpriteResource("iconPage.png", ResourcesManager.ITEMS_SPRITE);
 		itemPage = new ItemPage(3233, page);
 		
-		texture_guiLinkingBook = ressourcesManager.new TextureRessource("guiLinkingBook.png");
-		texture_guiWriteLinkingBook = ressourcesManager.new TextureRessource("guiWriteLinkingBook.png");
-		texture_guiLookOfLinkingBook = ressourcesManager.new TextureRessource("guiLookOfLinkingBook.png");
-		texture_modelLinkingBookCover = ressourcesManager.new TextureRessource("modelLinkingBookCover.png");
-		texture_modelLinkingBookPages = ressourcesManager.new TextureRessource("modelLinkingBookPages.png");
+		texture_guiLinkingBook = ressourcesManager.new TextureResource("guiLinkingBook.png");
+		texture_guiWriteLinkingBook = ressourcesManager.new TextureResource("guiWriteLinkingBook.png");
+		texture_guiLookOfLinkingBook = ressourcesManager.new TextureResource("guiLookOfLinkingBook.png");
+		texture_modelLinkingBookCover = ressourcesManager.new TextureResource("modelLinkingBookCover.png");
+		texture_modelLinkingBookPages = ressourcesManager.new TextureResource("modelLinkingBookPages.png");
 		
-		linkingPanelImageMissing = ressourcesManager.new ImageRefRessource("linkingPanelImageMissing.png", itm.registerImage(null));
+		linkingPanelImageMissing = ressourcesManager.new ImageRefResource("linkingPanelImageMissing.png", itm.registerImage(null));
 		
 		ModLoader.addName(blockLinkingBook, "Linking Book");
 		ModLoader.addName(itemBlockLinkingBook, "Linking Book");
@@ -144,9 +143,6 @@ public class Mod_MystLinkingBook extends BaseMod {
 		ressources.add(itemBlockLinkingBook.pages);
 		ressources.add(itemBlockLinkingBook.unwrittenPages);
 		ressources.add(itemPage.pageSprite);
-		ressources.add(blockLinkingBook.topSprite);
-		ressources.add(blockLinkingBook.sideSprite);
-		ressources.add(blockLinkingBook.bottomSprite);
 		ressources.add(texture_guiLinkingBook);
 		ressources.add(texture_guiWriteLinkingBook);
 		ressources.add(texture_guiLookOfLinkingBook);
@@ -154,7 +150,7 @@ public class Mod_MystLinkingBook extends BaseMod {
 		ressources.add(texture_modelLinkingBookPages);
 		ressources.add(linkingPanelImageMissing);
 		ressources.add(linkingsound);
-		for (Ressource ressource : ressources) {
+		for (Resource ressource : ressources) {
 			ressource.load();
 		}
 		
@@ -175,15 +171,12 @@ public class Mod_MystLinkingBook extends BaseMod {
 	 * @see SaveFormat#getSaveLoader
 	 */
 	public void onWorldStarting(String worldFolderName) {
-		for (TextureRessource cover : covers.values()) {
+		for (TextureResource cover : covers.values()) {
 			cover.clear();
 		}
 		covers.clear();
 		
-		File worldFolder = new File(Minecraft.getMinecraftDir(), "saves/" + worldFolderName);
-		File worldMLBFolder = new File(worldFolder, "mystlinkingbook");
-		
-		ressourcesManager.world.piece = worldFolderName + "/";
+		ressourcesManager.startNewWorld(worldFolderName);
 		
 		settings.load();
 		ressourcesManager.assets_world.setDisabled(!settings.allowWorldAssets);
@@ -191,7 +184,7 @@ public class Mod_MystLinkingBook extends BaseMod {
 			System.out.println("World assets disabled.");
 		}
 		
-		for (Ressource ressource : ressources) {
+		for (Resource ressource : ressources) {
 			ressource.load();
 		}
 		
@@ -229,15 +222,15 @@ public class Mod_MystLinkingBook extends BaseMod {
 		}
 	}
 	
-	public TextureRessource getCover(String name) {
+	public TextureResource getCover(String name) {
 		if (!name.isEmpty()) {
 			name = coverNameFilterPattern.matcher(name).replaceAll("");
 		}
 		if (name.isEmpty()) return texture_modelLinkingBookCover;
 		
-		TextureRessource cover = covers.get(name);
+		TextureResource cover = covers.get(name);
 		if (cover == null) {
-			cover = ressourcesManager.new TextureRessource("modelLinkingBookCover-" + name + ".png");
+			cover = ressourcesManager.new TextureResource("modelLinkingBookCover-" + name + ".png");
 			cover.setDefault(texture_modelLinkingBookCover);
 			cover.load();
 			covers.put(name, cover);

@@ -9,7 +9,7 @@ import net.minecraft.src.ItemStack;
 import net.minecraft.src.ModLoader;
 import net.minecraft.src.NBTTagCompound;
 import net.minecraft.src.World;
-import net.minecraft.src.mystlinkingbook.RessourcesManager.SpriteRessource;
+import net.minecraft.src.mystlinkingbook.ResourcesManager.SpriteResource;
 
 import org.lwjgl.opengl.GL11;
 
@@ -33,14 +33,14 @@ public class ItemBlockLinkingBook extends ItemBlock {
 	 */
 	public Mod_MystLinkingBook mod_MLB;
 	
-	public SpriteRessource icon;
-	public SpriteRessource pages;
-	public SpriteRessource unwritten;
-	public SpriteRessource unwrittenPages;
+	public SpriteResource icon;
+	public SpriteResource pages;
+	public SpriteResource unwritten;
+	public SpriteResource unwrittenPages;
 	
 	public int itemsTexture; // For texture /gui/items.png
 	
-	public ItemBlockLinkingBook(int itemID, SpriteRessource icon, SpriteRessource unwritten, SpriteRessource pages, SpriteRessource unwrittenPages, Mod_MystLinkingBook mod_MLB) {
+	public ItemBlockLinkingBook(int itemID, SpriteResource icon, SpriteResource unwritten, SpriteResource pages, SpriteResource unwrittenPages, Mod_MystLinkingBook mod_MLB) {
 		super(itemID);
 		
 		this.mod_MLB = mod_MLB;
@@ -64,6 +64,10 @@ public class ItemBlockLinkingBook extends ItemBlock {
 		return true;
 	}
 	
+	/**
+	 * Called if {@code func_46058_c()} is true. Returns the iconIndex to be used to render the item.<br>
+	 * j is the pass number. First pass we render the normal sprite. Second pass, only the pages, which will be colored.
+	 */
 	@Override
 	public int func_46057_a(int i, int j) {
 		// Workaround a limitation when rendering an item in the hand.
@@ -77,6 +81,10 @@ public class ItemBlockLinkingBook extends ItemBlock {
 		//@formatter:on
 	}
 	
+	/**
+	 * Called if {@code func_46058_c()} is true. Returns the color to be used to color the item.<br>
+	 * j is the pass number. First pass is white. Second pass is the color of the pages.
+	 */
 	@Override
 	public int getColorFromDamage(int i, int j) {
 		return j == 0 ? 0xffffff : ItemPage.brighterColorInts[i & 15];
@@ -96,14 +104,14 @@ public class ItemBlockLinkingBook extends ItemBlock {
 	 * Allows to place the Linking Book as a block if the Linking Book's destination has already been set.<br>
 	 * It also associate the Linking Book's datas with the new block.<br>
 	 * <br>
-	 * When the player right-clicks with a Linking Book item in hand, the method {@code onItemRightClick} is called after the method {@code onItemUse} only if the later returns false.
+	 * When the player right-clicks with a Linking Book item in hand, the method {@code onItemUse} is called before the method {@code onItemRightClick}. The later is called only if the former returns true.
 	 * 
-	 * @see onItemRightClick
+	 * @see #onItemRightClick
 	 */
 	@Override
 	public boolean onItemUse(ItemStack itemstack, EntityPlayer entityplayer, World world, int i, int j, int k, int l) {
 		NBTTagCompound nbttagcompound = mod_MLB.linkingBookUtils.checkAndUpdateOldFormat(itemstack.getTagCompound());
-		// In case onCreated() was not called on this item:
+		// In case onCreated() has never been called on this item:
 		if (nbttagcompound == null) {
 			onCreated(itemstack, world, entityplayer);
 			nbttagcompound = itemstack.getTagCompound();
@@ -160,7 +168,7 @@ public class ItemBlockLinkingBook extends ItemBlock {
 	/**
 	 * Opens the writing GUI.
 	 * 
-	 * @see onItemUse
+	 * @see #onItemUse
 	 */
 	@Override
 	public ItemStack onItemRightClick(ItemStack itemstack, World world, EntityPlayer entityplayer) {
@@ -177,10 +185,11 @@ public class ItemBlockLinkingBook extends ItemBlock {
 	}
 	
 	/**
-	 * Returns the name of the linking book that is displayed on mouse hover in the inventory.
+	 * Adds the name of the linking book to the tooltip displayed on mouse hover in the inventory.
 	 */
 	@Override
 	public void addInformation(ItemStack itemstack, List list) {
+		if (!itemstack.hasTagCompound()) return; // In case the item has not yet been created (for example in the crafting result slot).
 		String name = mod_MLB.linkingBookUtils.getName(itemstack.getTagCompound());
 		if (!name.isEmpty()) {
 			list.add(name);

@@ -1,10 +1,13 @@
 package net.minecraft.src.mystlinkingbook;
 
 import net.minecraft.src.Entity;
+import net.minecraft.src.World;
 import net.minecraft.src.mystlinkingbook.ScheduledActionsManager.ScheduledAction;
 import net.minecraft.src.mystlinkingbook.ScheduledActionsManager.ScheduledActionRef;
 
 /**
+ * Keeps a reference to an entity that is being linked, and link it.<br>
+ * The entity cannot move for {@code maxTicksBeforeLinking} ticks.
  * 
  * @author ziliss
  * @since 0.7b
@@ -15,11 +18,11 @@ public class LinkingEntity {
 	 */
 	public Mod_MystLinkingBook mod_MLB;
 	
-	/**
-	 * The player opening the GUI.
-	 */
+	/** The entity to be linked. */
 	public Entity entity;
+	public World origEntityWorld;
 	
+	/** The linking book linking the entity. */
 	public LinkingBook linkingBook;
 	
 	public int ticksBeforeLinking = 0;
@@ -31,6 +34,8 @@ public class LinkingEntity {
 		this.entity = entity;
 		this.mod_MLB = mod_MLB;
 		this.linkingBook = linkingBook;
+		
+		origEntityWorld = entity.worldObj;
 		
 		linkingActionRef = mod_MLB.scheduledActionsManager.getNewReadyScheduledActionRef(new ScheduledAction() {
 			@Override
@@ -46,7 +51,7 @@ public class LinkingEntity {
 	
 	protected void link() {
 		positionKeeper.stop();
-		if (entity.worldObj == mod_MLB.mc.theWorld) { // TODO: is it a good test ? Is it enough ?
+		if (entity.worldObj == origEntityWorld) { // Checks that the entity has not changed world meanwhile.
 			linkingBook.link(entity);
 		}
 	}

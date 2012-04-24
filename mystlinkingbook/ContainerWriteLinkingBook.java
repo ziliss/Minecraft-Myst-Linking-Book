@@ -18,21 +18,16 @@ import net.minecraft.src.Slot;
  */
 public class ContainerWriteLinkingBook extends Container {
 	
-	/**
-	 * Reference to the mod instance.
-	 */
+	/** Reference to the mod instance. */
 	public Mod_MystLinkingBook mod_MLB;
 	
-	/**
-	 * The inventory of the player.
-	 */
+	/** The inventory of the player. */
 	public InventoryPlayer inventoryPlayer;
 	
-	/**
-	 * The inventory used to temporarily keep the items while writing the linking book.
-	 */
+	/** The inventory used to keep the items while writing the linking book. */
 	public InventoryBasic inventoryWriteLinkingBook;
 	
+	/** How many slots in this container. */
 	public int nbSlots = 5;
 	
 	// The slots used to keep the items while writing the linking book:
@@ -54,7 +49,7 @@ public class ContainerWriteLinkingBook extends Container {
 		addSlot(redstoneSlot = new SlotWriteLinkingBook(inventoryWriteLinkingBook, 3, 17, 53, Item.redstone, 1));
 		addSlot(colorSlot = new SlotWriteLinkingBook(inventoryWriteLinkingBook, 4, 143, 53, Item.dyePowder, 1));
 		
-		// Add the slots of the player inventory:
+		// Add the slots for the player inventory:
 		for (int j = 0; j < 3; j++) {
 			for (int i1 = 0; i1 < 9; i1++) {
 				addSlot(new Slot(inventoryPlayer, i1 + j * 9 + 9, 8 + i1 * 18, 84 + j * 18));

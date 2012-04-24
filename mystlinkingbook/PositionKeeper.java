@@ -5,6 +5,7 @@ import net.minecraft.src.mystlinkingbook.ScheduledActionsManager.ScheduledAction
 import net.minecraft.src.mystlinkingbook.ScheduledActionsManager.ScheduledFrameAction;
 
 /**
+ * Prevents an entity from moving. Works by storing its position, and then resetting its position on each tick.
  * 
  * @author ziliss
  * @since 0.7b
@@ -66,7 +67,7 @@ public class PositionKeeper {
 		actionRef.unschedule();
 	}
 	
-	public void keepPosition() {
+	protected void keepPosition() {
 		entity.setVelocity(0, 0, 0);
 		entity.setLocationAndAngles(x, y, z, rotYaw, rotPitch);
 		entity.fallDistance = 0f;

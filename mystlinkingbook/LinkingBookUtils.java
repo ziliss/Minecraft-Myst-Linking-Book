@@ -68,11 +68,11 @@ public class LinkingBookUtils {
 		int randId;
 		do {
 			randId = rand.nextInt();
-		} while (randId >= -1 && randId <= 255);
+		} while (randId >= -1 && randId <= 255); // Reserve the -1,255 range for possible future usage.
 		return randId;
 	}
 	
-	// Only for current versions!
+	// Only for current version!
 	protected NBTTagCompound cleanup(NBTTagCompound oldNbttagcompound) {
 		NBTTagCompound nbttagcompound = createNew();
 		byte ver = oldNbttagcompound.getByte("ver");
@@ -182,8 +182,7 @@ public class LinkingBookUtils {
 	}
 	
 	public String getName(NBTTagCompound nbttagcompound) {
-		if (nbttagcompound == null) return "";
-		else return nbttagcompound.getString("name");
+		return nbttagcompound.getString("name");
 	}
 	
 	public boolean setName(NBTTagCompound nbttagcompound, String name) {
@@ -196,18 +195,15 @@ public class LinkingBookUtils {
 	}
 	
 	public int getRandomId(NBTTagCompound nbttagcompound) {
-		if (nbttagcompound == null) return 0;
-		else return nbttagcompound.getInteger("randId");
+		return nbttagcompound.getInteger("randId");
 	}
 	
 	public int getNbPages(NBTTagCompound nbttagcompound) {
-		if (nbttagcompound == null) return 0;
-		else return nbttagcompound.getInteger("nbPages");
+		return nbttagcompound.getInteger("nbPages");
 	}
 	
 	public int getMaxPages(NBTTagCompound nbttagcompound) {
-		if (nbttagcompound == null) return 0;
-		else return nbttagcompound.getInteger("maxPages");
+		return nbttagcompound.getInteger("maxPages");
 	}
 	
 	public int addPages(NBTTagCompound nbttagcompound, ItemStack itemstack) {
@@ -216,7 +212,7 @@ public class LinkingBookUtils {
 	
 	public int addPages(NBTTagCompound nbttagcompound, ItemStack itemstack, int max) {
 		if (max <= 0) return 0;
-		else if (nbttagcompound == null || itemstack == null) return 0;
+		else if (itemstack == null) return 0;
 		else if (itemstack.getItemDamage() != getColorCode(nbttagcompound)) return 0;
 		else {
 			int randId = getRandomId(nbttagcompound);
@@ -267,7 +263,7 @@ public class LinkingBookUtils {
 	}
 	
 	public ItemStack removePages(NBTTagCompound nbttagcompound, int max) {
-		if (max < 0 || nbttagcompound == null) return null;
+		if (max < 0) return null;
 		
 		if (max > mod_MLB.itemPage.getItemStackLimit()) {
 			max = mod_MLB.itemPage.getItemStackLimit();
@@ -311,8 +307,7 @@ public class LinkingBookUtils {
 	}
 	
 	public String getCoverName(NBTTagCompound nbttagcompound) {
-		if (nbttagcompound == null) return "";
-		else return nbttagcompound.getString("coverName");
+		return nbttagcompound.getString("coverName");
 	}
 	
 	public String setCoverName(NBTTagCompound nbttagcompound, String coverName) {
@@ -348,9 +343,9 @@ public class LinkingBookUtils {
 	
 	public boolean doLinkToDifferentAge(NBTTagCompound nbttagcompound, int bookX, int bookY, int bookZ, int bookDim) {
 		if (!nbttagcompound.getBoolean("dest")) return false;
-		int destX = (int)nbttagcompound.getDouble("destX");
-		int destY = (int)nbttagcompound.getDouble("destY");
-		int destZ = (int)nbttagcompound.getDouble("destZ");
+		int destX = (int)Math.floor(nbttagcompound.getDouble("destX"));
+		int destY = (int)Math.floor(nbttagcompound.getDouble("destY"));
+		int destZ = (int)Math.floor(nbttagcompound.getDouble("destZ"));
 		int destDim = nbttagcompound.getInteger("destDim");
 		return agesManager.linksToDifferentAge(bookX, bookY, bookZ, bookDim, destX, destY, destZ, destDim);
 	}
@@ -362,9 +357,9 @@ public class LinkingBookUtils {
 	public void prepareLinking(NBTTagCompound nbttagcompound, EntityPlayer entityplayer) {
 		if (mod_MLB.settings.noDestinationPreloading) return;
 		if (!nbttagcompound.getBoolean("dest")) return;
-		int destX = (int)nbttagcompound.getDouble("destX");
-		int destY = (int)nbttagcompound.getDouble("destY");
-		int destZ = (int)nbttagcompound.getDouble("destZ");
+		int destX = (int)Math.floor(nbttagcompound.getDouble("destX"));
+		int destY = (int)Math.floor(nbttagcompound.getDouble("destY"));
+		int destZ = (int)Math.floor(nbttagcompound.getDouble("destZ"));
 		int destDim = nbttagcompound.getInteger("destDim");
 		worldPreloader.preloadDestination(entityplayer.worldObj, destX, destY, destZ, destDim);
 	}
@@ -396,7 +391,7 @@ public class LinkingBookUtils {
 	}
 	
 	public void teleport(double destX, double destY, double destZ, float destRotYaw, float destRotPitch, String bookName, Entity entity) {
-		Chunk chunk = entity.worldObj.getChunkFromBlockCoords((int)destX, (int)destZ); // Load or generate the needed chunk.
+		Chunk chunk = entity.worldObj.getChunkFromBlockCoords((int)Math.floor(destX), (int)Math.floor(destZ)); // Load or generate the needed chunk.
 		entity.setLocationAndAngles(destX, destY, destZ, destRotYaw, destRotPitch);
 		entity.worldObj.updateEntityWithOptionalForce(entity, true);
 		chunk.isModified = true; // Because it is not set in Chunk.addEntity()
@@ -416,7 +411,7 @@ public class LinkingBookUtils {
 		if (destWorld == null) {
 			destWorld = new World(curWorld, WorldProvider.getProviderForDimension(destDim));
 		}
-		Chunk chunk = destWorld.getChunkFromBlockCoords((int)destX, (int)destZ); // Load or generate the needed chunk.
+		Chunk chunk = destWorld.getChunkFromBlockCoords((int)Math.floor(destX), (int)Math.floor(destZ)); // Load or generate the needed chunk.
 		
 		if (entity instanceof EntityPlayer) {
 			EntityPlayer entityplayer = (EntityPlayer)entity;

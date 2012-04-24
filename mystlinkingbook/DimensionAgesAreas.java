@@ -17,7 +17,6 @@ import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
 
 import net.minecraft.src.EntityPlayer;
-import net.minecraft.src.mystlinkingbook.RessourcesManager.PathEnd;
 
 /**
  * Stores all the Age areas defined in a dimension.<br>
@@ -47,7 +46,7 @@ public class DimensionAgesAreas {
 	public int dimension;
 	
 	public Properties props = new Properties();
-	public PathEnd dimAgesDatasPath;
+	public ResourcePath dimAgesDatasPath;
 	
 	public EntityPlayer playerEditing = null;
 	public boolean unsavedModifications;
@@ -62,11 +61,11 @@ public class DimensionAgesAreas {
 	
 	public static Pattern agePattern = Pattern.compile("^age(-?\\d+)\\.");
 	
-	public DimensionAgesAreas(int dim, PathEnd worldPath, Mod_MystLinkingBook mod_MLB) throws IOException {
+	public DimensionAgesAreas(int dim, ResourcePath worldPath, Mod_MystLinkingBook mod_MLB) throws IOException {
 		this.dimension = dim;
 		this.mod_MLB = mod_MLB;
 		String dimFolderName = dim == 0 ? "region" : "DIM" + dim;
-		dimAgesDatasPath = new PathEnd(worldPath, dimFolderName + "/mystlinkingbook/dimAgesDatas.properties").copyFlatten();
+		dimAgesDatasPath = new ResourcePath(worldPath, dimFolderName + "/mystlinkingbook/dimAgesDatas.properties").copyFlatten();
 		
 		load();
 	}
@@ -101,6 +100,7 @@ public class DimensionAgesAreas {
 	}
 	
 	public AgeArea getAgeAreaWithId(int id) {
+		if (id >= allAgeAreas.size()) return null;
 		return allAgeAreas.get(id);
 	}
 	
@@ -111,9 +111,25 @@ public class DimensionAgesAreas {
 		return null;
 	}
 	
+	public AgeArea getFirstReadyAgeAreaContaining(int x1, int y1, int z1, int x2, int y2, int z2) {
+		for (AgeArea ageArea : readyAgeAreas.values()) {
+			if (ageArea.isInAge(x1, y1, z1) && ageArea.isInAge(x2, y2, z2)) return ageArea;
+		}
+		return null;
+	}
+	
 	public List<AgeArea> addToListAllReadyAgeAreaContaining(int x, int y, int z, List<AgeArea> list) {
 		for (AgeArea ageArea : readyAgeAreas.values()) {
 			if (ageArea.isInAge(x, y, z)) {
+				list.add(ageArea);
+			}
+		}
+		return list;
+	}
+	
+	public List<AgeArea> addToListAllReadyAgeAreaContaining(int x1, int y1, int z1, int x2, int y2, int z2, List<AgeArea> list) {
+		for (AgeArea ageArea : readyAgeAreas.values()) {
+			if (ageArea.isInAge(x1, y1, z1) && ageArea.isInAge(x2, y2, z2)) {
 				list.add(ageArea);
 			}
 		}

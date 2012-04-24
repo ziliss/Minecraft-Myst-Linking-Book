@@ -17,7 +17,6 @@ import java.util.Scanner;
 import javax.swing.event.EventListenerList;
 
 import net.minecraft.src.EntityPlayer;
-import net.minecraft.src.mystlinkingbook.RessourcesManager.PathEnd;
 
 /**
  * Manages the Ages of the currently loaded world.
@@ -39,10 +38,10 @@ public class AgesManager {
 	 */
 	public Mod_MystLinkingBook mod_MLB;
 	
-	public PathEnd worldPath;
+	public ResourcePath worldPath;
 	
 	public Properties props = new Properties();
-	public PathEnd agesDataPath = null;
+	public ResourcePath agesDataPath = null;
 	public boolean unsavedModifications = false;
 	
 	public HashMap<Integer, DimensionAgesAreas> dimList = new HashMap<Integer, DimensionAgesAreas>();
@@ -129,16 +128,36 @@ public class AgesManager {
 	
 	public boolean linksToDifferentAge(int x1, int y1, int z1, int dim1, int x2, int y2, int z2, int dim2) {
 		// if ("debug".equals("debug")) return true;
+		switch (getTypeOfLinking(x1, y1, z1, dim1, x2, y2, z2, dim2)) {
+			case ageAreaInSameDim:
+			case ageAreaInDifferentDim:
+			case differentAgeDim:
+				return true;
+				
+			case sameAgeArea:
+			case sameAgeDim:
+				return false;
+				
+			case outOfAgeAreaInSameDim:
+			case outOfAgeAreaInDifferentDim:
+				DimensionAgesAreas destDimAgeAreas = getDimensionAgeAreas(dim2);
+				return destDimAgeAreas.allowOutOfAgeAreaDimLinking == null ? allowOutOfAgeAreaDimLinking : destDimAgeAreas.allowOutOfAgeAreaDimLinking;
+			default:
+				throw new RuntimeException("Cannot happen, switch covers all enums !");
+		}
+	}
+	
+	public LinkingType getTypeOfLinking(int x1, int y1, int z1, int dim1, int x2, int y2, int z2, int dim2) {
 		DimensionAgesAreas destDimAgeAreas = getDimensionAgeAreas(dim2);
-		if (destDimAgeAreas.readyAgeAreas.isEmpty()) return dim1 != dim2; // Destination dimension is an Age
+		if (destDimAgeAreas.readyAgeAreas.isEmpty()) return dim1 == dim2 ? LinkingType.sameAgeDim : LinkingType.differentAgeDim; // Destination dimension is an Age
 		if (dim1 == dim2) {
 			for (AgeArea ageArea : destDimAgeAreas.readyAgeAreas.values()) {
-				if (ageArea.isInAge(x1, y1, z1) && ageArea.isInAge(x2, y2, z2)) return false; // source and destination are in the same Age area.
+				if (ageArea.isInAge(x1, y1, z1) && ageArea.isInAge(x2, y2, z2)) return LinkingType.sameAgeArea; // source and destination are in the same Age area.
 			}
 		}
-		if (destDimAgeAreas.getFirstReadyAgeAreaContaining(x2, y2, z2) != null) return true; // You are outside of an Age are and want to link inside one.
+		if (destDimAgeAreas.getFirstReadyAgeAreaContaining(x2, y2, z2) != null) return dim1 == dim2 ? LinkingType.ageAreaInSameDim : LinkingType.ageAreaInDifferentDim;
 		// Here destination is outside an Age area:
-		return destDimAgeAreas.allowOutOfAgeAreaDimLinking == null ? allowOutOfAgeAreaDimLinking : destDimAgeAreas.allowOutOfAgeAreaDimLinking;
+		return dim1 == dim2 ? LinkingType.outOfAgeAreaInSameDim : LinkingType.outOfAgeAreaInDifferentDim;
 	}
 	
 	public AgeArea getAgeAreaWithId(int dim, int id) {
@@ -149,12 +168,28 @@ public class AgesManager {
 		return getDimensionAgeAreas(dim).getFirstReadyAgeAreaContaining(x, y, z);
 	}
 	
+	public AgeArea getFirstReadyAgeAreaContaining(int x1, int y1, int z1, int dim1, int x2, int y2, int z2, int dim2) {
+		if (dim1 != dim2) return null;
+		else return getDimensionAgeAreas(dim1).getFirstReadyAgeAreaContaining(x1, y1, z1, x2, y2, z2);
+	}
+	
 	public List<AgeArea> getAllReadyAgeAreaContaining(int x, int y, int z, int dim) {
 		return addToListAllReadyAgeAreaContaining(x, y, z, dim, new ArrayList<AgeArea>());
 	}
 	
 	public List<AgeArea> addToListAllReadyAgeAreaContaining(int x, int y, int z, int dim, List<AgeArea> list) {
 		return getDimensionAgeAreas(dim).addToListAllReadyAgeAreaContaining(x, y, z, list);
+	}
+	
+	public List<AgeArea> getAllReadyAgeAreaContaining(int x1, int y1, int z1, int dim1, int x2, int y2, int z2, int dim2) {
+		return addToListAllReadyAgeAreaContaining(x1, y1, z1, dim1, x2, y2, z2, dim2, new ArrayList<AgeArea>());
+	}
+	
+	public List<AgeArea> addToListAllReadyAgeAreaContaining(int x1, int y1, int z1, int dim1, int x2, int y2, int z2, int dim2, List<AgeArea> list) {
+		if (dim1 == dim2) {
+			getDimensionAgeAreas(dim1).addToListAllReadyAgeAreaContaining(x1, y1, z1, x2, y2, z2, list);
+		}
+		return list;
 	}
 	
 	public void setAllowOutOfAgeAreaDimLinking(boolean allow) {
@@ -183,10 +218,10 @@ public class AgesManager {
 		return modified;
 	}
 	
-	public void startNewWorld(PathEnd worldFolder) throws IOException {
+	public void startNewWorld(ResourcePath worldFolder) throws IOException {
 		reset();
 		worldPath = worldFolder.copyFlatten();
-		agesDataPath = new PathEnd(worldPath, "mystlinkingbook/agesDatas.properties");
+		agesDataPath = new ResourcePath(worldPath, "mystlinkingbook/agesDatas.properties");
 		load();
 	}
 	
@@ -300,5 +335,21 @@ public class AgesManager {
 			return true;
 		}
 		return false;
+	}
+	
+	public enum LinkingType {
+		sameAgeArea,
+		
+		ageAreaInSameDim,
+		
+		ageAreaInDifferentDim,
+		
+		sameAgeDim,
+		
+		differentAgeDim,
+		
+		outOfAgeAreaInSameDim,
+		
+		outOfAgeAreaInDifferentDim;
 	}
 }

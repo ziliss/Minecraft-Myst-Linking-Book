@@ -145,6 +145,10 @@ public class GuiWriteLinkingBook extends GuiContainer {
 				mod_MLB.linkingBookUtils.setName(nbttagcompound_linkingBook, name);
 			}
 			
+			int colorCode = mod_MLB.linkingBookUtils.getColorCode(nbttagcompound_linkingBook);
+			int written = 1 << 4;
+			entityplayer.inventory.getCurrentItem().setItemDamage(colorCode | written);
+			
 			mc.displayGuiScreen(null);
 		}
 	}

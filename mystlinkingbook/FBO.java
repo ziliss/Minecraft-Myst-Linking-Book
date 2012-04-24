@@ -16,7 +16,8 @@ import org.lwjgl.opengl.GLContext;
  */
 public class FBO {
 	
-	public boolean FBOEnabled;
+	/** Tells whether FBOs can be used in the current OpenGL context. Initialized in load(). */
+	public static boolean FBOEnabled = false;
 	
 	public int width;
 	public int height;
@@ -26,14 +27,13 @@ public class FBO {
 	protected int depthBufId = -1;
 	
 	protected int prevBoundFBO = -1;
-	protected boolean origGL_DEPTH_TEST;
-	protected boolean origGL_LIGHTING_2D;
-	protected boolean origGL_FOG;
+	
+	public static void load() {
+		// Check if GL_EXT_framebuffer_object can be used in the current OpenGL context:
+		FBOEnabled = GLContext.getCapabilities().GL_EXT_framebuffer_object;
+	}
 	
 	public static FBO createTextureFBO(int width, int height, Mod_MystLinkingBook mod_mlb) {
-		// check if GL_EXT_framebuffer_object can be use on this system:
-		boolean FBOEnabled = GLContext.getCapabilities().GL_EXT_framebuffer_object;
-		
 		if (FBOEnabled) {
 			// create a texture:
 			int texId = mod_mlb.allocateTextureId();
@@ -60,7 +60,7 @@ public class FBO {
 		// Create the depth renderbuffer:
 		depthBufId = EXTFramebufferObject.glGenRenderbuffersEXT();
 		EXTFramebufferObject.glBindRenderbufferEXT(EXTFramebufferObject.GL_RENDERBUFFER_EXT, depthBufId); // bind the depth renderbuffer
-		EXTFramebufferObject.glRenderbufferStorageEXT(EXTFramebufferObject.GL_RENDERBUFFER_EXT, GL14.GL_DEPTH_COMPONENT24, 512, 512); // get the data space for it
+		EXTFramebufferObject.glRenderbufferStorageEXT(EXTFramebufferObject.GL_RENDERBUFFER_EXT, GL14.GL_DEPTH_COMPONENT24, width, height); // get the data space for it
 		EXTFramebufferObject.glFramebufferRenderbufferEXT(EXTFramebufferObject.GL_FRAMEBUFFER_EXT, EXTFramebufferObject.GL_DEPTH_ATTACHMENT_EXT, EXTFramebufferObject.GL_RENDERBUFFER_EXT, depthBufId); // bind it to the renderbuffer
 		
 		int framebuffer = EXTFramebufferObject.glCheckFramebufferStatusEXT(EXTFramebufferObject.GL_FRAMEBUFFER_EXT);
@@ -116,7 +116,6 @@ public class FBO {
 		endDrawing();
 		
 		// Reset to the previous state:
-		// GL11.glEnable(GL11.GL_FOG);
 		GL11.glPopAttrib();
 		GL11.glMatrixMode(GL11.GL_PROJECTION);
 		GL11.glPopMatrix();

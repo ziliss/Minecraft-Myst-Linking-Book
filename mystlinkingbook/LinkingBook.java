@@ -10,7 +10,7 @@ import net.minecraft.src.EntityPlayer;
 import net.minecraft.src.ItemStack;
 import net.minecraft.src.NBTTagCompound;
 import net.minecraft.src.TileEntity;
-import net.minecraft.src.mystlinkingbook.RessourcesManager.TextureRessource;
+import net.minecraft.src.mystlinkingbook.ResourcesManager.TextureResource;
 
 /**
  * 
@@ -59,7 +59,7 @@ public class LinkingBook {
 	protected boolean isPowered = false;
 	protected boolean stayOpen;
 	protected String coverName;
-	protected TextureRessource coverTexture;
+	protected TextureResource coverTexture;
 	/** True if the linking book links to another Age. */
 	protected boolean linksToDifferentAge;
 	

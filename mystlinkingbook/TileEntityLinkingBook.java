@@ -49,9 +49,7 @@ public class TileEntityLinkingBook extends TileEntity {
 	
 	public boolean isTopBlocked;
 	
-	/**
-	 * Whether the Block of the linking book is powered.
-	 */
+	/** Whether the Block of the linking book is powered. */
 	public boolean isPowered;
 	
 	public float bookSpread = 0;
@@ -199,7 +197,7 @@ public class TileEntityLinkingBook extends TileEntity {
 	public void updateEntity() {
 		super.updateEntity();
 		
-		EntityPlayer closestPlayer = null;
+		EntityPlayer playerInRange = null;
 		if (!isTopBlocked) {
 			double dX = 0.5D;
 			double dZ = 0.5D;
@@ -218,10 +216,10 @@ public class TileEntityLinkingBook extends TileEntity {
 					dX += rangeCenterHoriz;
 					break;
 			}
-			closestPlayer = worldObj.getClosestPlayer(xCoord + dX, yCoord + rangeCenterVert, zCoord + dZ, playerRange);
+			playerInRange = worldObj.getClosestPlayer(xCoord + dX, yCoord + rangeCenterVert, zCoord + dZ, playerRange);
 		}
 		
-		if (closestPlayer != null || linkingBook.getStayOpen()) {
+		if (playerInRange != null || linkingBook.getStayOpen()) {
 			setBookSpread(bookSpread + 0.1f);
 		}
 		else {

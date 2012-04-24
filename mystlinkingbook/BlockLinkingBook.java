@@ -8,6 +8,7 @@ import net.minecraft.src.Entity;
 import net.minecraft.src.EntityItem;
 import net.minecraft.src.EntityLiving;
 import net.minecraft.src.EntityPlayer;
+import net.minecraft.src.GuiScreen;
 import net.minecraft.src.IBlockAccess;
 import net.minecraft.src.Item;
 import net.minecraft.src.ItemStack;
@@ -17,7 +18,7 @@ import net.minecraft.src.ModLoader;
 import net.minecraft.src.NBTTagCompound;
 import net.minecraft.src.TileEntity;
 import net.minecraft.src.World;
-import net.minecraft.src.mystlinkingbook.RessourcesManager.SpriteRessource;
+import net.minecraft.src.mystlinkingbook.ResourcesManager.SpriteResource;
 
 /**
  * Represents Linking Books that are placed in the world as {@code Block}.<br>
@@ -34,26 +35,27 @@ import net.minecraft.src.mystlinkingbook.RessourcesManager.SpriteRessource;
  */
 public class BlockLinkingBook extends BlockContainer {
 	
-	public static Random random = new Random();
+	protected static Random random = new Random();
 	
-	public SpriteRessource topSprite;
-	public SpriteRessource sideSprite;
-	public SpriteRessource bottomSprite;
+	protected SpriteResource topSprite;
+	protected SpriteResource sideSprite;
+	protected SpriteResource bottomSprite;
 	
 	/**
 	 * Reference to the mod instance.
 	 */
 	public Mod_MystLinkingBook mod_MLB;
 	
-	public int renderType;
+	protected int renderType;
 	
-	public BlockLinkingBook(int blockID, int textureID, SpriteRessource top, SpriteRessource side, SpriteRessource bottom, Mod_MystLinkingBook mod_MLB) {
+	public BlockLinkingBook(int blockID, int textureID, SpriteResource top, SpriteResource side, SpriteResource bottom, int renderType, Mod_MystLinkingBook mod_MLB) {
 		super(blockID, textureID, Material.wood);
 		
 		topSprite = top;
 		sideSprite = side;
 		bottomSprite = bottom;
 		
+		this.renderType = renderType;
 		this.mod_MLB = mod_MLB;
 		
 		setHardness(1F);
@@ -61,7 +63,7 @@ public class BlockLinkingBook extends BlockContainer {
 		setStepSound(soundWoodFootstep);
 		setBlockName("linkingBookBlock");
 		
-		setRequiresSelfNotify();
+		setRequiresSelfNotify(); // Should be removed ?
 	}
 	
 	@Override
@@ -71,9 +73,9 @@ public class BlockLinkingBook extends BlockContainer {
 	
 	/**
 	 * Stores the orientation of the block to the metadatas. Uses the first 2 bits of the metadatas.<br>
-	 * Called when a Linking Book Block is placed in the world. The code that places the block in the world is in {@link ItemBlockLinkingBook.onItemUse}.
+	 * Called when a Linking Book Block is placed in the world. The code that places the block in the world is in {@link ItemBlockLinkingBook#onItemUse}.
 	 * 
-	 * @see ItemBlockLinkingBook.onItemUse
+	 * @see ItemBlockLinkingBook#onItemUse
 	 */
 	@Override
 	public void onBlockPlacedBy(World world, int i, int j, int k, EntityLiving entityliving) {
@@ -152,9 +154,6 @@ public class BlockLinkingBook extends BlockContainer {
 		return false;
 	}
 	
-	/**
-	 * Teleports the player when a {@code Block} is activated (right-clicked).
-	 */
 	@Override
 	public boolean blockActivated(World world, int i, int j, int k, EntityPlayer entityplayer) {
 		TileEntityLinkingBook tileEntityLinkingBook = (TileEntityLinkingBook)world.getBlockTileEntity(i, j, k);
@@ -164,7 +163,8 @@ public class BlockLinkingBook extends BlockContainer {
 		boolean canUseBook = tileEntityLinkingBook.bookSpread >= 1f && tileEntityLinkingBook.isInRange(entityplayer);
 		if (!canUseBook) return false;
 		
-		Class openGui = null;
+		// If a GUI must be opened, this will contain its class:
+		Class<? extends GuiScreen> openGui = null;
 		
 		if (currentItem == null) {
 			openGui = GuiLinkingBook.class;
@@ -267,6 +267,9 @@ public class BlockLinkingBook extends BlockContainer {
 		linkEntity(i, j, k, entity);
 	}
 	
+	/**
+	 * Helper method that starts the linking of a living entity.
+	 */
 	public void linkEntity(int i, int j, int k, Entity entity) {
 		if (entity instanceof EntityLiving && !(entity instanceof EntityPlayer)) {
 			World world = entity.worldObj;
@@ -296,6 +299,8 @@ public class BlockLinkingBook extends BlockContainer {
 		int colorCode = tileEntityLinkingBook.linkingBook.getColorCode();
 		
 		// Drop nothing if it was burnt:
+		// There is no way to know whether it was the fire that destroyed the block or a player.
+		// So if there is fire around, the player will just think that the fire destroyed the block exactly when they were trying to remove the block.
 		if (isNeighborFire(world, i, j, k)) {
 			super.onBlockRemoval(world, i, j, k);
 			return;
@@ -307,6 +312,7 @@ public class BlockLinkingBook extends BlockContainer {
 		itemstack.setTagCompound(tileEntityLinkingBook.linkingBook.getNBTTagCompound());
 		dropItemStack(world, i, j, k, itemstack);
 		
+		// Also drop all the item in the inventory of the block:
 		for (int z = 0; z < tileEntityLinkingBook.inventoryLinkingBook.getSizeInventory(); z++) {
 			itemstack = tileEntityLinkingBook.inventoryLinkingBook.getStackInSlot(z);
 			if (itemstack != null) {
@@ -320,7 +326,7 @@ public class BlockLinkingBook extends BlockContainer {
 	/**
 	 * Helper method that drops an ItemStack in the world.
 	 * 
-	 * @see onBlockRemoval
+	 * @see #onBlockRemoval
 	 */
 	public void dropItemStack(World world, int i, int j, int k, ItemStack itemStack) {
 		// The following part is taken from Block.dropBlockAsItem_do(...):
@@ -342,13 +348,16 @@ public class BlockLinkingBook extends BlockContainer {
 	
 	/**
 	 * Prevents Minecraft to drop the Linking Book as an item when the block is removed (harvested).<br>
-	 * Instead, the Linking Book is dropped by the mod in the overridden {@link onBlockRemoval}.
+	 * Instead, the Linking Book is dropped by the mod in the overridden {@link #onBlockRemoval}.
 	 */
 	@Override
 	public int quantityDropped(Random random) {
 		return 0;
 	}
 	
+	/**
+	 * Checks if one of the neighbor blocks is fire.
+	 */
 	protected boolean isNeighborFire(World world, int i, int j, int k) {
 		int fireID = Block.fire.blockID;
 		//@formatter:off

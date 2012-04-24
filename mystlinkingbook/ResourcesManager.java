@@ -31,51 +31,55 @@ import net.minecraft.src.mystlinkingbook.ImagesOnTextureManager.ImageRef;
  * @author ziliss
  * @since 0.8b
  */
-public class RessourcesManager {
+public class ResourcesManager {
 	
 	public Mod_MystLinkingBook mod_MLB;
 	
-	public PathEnd assets_package = new PathEnd("/mystlinkingbook/assets/").setInPackage();
-	public PathEnd MCDir = new PathEnd("");
-	public PathEnd configMLB = new PathEnd(MCDir, "config/mystlinkingbook/");
-	public PathEnd ressources = new PathEnd(MCDir, "resources/");
-	public PathEnd assets_ressources = new PathEnd(ressources, "mod/mystlinkingbook/assets/");
-	public PathEnd world = new PathEnd(new PathEnd(MCDir, "saves/"), "?WORLDNAME?/").setForceReload();
-	public PathEnd worldMLB = new PathEnd(world, "mystlinkingbook/");
-	public PathEnd assets_world = new PathEnd(worldMLB, "assets/");
+	public ResourcePath assets_package = new ResourcePath("/mystlinkingbook/assets/").setInPackage();
+	public ResourcePath MCDir = new ResourcePath(""); // Set in init()
+	public ResourcePath configMLB = new ResourcePath(MCDir, "config/mystlinkingbook/");
+	public ResourcePath resources = new ResourcePath(MCDir, "resources/");
+	public ResourcePath assets_resources = new ResourcePath(resources, "mod/mystlinkingbook/assets/");
+	public ResourcePath world = new ResourcePath(new ResourcePath(MCDir, "saves/"), "?WORLDNAME?/").setDynamic();
+	public ResourcePath worldMLB = new ResourcePath(world, "mystlinkingbook/");
+	public ResourcePath assets_world = new ResourcePath(worldMLB, "assets/");
 	
 	public static final int TERRAIN_SPRITE = 0;
 	public static final int ITEMS_SPRITE = 1;
 	public static final String[] spriteTypesPaths = new String[] { "/terrain.png", "/gui/items.png" };
 	
-	public RessourcesManager(Mod_MystLinkingBook mod_MLB) {
+	public ResourcesManager(Mod_MystLinkingBook mod_MLB) {
 		this.mod_MLB = mod_MLB;
 	}
 	
 	public void init() {
 		try {
-			MCDir.piece = Minecraft.getMinecraftDir().getCanonicalPath() + File.separator;
+			MCDir.path = Minecraft.getMinecraftDir().getCanonicalPath() + File.separator;
 		}
 		catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
 	
-	public abstract class Ressource {
-		protected ArrayList<PathEnd> paths = new ArrayList<PathEnd>(4);
-		protected PathEnd currentPath = null;
-		protected Ressource def = null;
+	public void startNewWorld(String worldFolderName) {
+		world.setPath(worldFolderName + "/");
+	}
+	
+	public abstract class Resource {
+		protected ArrayList<ResourcePath> paths = new ArrayList<ResourcePath>(4);
+		protected ResourcePath currentPath = null;
+		protected Resource def = null;
 		protected boolean usesDefault = false;
 		protected boolean isLoaded = false;
 		
-		public Ressource() {
+		public Resource() {
 		}
 		
-		public Ressource(Ressource def) {
+		public Resource(Resource def) {
 			setDefault(def);
 		}
 		
-		public Ressource setDefault(Ressource def) {
+		public Resource setDefault(Resource def) {
 			if (!this.getClass().isAssignableFrom(def.getClass())) throw new RuntimeException("The default Ressource must be of the same kind than the Ressource !");
 			this.def = def;
 			return this;
@@ -90,7 +94,7 @@ public class RessourcesManager {
 		}
 		
 		public boolean exists() {
-			for (PathEnd path : paths) {
+			for (ResourcePath path : paths) {
 				if (path.exists()) return true;
 			}
 			return false;
@@ -100,10 +104,10 @@ public class RessourcesManager {
 			if (usesDefault) {
 				stopUsingDefault();
 			}
-			for (PathEnd path : paths) {
+			for (ResourcePath path : paths) {
 				path = path.copyFlatten();
 				if (path.exists()) {
-					if (!path.equals(currentPath) || path.isForceReload()) {
+					if (!path.equals(currentPath) || path.isDynamic()) {
 						boolean loaded = false;
 						try {
 							loaded = load(path);
@@ -135,7 +139,7 @@ public class RessourcesManager {
 			}
 		}
 		
-		public abstract boolean load(PathEnd path) throws Exception;
+		public abstract boolean load(ResourcePath path) throws Exception;
 		
 		public boolean startUsingDefault() {
 			usesDefault = def != null;
@@ -185,7 +189,7 @@ public class RessourcesManager {
 		
 		public void logNotFound() {
 			System.out.print("Not found " + this.getClass().getSimpleName() + ":");
-			for (PathEnd path : paths) {
+			for (ResourcePath path : paths) {
 				System.out.print(" \"" + path + "\"");
 			}
 			if (def != null) {
@@ -195,18 +199,18 @@ public class RessourcesManager {
 		}
 	}
 	
-	public abstract class ImageRessource extends Ressource {
+	public abstract class ImageResource extends Resource {
 		public String name;
 		
-		public ImageRessource(String name) {
+		public ImageResource(String name) {
 			this.name = name;
-			paths.add(new PathEnd(assets_world, name));
-			paths.add(new PathEnd(assets_ressources, name));
-			paths.add(new PathEnd(assets_package, name));
+			paths.add(new ResourcePath(assets_world, name));
+			paths.add(new ResourcePath(assets_resources, name));
+			paths.add(new ResourcePath(assets_package, name));
 		}
 		
 		@Override
-		public boolean load(PathEnd path) throws FileNotFoundException, IOException, Exception {
+		public boolean load(ResourcePath path) throws FileNotFoundException, IOException, Exception {
 			return loadImage(loadBufferedImage(path)); // bufferedimage cannot be null here
 		}
 		
@@ -219,12 +223,12 @@ public class RessourcesManager {
 	}
 	
 	// Careful, it does never release the UniqueSpriteIndex !
-	public class SpriteRessource extends ImageRessource {
+	public class SpriteResource extends ImageResource {
 		protected int spriteType;
 		protected int spriteId;
 		protected TextureFX currentTextureFX = null;
 		
-		public SpriteRessource(String name, int spriteType) {
+		public SpriteResource(String name, int spriteType) {
 			super(name);
 			this.spriteType = spriteType;
 			spriteId = ModLoader.getUniqueSpriteIndex(spriteTypesPaths[spriteType]);
@@ -232,11 +236,11 @@ public class RessourcesManager {
 		}
 		
 		public int getSpriteType() {
-			return usesDefault ? ((SpriteRessource)def).getSpriteType() : spriteType;
+			return usesDefault ? ((SpriteResource)def).getSpriteType() : spriteType;
 		}
 		
 		public int getSpriteId() {
-			return usesDefault ? ((SpriteRessource)def).getSpriteId() : spriteId;
+			return usesDefault ? ((SpriteResource)def).getSpriteId() : spriteId;
 		}
 		
 		@Override
@@ -260,15 +264,15 @@ public class RessourcesManager {
 		}
 	}
 	
-	public class TextureRessource extends ImageRessource {
+	public class TextureResource extends ImageResource {
 		protected int textureId = -1;
 		
-		public TextureRessource(String name) {
+		public TextureResource(String name) {
 			super(name);
 		}
 		
 		public int getTextureId() {
-			return usesDefault ? ((TextureRessource)def).getTextureId() : textureId;
+			return usesDefault ? ((TextureResource)def).getTextureId() : textureId;
 		}
 		
 		@Override
@@ -291,16 +295,16 @@ public class RessourcesManager {
 		}
 	}
 	
-	public class ImageRefRessource extends ImageRessource {
+	public class ImageRefResource extends ImageResource {
 		public ImageRef imageRef;
 		
-		public ImageRefRessource(String name, ImageRef imageRef) {
+		public ImageRefResource(String name, ImageRef imageRef) {
 			super(name);
 			this.imageRef = imageRef;
 		}
 		
 		public ImageRef getImageRef() {
-			return usesDefault ? ((ImageRefRessource)def).getImageRef() : imageRef;
+			return usesDefault ? ((ImageRefResource)def).getImageRef() : imageRef;
 		}
 		
 		@Override
@@ -316,7 +320,7 @@ public class RessourcesManager {
 		}
 	}
 	
-	public class SoundRessource extends Ressource {
+	public class SoundRessource extends Resource {
 		protected String idRoot;
 		protected String srcId;
 		protected String soundId;
@@ -330,13 +334,13 @@ public class RessourcesManager {
 				names[i] = nameWithoutExt + names[i];
 			}
 			for (String name : names) {
-				paths.add(new PathEnd(assets_world, name));
+				paths.add(new ResourcePath(assets_world, name));
 			}
 			for (String name : names) {
-				paths.add(new PathEnd(assets_ressources, name));
+				paths.add(new ResourcePath(assets_resources, name));
 			}
 			for (String name : names) {
-				paths.add(new PathEnd(assets_package, name));
+				paths.add(new ResourcePath(assets_package, name));
 			}
 		}
 		
@@ -345,7 +349,7 @@ public class RessourcesManager {
 		}
 		
 		@Override
-		public boolean load(PathEnd path) throws FileNotFoundException, IOException, Exception {
+		public boolean load(ResourcePath path) throws FileNotFoundException, IOException, Exception {
 			if (loadedURL != null) {
 				removeSound(srcId, loadedURL);
 				loadedURL = null;
@@ -386,100 +390,7 @@ public class RessourcesManager {
 		}
 	}
 	
-	public static class PathEnd {
-		
-		public PathEnd parent = null; // Considered final
-		
-		public String piece = ""; // Never null !
-		
-		protected boolean inPackage = false; // Considered final
-		
-		protected boolean forceReload = false; // Can be changed at anytime
-		
-		protected boolean disabled = false; // Can be changed at anytime
-		
-		public PathEnd(PathEnd parent, String piece) {
-			this.parent = parent;
-			this.piece = piece;
-		}
-		
-		public PathEnd(String piece) {
-			this.piece = piece;
-		}
-		
-		public PathEnd setInPackage() {
-			inPackage = true;
-			return this;
-		}
-		
-		public PathEnd setForceReload() {
-			forceReload = true;
-			return this;
-		}
-		
-		public boolean isInPackage() {
-			return parent == null ? inPackage : parent.inPackage;
-		}
-		
-		public boolean isForceReload() {
-			return forceReload ? true : parent == null ? false : parent.isForceReload();
-		}
-		
-		public boolean isDisabled() {
-			return disabled ? true : parent == null ? false : parent.isDisabled();
-		}
-		
-		public void setDisabled(boolean disabled) {
-			this.disabled = disabled;
-		}
-		
-		public boolean exists() {
-			if (disabled) return false;
-			if (isInPackage()) return Mod_MystLinkingBook.class.getResource(toString()) != null;
-			else return new File(toString()).exists();
-		}
-		
-		public boolean isParentOf(PathEnd path) {
-			PathEnd current = this;
-			do {
-				if (current.equals(path)) return true;
-				current = current.parent;
-			} while (current.parent != null);
-			return false;
-		}
-		
-		public StringBuilder toString(StringBuilder builder) {
-			if (parent != null) {
-				parent.toString(builder);
-			}
-			builder.append(piece);
-			return builder;
-		}
-		
-		@Override
-		public String toString() {
-			return toString(new StringBuilder()).toString();
-		}
-		
-		@Override
-		public boolean equals(Object obj) {
-			if (this == obj) return true;
-			if (obj != null && obj instanceof PathEnd) {
-				PathEnd other = (PathEnd)obj;
-				return isInPackage() == other.isInPackage() && toString().equals(other.toString());
-			}
-			else return false;
-		}
-		
-		public PathEnd copyFlatten() {
-			PathEnd path = new PathEnd(toString());
-			path.inPackage = isInPackage();
-			// Does not copy disabled state.
-			return path;
-		}
-	}
-	
-	public BufferedImage loadBufferedImage(PathEnd path) throws FileNotFoundException, IOException, Exception {
+	public BufferedImage loadBufferedImage(ResourcePath path) throws FileNotFoundException, IOException, Exception {
 		if (path.isInPackage()) return ModLoader.loadImage(mod_MLB.mc.renderEngine, path.toString());
 		else {
 			InputStream in = new FileInputStream(path.toString());
@@ -547,7 +458,7 @@ public class RessourcesManager {
 		}
 	}
 	
-	public static final void downloadRessource(InputStream in, File dest) throws Exception {
+	public static final void downloadResource(InputStream in, File dest) throws Exception {
 		in = new BufferedInputStream(in);
 		dest.getParentFile().mkdirs();
 		FileOutputStream out = null;

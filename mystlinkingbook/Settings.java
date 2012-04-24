@@ -5,21 +5,21 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
-import net.minecraft.src.mystlinkingbook.RessourcesManager.PathEnd;
 
 /**
+ * Load and provide quick access to the settings.
  * 
  * @author ziliss
  * @since 0.8b
  */
 public class Settings {
 	
-	protected PathEnd basePropsPath;
-	protected PathEnd worldPropsPath;
+	protected ResourcePath playerPropsPath;
+	protected ResourcePath worldPropsPath;
 	
-	protected Properties defaultsProps = new Properties();
-	protected Properties baseProps = new Properties(defaultsProps);
-	protected Properties worldProps = new Properties(baseProps);
+	protected Properties defaultProps = new Properties();
+	protected Properties playerProps = new Properties(defaultProps);
+	protected Properties worldProps = new Properties(playerProps);
 	
 	public boolean loaded = false;
 	
@@ -31,21 +31,21 @@ public class Settings {
 	// TODO: add logImportantWorldChanges ?
 	protected String[] keysSkippedInWorldFolders = new String[] { "allowWorldAssets" };
 	
-	public Settings(PathEnd basePropsPath, PathEnd worldPropsPath) {
-		this.basePropsPath = basePropsPath;
+	public Settings(ResourcePath playerPropsPath, ResourcePath worldPropsPath) {
+		this.playerPropsPath = playerPropsPath;
 		this.worldPropsPath = worldPropsPath;
 		
-		defaultsProps.setProperty("allowWorldAssets", Boolean.toString(allowWorldAssets));
-		defaultsProps.setProperty("noDestinationPreloading", Boolean.toString(noDestinationPreloading));
-		defaultsProps.setProperty("showLoadingScreens", Boolean.toString(showLoadingScreens));
-		defaultsProps.setProperty("logImportantWorldChanges", Boolean.toString(logImportantWorldChanges));
+		defaultProps.setProperty("allowWorldAssets", Boolean.toString(allowWorldAssets));
+		defaultProps.setProperty("noDestinationPreloading", Boolean.toString(noDestinationPreloading));
+		defaultProps.setProperty("showLoadingScreens", Boolean.toString(showLoadingScreens));
+		defaultProps.setProperty("logImportantWorldChanges", Boolean.toString(logImportantWorldChanges));
 	}
 	
 	public void load() {
 		if (loaded) {
 			unload();
 		}
-		loadProperties(baseProps, basePropsPath);
+		loadProperties(playerProps, playerPropsPath);
 		loadProperties(worldProps, worldPropsPath);
 		for (String prop : keysSkippedInWorldFolders) {
 			worldProps.remove(prop);
@@ -61,7 +61,7 @@ public class Settings {
 		logImportantWorldChanges = Boolean.parseBoolean(worldProps.getProperty("logImportantWorldChanges"));
 	}
 	
-	protected void loadProperties(Properties props, PathEnd path) {
+	protected void loadProperties(Properties props, ResourcePath path) {
 		if (path.exists()) {
 			BufferedInputStream in = null;
 			try {
@@ -88,7 +88,7 @@ public class Settings {
 	}
 	
 	public void unload() {
-		baseProps.clear();
+		playerProps.clear();
 		worldProps.clear();
 		loaded = false;
 	}

@@ -7,7 +7,12 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * Inspired by: http://stackoverflow.com/questions/54295/how-to-write-java-util-properties-to-xml-with-sorted-keys
+ * Extends java.utils.Properties, allowing to have sorted properties.<br>
+ * <br>
+ * Uses a switch to activate the sorted view. See {@link #isSorted()} and {@link #setSorted(boolean)}.<br>
+ * Inspired by: http://stackoverflow.com/questions/54295/how-to-write-java-util-properties-to-xml-with-sorted-keys<br>
+ * <br>
+ * The downside is that when the views are sorted, modifications to the Properties through the iterator's {@code remove} are unsupported.
  * 
  * @author ziliss
  * @since 0.9b

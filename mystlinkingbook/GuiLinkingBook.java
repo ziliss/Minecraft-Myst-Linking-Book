@@ -104,8 +104,26 @@ public class GuiLinkingBook extends GuiScreen {
 		
 		if (linkingPanel == null) {
 			linkingPanel = linkingBook.linkingPanel.acquireImage();
-			if (!linkingBook.doLinkToDifferentAge()) { // TODO: remove this message for 1.0 release ?
-				mc.ingameGUI.addChatMessage("Cannot link to the same Age (Check your Ages areas ?)");
+			if (!linkingBook.doLinkToDifferentAge()) { // TODO: remove these messages for 1.0 release ?
+				int destX = (int)Math.floor(linkingBook.getNBTTagCompound().getDouble("destX"));
+				int destY = (int)Math.floor(linkingBook.getNBTTagCompound().getDouble("destY"));
+				int destZ = (int)Math.floor(linkingBook.getNBTTagCompound().getDouble("destZ"));
+				int destDim = linkingBook.getNBTTagCompound().getInteger("destDim");
+				AgeArea ageDest = mod_MLB.linkingBookUtils.agesManager.getFirstReadyAgeAreaContaining(destX, destY, destZ, destDim);
+				int destAgeId = ageDest == null ? -1 : ageDest.id;
+				String src = linkingBook.bookX + " " + linkingBook.bookY + " " + linkingBook.bookZ;
+				String dest = destX + " " + destY + " " + destZ;
+				switch (mod_MLB.linkingBookUtils.agesManager.getTypeOfLinking(linkingBook.bookX, linkingBook.bookY, linkingBook.bookZ, linkingBook.bookDim, destX, destY, destZ, destDim)) {
+					case sameAgeArea:
+						mc.ingameGUI.addChatMessage("Cannot link to the same Age you are in (from: " + src + ", dest: " + dest + (destAgeId != -1 ? ", both in Age area id: " + destAgeId : "") + ")");
+						break;
+					case sameAgeDim:
+						mc.ingameGUI.addChatMessage("Cannot link to the same Age you are in (the whole current dimension is an Age)");
+						break;
+					case outOfAgeAreaInSameDim:
+					case outOfAgeAreaInDifferentDim:
+						mc.ingameGUI.addChatMessage("Cannot link outside of an Age area (dest: " + dest + ")");
+				}
 			}
 		}
 		

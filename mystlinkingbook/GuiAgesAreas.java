@@ -83,7 +83,7 @@ public class GuiAgesAreas extends GuiScreen {
 			aimedBlockStr = "- Position: " + aimedBlock.blockX + " " + aimedBlock.blockY + " " + aimedBlock.blockZ;
 			List<AgeArea> list = mod_MLB.linkingBookUtils.agesManager.getAllReadyAgeAreaContaining(aimedBlock.blockX, aimedBlock.blockY, aimedBlock.blockZ, entityplayer.dimension);
 			if (!list.isEmpty()) {
-				StringBuilder builder = new StringBuilder("- In Ages Areas Ids: ");
+				StringBuilder builder = new StringBuilder("- In Ages areas Ids: ");
 				for (AgeArea ageArea : list) {
 					builder.append(ageArea.id + ", ");
 				}
@@ -91,7 +91,7 @@ public class GuiAgesAreas extends GuiScreen {
 				aimedBlockInAgesAreasStr = builder.toString();
 			}
 			else {
-				aimedBlockInAgesAreasStr = "- In no Age Area.";
+				aimedBlockInAgesAreasStr = "- In no Age area.";
 			}
 		}
 		
