@@ -150,7 +150,7 @@ public class LinkingBookUtils {
 			if (randId >= -1 && randId <= 255) {
 				randId = createNewRandomId();
 				nbttagcompound.setInteger("randId", randId);
-				// System.out.println("New randId (from checkUpdate): " + randId);
+				System.out.println("New randId (from checkUpdate): " + randId);
 			}
 		}
 		
@@ -215,10 +215,11 @@ public class LinkingBookUtils {
 		else if (itemstack == null) return 0;
 		else if (itemstack.getItemDamage() != getColorCode(nbttagcompound)) return 0;
 		else {
-			int randId = getRandomId(nbttagcompound);
-			if (randId != -1) { // randId of -1 can be added to any book (of the same color)
-				if (randId != mod_MLB.itemPage.getLinkingBookRandomId(itemstack)) return 0;
-				if (randId != 0 && mod_MLB.itemPage.getLinkingBookName(itemstack) != getName(nbttagcompound)) return 0;
+			int bookRandId = getRandomId(nbttagcompound);
+			int pageRandId = mod_MLB.itemPage.getLinkingBookRandomId(itemstack);
+			if (pageRandId != -1) { // randId of -1 can be added to any book (of the same color)
+				if (bookRandId != pageRandId) return 0;
+				if (bookRandId != 0 && !mod_MLB.itemPage.getLinkingBookName(itemstack).equals(getName(nbttagcompound))) return 0;
 			}
 		}
 		
@@ -237,10 +238,10 @@ public class LinkingBookUtils {
 		itemstack.stackSize -= added;
 		
 		if (getMaxPages(nbttagcompound) > 0 && added == missingPages) {
-			int randId = nbttagcompound.getInteger("randId");
-			if (randId >= -1 && randId <= 255) {
-				randId = createNewRandomId();
-				nbttagcompound.setInteger("randId", randId);
+			int bookRandId = getRandomId(nbttagcompound);
+			if (bookRandId == 0) {
+				bookRandId = createNewRandomId();
+				nbttagcompound.setInteger("randId", bookRandId);
 				// System.out.println("New randId (from addPages): " + randId);
 			}
 		}
@@ -276,13 +277,7 @@ public class LinkingBookUtils {
 		if (removed == 0) return null;
 		nbttagcompound.setInteger("nbPages", nbPages - removed);
 		
-		ItemStack itemstack = new ItemStack(mod_MLB.itemPage, removed, getColorCode(nbttagcompound));
-		NBTTagCompound nbttagcompound_page = new NBTTagCompound();
-		nbttagcompound_page.setString("name", getName(nbttagcompound));
-		nbttagcompound_page.setInteger("randId", getRandomId(nbttagcompound));
-		itemstack.setTagCompound(nbttagcompound_page);
-		
-		return itemstack;
+		return mod_MLB.itemPage.createPages(removed, getColorCode(nbttagcompound), getName(nbttagcompound), getRandomId(nbttagcompound));
 	}
 	
 	public int getColorCode(NBTTagCompound nbttagcompound) {
@@ -394,7 +389,7 @@ public class LinkingBookUtils {
 		Chunk chunk = entity.worldObj.getChunkFromBlockCoords((int)Math.floor(destX), (int)Math.floor(destZ)); // Load or generate the needed chunk.
 		entity.setLocationAndAngles(destX, destY, destZ, destRotYaw, destRotPitch);
 		entity.worldObj.updateEntityWithOptionalForce(entity, true);
-		chunk.isModified = true; // Because it is not set in Chunk.addEntity()
+		chunk.setChunkModified(); // Because it is not set in Chunk.addEntity()
 	}
 	
 	public void teleport(double destX, double destY, double destZ, float destRotYaw, float destRotPitch, int destDim, String bookName, Entity entity) {
@@ -469,7 +464,7 @@ public class LinkingBookUtils {
 			destWorld.spawnEntityInWorld(entity);
 			entity.setWorld(destWorld);
 			destWorld.updateEntityWithOptionalForce(entity, true);
-			chunk.isModified = true; // Because it is not set in Chunk.addEntity()
+			chunk.setChunkModified(); // Because it is not set in Chunk.addEntity()
 			
 			while (!destWorld.quickSaveWorld(-1)) { // Until all chunks have been saved
 			}

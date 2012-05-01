@@ -1,6 +1,8 @@
 package net.minecraft.src.mystlinkingbook;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Represents an abstract path to a resource (a file, a folder, even if embedded in the mod's zip file).<br>
@@ -23,7 +25,7 @@ public class ResourcePath {
 	
 	protected boolean isDynamic = false; // Can be changed at any time
 	
-	protected boolean disabled = false; // Can be changed at any time
+	protected List<Kind> kinds = null;
 	
 	public ResourcePath(ResourcePath parent, String path) {
 		this.parent = parent;
@@ -32,6 +34,21 @@ public class ResourcePath {
 	
 	public ResourcePath(String path) {
 		this.path = path;
+	}
+	
+	public ResourcePath addkind(Kind kind) {
+		if (kinds == null) {
+			kinds = new ArrayList<Kind>(2);
+		}
+		kinds.add(kind);
+		return this;
+	}
+	
+	public boolean haskind(Kind kind) {
+		if (kinds != null) {
+			if (kinds.contains(kind)) return true;
+		}
+		return parent == null ? false : parent.haskind(kind);
 	}
 	
 	/**
@@ -61,7 +78,7 @@ public class ResourcePath {
 	 * Is this path relative to the mod's zip file ?
 	 */
 	public boolean isInPackage() {
-		return parent == null ? inPackage : parent.inPackage;
+		return parent == null ? inPackage : parent.isInPackage();
 	}
 	
 	public boolean isDynamic() {
@@ -69,21 +86,19 @@ public class ResourcePath {
 	}
 	
 	public boolean isDisabled() {
-		return disabled ? true : parent == null ? false : parent.isDisabled();
-	}
-	
-	/**
-	 * Set the disabled state of this path.
-	 */
-	public void setDisabled(boolean disabled) {
-		this.disabled = disabled;
+		if (kinds != null) {
+			for (Kind kind : kinds) {
+				if (kind.isDisabled()) return true;
+			}
+		}
+		return parent == null ? false : parent.isDisabled();
 	}
 	
 	/**
 	 * Performs a file system call to check whether a file exists for this path.
 	 */
 	public boolean exists() {
-		if (disabled) return false;
+		if (isDisabled()) return false;
 		if (isInPackage()) return Mod_MystLinkingBook.class.getResource(toString()) != null;
 		else return new File(toString()).exists();
 	}
@@ -128,12 +143,38 @@ public class ResourcePath {
 	 * Return a copy of the concatenation of this path (ie. the returned ResourcePath has no parent).<br>
 	 * Useful to keep a freezed copy of a dynamic path.<br>
 	 * <br>
-	 * Note: the disabled state of this ResourcePath is not copied to the new object.
+	 * Note: the kinds of this ResourcePath (and his parents) are not copied to the new object.
 	 */
 	public ResourcePath copyFlatten() {
 		ResourcePath path = new ResourcePath(toString());
 		path.inPackage = isInPackage();
-		// Does not copy disabled state.
+		// Does not copy the kinds.
 		return path;
+	}
+	
+	public static class Kind {
+		protected String name = ""; // Never null !
+		protected boolean disabled = false;
+		
+		public Kind(String name) {
+			this.name = name;
+		}
+		
+		public Kind(String name, boolean disabled) {
+			this.name = name;
+			this.disabled = disabled;
+		}
+		
+		public boolean isDisabled() {
+			return disabled;
+		}
+		
+		/**
+		 * Set the disabled state.
+		 */
+		public void setDisabled(boolean disabled) {
+			this.disabled = disabled;
+		}
+		
 	}
 }

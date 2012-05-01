@@ -95,7 +95,7 @@ public class GuiAfterLinking extends GuiScreen {
 		
 		tileEntityLinkingBook.linkingBook.setLinkingPanelImage(linkingPanelImage);
 		
-		chunk.isModified = true; // To force saving
+		chunk.setChunkModified(); // To force saving
 		
 		if (world != entityplayer.worldObj) {
 			world.dropOldChunks();

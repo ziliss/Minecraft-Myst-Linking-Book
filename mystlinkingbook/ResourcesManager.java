@@ -25,6 +25,7 @@ import net.minecraft.src.SoundPool;
 import net.minecraft.src.SoundPoolEntry;
 import net.minecraft.src.TextureFX;
 import net.minecraft.src.mystlinkingbook.ImagesOnTextureManager.ImageRef;
+import net.minecraft.src.mystlinkingbook.ResourcePath.Kind;
 
 /**
  * 
@@ -35,14 +36,29 @@ public class ResourcesManager {
 	
 	public Mod_MystLinkingBook mod_MLB;
 	
+	public Kind worldAsset = new Kind("WorldAsset", true);
+	
 	public ResourcePath assets_package = new ResourcePath("/mystlinkingbook/assets/").setInPackage();
+	
 	public ResourcePath MCDir = new ResourcePath(""); // Set in init()
 	public ResourcePath configMLB = new ResourcePath(MCDir, "config/mystlinkingbook/");
+	
 	public ResourcePath resources = new ResourcePath(MCDir, "resources/");
-	public ResourcePath assets_resources = new ResourcePath(resources, "mod/mystlinkingbook/assets/");
+	public ResourcePath assets_resources = new ResourcePath(resources, "mods/mystlinkingbook/assets/");
+	
 	public ResourcePath world = new ResourcePath(new ResourcePath(MCDir, "saves/"), "?WORLDNAME?/").setDynamic();
 	public ResourcePath worldMLB = new ResourcePath(world, "mystlinkingbook/");
-	public ResourcePath assets_world = new ResourcePath(worldMLB, "assets/");
+	public ResourcePath assets_world = new ResourcePath(worldMLB, "assets/").addkind(worldAsset);
+	
+	/*public ResourcePath texPacksDir = new ResourcePath(MCDir, "texturepacks/");
+	public ResourcePath texPack = new ResourcePath(texPacksDir, "?TEXTUREPACKNAME?/");
+	public ResourcePath texPackMLB = new ResourcePath(texPack, "mystlinkingbook/");
+	public ResourcePath assets_texPacks = new ResourcePath(texPackMLB, "assets/");*/
+	
+	protected ResourcePath[] assetsLocations = new ResourcePath[] { assets_world, assets_resources, assets_package };
+	
+	protected String[] imagesExts = new String[] { ".png", ".gif", ".jpg" };
+	protected String[] soundExts = new String[] { ".wav", ".ogg", ".mus" };
 	
 	public static final int TERRAIN_SPRITE = 0;
 	public static final int ITEMS_SPRITE = 1;
@@ -190,7 +206,9 @@ public class ResourcesManager {
 		public void logNotFound() {
 			System.out.print("Not found " + this.getClass().getSimpleName() + ":");
 			for (ResourcePath path : paths) {
-				System.out.print(" \"" + path + "\"");
+				if (!path.isDisabled()) {
+					System.out.print(" \"" + path + "\"");
+				}
 			}
 			if (def != null) {
 				System.out.print(" And could not use default !");
@@ -200,13 +218,17 @@ public class ResourcesManager {
 	}
 	
 	public abstract class ImageResource extends Resource {
-		public String name;
+		public String nameWithoutExt;
 		
-		public ImageResource(String name) {
-			this.name = name;
-			paths.add(new ResourcePath(assets_world, name));
-			paths.add(new ResourcePath(assets_resources, name));
-			paths.add(new ResourcePath(assets_package, name));
+		public ImageResource(String nameWithoutExt) {
+			this.nameWithoutExt = nameWithoutExt;
+			ResourcePath namedRes;
+			for (ResourcePath location : assetsLocations) {
+				namedRes = new ResourcePath(location, nameWithoutExt);
+				for (String ext : imagesExts) {
+					paths.add(new ResourcePath(namedRes, ext));
+				}
+			}
 		}
 		
 		@Override
@@ -228,11 +250,11 @@ public class ResourcesManager {
 		protected int spriteId;
 		protected TextureFX currentTextureFX = null;
 		
-		public SpriteResource(String name, int spriteType) {
-			super(name);
+		public SpriteResource(String nameWithoutExt, int spriteType) {
+			super(nameWithoutExt);
 			this.spriteType = spriteType;
 			spriteId = ModLoader.getUniqueSpriteIndex(spriteTypesPaths[spriteType]);
-			System.out.println("Overriding " + spriteTypesPaths[spriteType] + " with a SpriteRessource named \"" + name + "\" @ " + spriteId + ".");
+			System.out.println("Overriding " + spriteTypesPaths[spriteType] + " with a SpriteRessource named \"" + nameWithoutExt + "\" @ " + spriteId + ".");
 		}
 		
 		public int getSpriteType() {
@@ -267,8 +289,8 @@ public class ResourcesManager {
 	public class TextureResource extends ImageResource {
 		protected int textureId = -1;
 		
-		public TextureResource(String name) {
-			super(name);
+		public TextureResource(String nameWithoutExt) {
+			super(nameWithoutExt);
 		}
 		
 		public int getTextureId() {
@@ -298,8 +320,8 @@ public class ResourcesManager {
 	public class ImageRefResource extends ImageResource {
 		public ImageRef imageRef;
 		
-		public ImageRefResource(String name, ImageRef imageRef) {
-			super(name);
+		public ImageRefResource(String nameWithoutExt, ImageRef imageRef) {
+			super(nameWithoutExt);
 			this.imageRef = imageRef;
 		}
 		
@@ -329,18 +351,12 @@ public class ResourcesManager {
 		public SoundRessource(String idRoot, String nameWithoutExt) {
 			this.idRoot = idRoot;
 			
-			String[] names = new String[] { ".wav", ".ogg", ".mus" };
-			for (int i = 0; i < names.length; i++) {
-				names[i] = nameWithoutExt + names[i];
-			}
-			for (String name : names) {
-				paths.add(new ResourcePath(assets_world, name));
-			}
-			for (String name : names) {
-				paths.add(new ResourcePath(assets_resources, name));
-			}
-			for (String name : names) {
-				paths.add(new ResourcePath(assets_package, name));
+			ResourcePath namedRes;
+			for (ResourcePath location : assetsLocations) {
+				namedRes = new ResourcePath(location, nameWithoutExt);
+				for (String ext : soundExts) {
+					paths.add(new ResourcePath(namedRes, ext));
+				}
 			}
 		}
 		

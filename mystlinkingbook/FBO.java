@@ -56,6 +56,9 @@ public class FBO {
 		
 		// Attach the texture to the framebuffer:
 		EXTFramebufferObject.glFramebufferTexture2DEXT(EXTFramebufferObject.GL_FRAMEBUFFER_EXT, EXTFramebufferObject.GL_COLOR_ATTACHMENT0_EXT, GL11.GL_TEXTURE_2D, texId, 0);
+		// Set the filter to not use mipmaps, because they are not generated anyway:
+		GL11.glBindTexture(GL11.GL_TEXTURE_2D, texId);
+		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
 		
 		// Create the depth renderbuffer:
 		depthBufId = EXTFramebufferObject.glGenRenderbuffersEXT();

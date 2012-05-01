@@ -42,7 +42,6 @@ public class ScheduledActionsManager {
 		
 		if (time < 0) {
 			time = 0;
-			lastClock = mod_MLB.mc.theWorld.getWorldTime();
 		}
 		onClockOnlyTick = currentFrameActionsList.isEmpty();
 		ModLoader.setInGameHook(mod_MLB, true, onClockOnlyTick);
@@ -201,12 +200,6 @@ public class ScheduledActionsManager {
 				if (!action.execute(time - executionTime, partialTick)) {
 					unschedule();
 				}
-			}
-		}
-		
-		protected void execute(boolean isTick) {
-			if (!((ScheduledFrameAction)action).execute(time - executionTime, partialTick, isTick)) {
-				unschedule();
 			}
 		}
 		

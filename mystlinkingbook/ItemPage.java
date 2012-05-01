@@ -7,6 +7,7 @@ import net.minecraft.src.EntitySheep;
 import net.minecraft.src.Item;
 import net.minecraft.src.ItemDye;
 import net.minecraft.src.ItemStack;
+import net.minecraft.src.NBTTagCompound;
 import net.minecraft.src.mystlinkingbook.ResourcesManager.SpriteResource;
 
 /**
@@ -130,6 +131,15 @@ public class ItemPage extends Item {
 	public int getLinkingBookRandomId(ItemStack itemstack) {
 		if (!itemstack.hasTagCompound()) return 0;
 		return itemstack.getTagCompound().getInteger("randId");
+	}
+	
+	public ItemStack createPages(int nbPages, int colorCode, String name, int randId) {
+		ItemStack itemstack = new ItemStack(this, nbPages, colorCode);
+		NBTTagCompound nbttagcompound_page = new NBTTagCompound();
+		nbttagcompound_page.setString("name", name);
+		nbttagcompound_page.setInteger("randId", randId);
+		itemstack.setTagCompound(nbttagcompound_page);
+		return itemstack;
 	}
 	
 	public static final Color getBrighterColor(Color color, float factor) {
